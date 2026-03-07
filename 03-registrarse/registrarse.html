@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registrarse</title>
+  <link rel="stylesheet" href="./css/normalize.css">
+  <link rel="stylesheet" href="./css/registrarseDesktop.css">
+  <link rel="stylesheet" href="./css/registrarseMobile.css">
+  <link rel="shortcut icon" href="../01-principal/imagenes/LogoTCPCircle.png" type="image/x-icon">
+  <link rel="stylesheet" href="./css/sweetalert2.css">
+  <script src="../sweetalert2.min.js"></script>
+</head>
+
+<body>
+  <!-- Contenedor General -->
+  <div class="contenedorGeneral">
+    <!-- Formulario -->
+    <div class="formulario">
+
+      <!-- Titulo Principal -->
+      <div class="tituloPrincipal">Registro</div>
+
+      <!-- Input Nombre-->
+      <label class="label">
+        <input type="text" class="label__input" id="inputNombres" placeholder=" " autocomplete="off">
+        <span class="label__span">Nombre</span>
+      </label>
+
+      <!-- Input Apellidos-->
+      <label class="label">
+        <input type="text" class="label__input" id="inputApellidos" placeholder=" " autocomplete="off">
+        <span class="label__span">Apellido</span>
+      </label>
+
+      <!-- Input Documento Identidad-->
+      <label class="label">
+        <input type="text" inputmode="numeric" class="label__input" id="inputDocumento" placeholder=" " autocomplete="off">
+        <span class="label__span">Documento de Identidad</span>
+      </label>
+
+      <!-- Input Teléfono-->
+      <label class="label">
+        <input type="text" inputmode="numeric" class="label__input" id="inputTelefono" placeholder=" " autocomplete="off">
+        <span class="label__span">Teléfono</span>
+      </label>
+
+      <!-- Input Email-->
+      <label class="label">
+        <input type="email" class="label__input" id="inputEmail" placeholder=" " autocomplete="off">
+        <span class="label__span">Correo electrónico</span>
+      </label>
+
+      <!-- Input Password-->
+      <label class="label">
+        <input type="password" class="label__input" id="inputPass" placeholder=" " autocomplete="off">
+        <span class="label__span">Contraseña</span>
+      </label>
+
+      <!-- Input Referente -->
+      <label class="label">
+        <input type="email" class="label__input" id="inputReferente" placeholder=" " autocomplete="off">
+        <span class="label__span">Referido por</span>
+      </label>
+
+      <!-- Botón de Registro -->
+      <button class="btnRegistrar" id="btnRegistrar">Registrar</button>
+
+      <!-- Links inferiores -->
+      <div class="contenedorLinksInferiores">
+        <a href="../02-iniciarSesion/iniciarSesion.html">Iniciar Sesión</a>
+        <a href="../index.html">Salir</a>
+      </div>
+    
+    </div>
+  </div>
+
+  <script src="./js/registrarse.js"  type="module" defer></script>
+</body>
+
+</html>

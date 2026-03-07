@@ -1,0 +1,129 @@
+/* Reset General */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Configuracion Fuente */
+@font-face {
+  font-family: "miFuente";
+  src: url("../../01-principal/fonts/OpenSans.ttf");
+}
+
+/* Medidas de referencia HTML */
+html {
+  font-size: 100%;
+  width: 100%;
+  height: 100%;
+}
+
+/* Configuracion del Body */
+body {
+  background: azure;
+  font-family: miFuente;
+  font-size: 100%;
+}
+
+/* Contenedor general */
+.contenedorGeneral {
+  width: 70%;
+  height: 100vh;
+  min-height: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.formulario {
+  width: 50%;
+  padding: 15px;
+  background: #FFFFFF;
+  border: 1px solid #054a8f;
+  border-top: 12px solid #054a8f;
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.tituloPrincipal {
+  font-weight: bold;
+  font-size: 1.5em;
+}
+
+/* Estilos google para el input */
+.label {
+  margin-top: 15px;
+  display: grid;
+  width: 90%;
+  padding: 5px 0px;
+  font-size: 1em;
+  grid-template-areas: "input";
+
+  > * {
+    grid-area: input;
+  }
+
+}
+
+.label__span {
+  transform-origin: left;
+  transition: transform 0.5s color 0.5s;
+  padding: 8px 0 0 0px;
+  font-size: 0.98em;
+  color: #054a8f;
+}
+
+.label__input {
+  height: 100%;
+  border: none;
+  outline: none;
+  border-bottom: 2px solid #054a8f;
+  background: #FFFFFF;
+  font-size: 0.9em;
+  border-radius: 0;
+}
+
+.label__input:focus + .label__span,
+.label__input:not(:placeholder-shown) + .label__span,
+.label__input:not(:placeholder-shown) + .label__span:focus-within {
+  color: #054a8f;
+  font-weight: 500;
+  transform: translate(0, -100%) scale(1);
+}
+
+.btnRegistrar {
+  width: 90%;
+  padding: 10px;
+  margin-top: 30px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  border: 1px solid #054a8f;
+  border-radius: 2px;
+  background: #054A8F;
+  color: white;
+  font-size: 1em;
+  font-weight: 600;
+}
+
+.contenedorLinksInferiores {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+a {
+  text-decoration: none;
+  font-size: .9em;
+  color: #054a8f;
+  font-weight: 700;
+}
+
+
+
+

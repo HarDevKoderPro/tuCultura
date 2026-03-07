@@ -1,0 +1,127 @@
+.container-carousel {
+  position: relative;
+  background-color: rgb(215, 250, 250);
+  border: none;
+  width: 31rem;
+  height: 23rem;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid silver;
+  margin: 0 auto;
+  margin-bottom: 10px;
+  box-shadow: 0px 3px 3px rgba(0, 0, 0, 0.3), 3px 0px 3px rgba(0, 0, 0, 0.3);
+  border-radius: 5px;
+}
+
+.carruseles {
+  width: 500%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  justify-content: center;
+  align-items: center;
+}
+
+.slider-section {
+  flex: 1;
+  height: 100%;
+}
+
+.slider-section img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+
+.slider-section .libro {
+  padding-top: 10px;
+  display: grid;
+  place-items: center;
+  background-color: rgb(215, 250, 250);
+}
+
+.slider-section .libro img {
+  width: 70%;
+  height: 90%;
+  object-fit: fill;
+}
+
+.btn {
+  position: absolute;
+  width: 3rem;
+  height: 3rem;
+  font-size: 3rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  top: 50%;
+  transform: translateY(-1.2rem);
+  border: 2px solid silver;
+  color: silver;
+  font-weight: 100;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: 0.5s ease;
+  user-select: none;
+}
+
+.btn:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.btn-left {
+  left: 0.4rem; /* Ajustado a una posición relativa al contenedor */
+}
+
+.btn-right {
+  right: 0.4rem; /* Ajustado a una posición relativa al contenedor */
+}
+
+/* Celulares */
+@media (max-width: 600px) {
+  .container-carousel {
+    width: 100%;
+  }
+}
+
+/* MOBILE FIRST */
+
+/* Celulares Landscape */
+@media only screen and (orientation: landscape) {
+}
+
+/* Tablets */
+@media (min-width: 600px) {
+}
+
+/* Laptops */
+@media (min-width: 768px) {
+}
+
+/* --------------------------------------------------------------------------------------- */
+/* ESTILOS DESKTOP */
+/* --------------------------------------------------------------------------------------- */
+@media (min-width: 992px) {
+  .container-carousel {
+    width: 44rem;
+    height: 32rem;
+    margin: 0 auto;
+    margin-bottom: 15px;
+    border-radius: 5px;
+  }
+
+  .slider-section .libro {
+    padding-top: 40px;
+    display: grid;
+    place-items: center;
+    padding-right: 25px;
+  }
+
+  .slider-section .libro img {
+    width: 70%;
+    height: 90%;
+    object-fit: fill;
+  }
+}

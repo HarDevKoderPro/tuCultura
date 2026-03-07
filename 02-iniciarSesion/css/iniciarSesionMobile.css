@@ -1,0 +1,61 @@
+/* Estilos para dispositivos móviles */
+@media (max-width: 768px) {
+  /* Contenedor general */
+  .contenedorGeneral {
+    width: 100%;
+    padding: 0;
+  }
+
+  .formulario {
+    width: 93%;
+    gap: 5px;
+  }
+
+  /* Estilos google para el input */
+  .label {
+    font-size: 1.1em;
+    padding: 10px 0;
+  }
+
+  .label__span {
+    font-size: 1em;
+    color: #054a8f;
+  }
+
+  .label__input {
+    border-radius: 0;
+    height: 100%;
+    border: none;
+    outline: none;
+    border-bottom: 2px solid #054a8f;
+    font-size: 0.9em;
+    padding-top: 5px;
+  }
+
+  .btnIniciarSesion {
+    /* width: 90%; */
+    padding: 15px;
+    margin-top: 10px;
+    /* margin-bottom: 15px; */
+    cursor: pointer;
+    border: 1px solid #054a8f;
+    border-radius: 2px;
+    background: #054a8f;
+    color: white;
+  }
+
+  .contenedorLinksInferiores {
+    font-size: 1.2em;
+    color: #054a8f;
+    font-weight: 600;
+    gap: 6px;
+  }
+
+  a {
+    text-decoration: none;
+  }
+}
+
+/* Moviles Landscape */
+@media only screen and (orientation: landscape) {
+}

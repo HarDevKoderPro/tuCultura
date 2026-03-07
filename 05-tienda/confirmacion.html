@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#023859">
+    <title>Pedido Confirmado - Tu Cultura es Progreso</title>
+    
+    <link rel="shortcut icon" href="../01-principal/imagenes/LogoTCPCircle.png" type="image/x-icon">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/tienda.css">
+    <link rel="stylesheet" href="../01-principal/css/normalize.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="tienda-header">
+        <div class="tienda-header-content">
+            <a href="index.html" class="tienda-logo">
+                <img src="../01-principal/imagenes/LogoTCPCircle.png" alt="Tu Cultura es Progreso">
+                <span>TCP Tienda</span>
+            </a>
+        </div>
+    </header>
+    
+    <!-- Contenido -->
+    <main class="tienda-container">
+        <div class="confirmacion-pedido" id="confirmacion">
+            <div class="confirmacion-icono">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h1>¡Pedido Confirmado!</h1>
+            <p class="confirmacion-numero" id="numero-pedido">TCP-XXXXXXX</p>
+            <div class="confirmacion-mensaje">
+                <p>Gracias por tu compra. Hemos recibido tu pedido correctamente.</p>
+                <p>Te enviaremos un correo con los detalles de tu pedido.</p>
+                <p>Puedes revisar el estado de tu pedido en "Mis Pedidos".</p>
+            </div>
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <a href="mis-pedidos.html" class="btn-primario"><i class="fas fa-list"></i> Ver Mis Pedidos</a>
+                <a href="index.html" class="btn-secundario"><i class="fas fa-store"></i> Seguir Comprando</a>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="tienda-footer">
+        <div class="footer-copy">
+            <p>&copy; 2024 Tu Cultura es Progreso.</p>
+        </div>
+    </footer>
+    
+    <script>
+        // Obtener número de pedido de URL
+        const params = new URLSearchParams(window.location.search);
+        const numeroPedido = params.get('pedido');
+        if (numeroPedido) {
+            document.getElementById('numero-pedido').textContent = numeroPedido;
+        }
+    </script>
+</body>
+</html>

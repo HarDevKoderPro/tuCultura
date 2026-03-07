@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <meta name="theme-color" content="#023859">
+  <meta name="description"
+    content="Tienda Virtual Tu Cultura es Progreso - Encuentra los mejores productos en electrónicos, ropa, calzado y más">
+
+  <title>Tienda - Tu Cultura es Progreso </title>
+
+  <link rel="shortcut icon" href="../01-principal/imagenes/LogoTCPCircle.png" type="image/x-icon">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/tienda.css">
+  <link rel="stylesheet" href="../01-principal/css/normalize.css">
+</head>
+
+<body>
+  <!-- Header de la Tienda -->
+  <header class="tienda-header">
+    <div class="tienda-header-content">
+      <a href="index.html" class="tienda-logo">
+        <img src="../01-principal/imagenes/LogoTCPCircle.png" alt="Tu Cultura es Progreso">
+        <span>TCP Tienda</span>
+      </a>
+
+      <div class="tienda-busqueda">
+        <input type="text" id="busqueda-input" placeholder="Buscar productos...">
+        <button id="btn-buscar"><i class="fas fa-search"></i></button>
+      </div>
+
+      <div class="tienda-header-iconos">
+        <a href="../index.html" class="tienda-header-icono" title="Inicio">
+          <i class="fas fa-home"></i>
+          <span class="texto-icono">Inicio</span>
+        </a>
+        <a href="carrito.html" class="tienda-header-icono" id="icono-carrito" title="Carrito">
+          <i class="fas fa-shopping-cart"></i>
+          <span class="carrito-badge" id="carrito-cantidad">0</span>
+          <span class="texto-icono">Carrito</span>
+        </a>
+        <!-- ✅ MODIFICADO: agregado ?origen=tienda -->
+        <a href="../02-iniciarSesion/iniciarSesion.html?origen=tienda" class="tienda-header-icono" id="icono-usuario"
+          title="Mi Cuenta">
+          <i class="fas fa-user"></i>
+          <span class="texto-icono">Cuenta</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navegación de Categorías -->
+  <nav class="nav-categorias" id="nav-categorias">
+    <a href="#" data-categoria="0" class="activo">Todos</a>
+  </nav>
+
+  <!-- Contenido Principal -->
+  <main class="tienda-container">
+    <div class="tienda-grid">
+      <!-- Sidebar de Filtros -->
+      <aside class="tienda-filtros" id="filtros-sidebar">
+        <div class="filtro-grupo">
+          <h3><i class="fas fa-filter"></i> Filtros</h3>
+        </div>
+
+        <div class="filtro-grupo">
+          <h3>Categorías</h3>
+          <div id="filtro-categorias"></div>
+        </div>
+
+        <div class="filtro-grupo">
+          <h3>Precio</h3>
+          <div class="filtro-precio">
+            <input type="number" id="precio-min" placeholder="Mín">
+            <input type="number" id="precio-max" placeholder="Máx">
+          </div>
+        </div>
+
+        <div class="filtro-grupo">
+          <h3>Ordenar por</h3>
+          <label>
+            <input type="radio" name="orden" value="relevancia" checked> Relevancia
+          </label>
+          <label>
+            <input type="radio" name="orden" value="precio_asc"> Precio: Menor a Mayor
+          </label>
+          <label>
+            <input type="radio" name="orden" value="precio_desc"> Precio: Mayor a Menor
+          </label>
+          <label>
+            <input type="radio" name="orden" value="nuevos"> Más Nuevos
+          </label>
+          <label>
+            <input type="radio" name="orden" value="populares"> Más Populares
+          </label>
+        </div>
+
+      </aside>
+
+      <!-- Listado de Productos -->
+      <section class="productos-contenido">
+        <div class="productos-header">
+          <h1 class="productos-titulo" id="titulo-categoria">Todos los Productos</h1>
+          <div class="productos-ordenar">
+            <select id="select-orden">
+              <option value="relevancia">Relevancia</option>
+              <option value="precio_asc">Precio: Menor a Mayor</option>
+              <option value="precio_desc">Precio: Mayor a Menor</option>
+              <option value="nuevos">Más Nuevos</option>
+              <option value="populares">Más Populares</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Productos destacados -->
+        <section id="productos-destacados" class="productos-destacados oculto">
+          <h2><i class="fas fa-star"></i> Productos Destacados</h2>
+          <div class="productos-grid" id="grid-destacados"></div>
+        </section>
+
+        <!-- Grid de productos -->
+        <div class="productos-grid" id="productos-grid">
+          <div class="loading">
+            <div class="spinner"></div>
+          </div>
+        </div>
+
+        <!-- Paginación -->
+        <div class="paginacion" id="paginacion"></div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="tienda-footer">
+    <div class="footer-contenido">
+      <div class="footer-seccion">
+        <h3>Tu Cultura es Progreso</h3>
+        <p>Tienda virtual con los mejores productos para ti.</p>
+        <a href="../index.html">Ir al sitio principal</a>
+      </div>
+      <div class="footer-seccion">
+        <h3>Categorías</h3>
+        <a href="#" data-categoria="1">Electrónicos</a>
+        <a href="#" data-categoria="2">Software</a>
+        <a href="#" data-categoria="3">Ropa</a>
+        <a href="#" data-categoria="4">Calzado</a>
+      </div>
+      <div class="footer-seccion">
+        <h3>Mi Cuenta</h3>
+        <a href="mis-pedidos.html">Mis Pedidos</a>
+        <a href="carrito.html">Mi Carrito</a>
+        <!-- ✅ MODIFICADO: agregado ?origen=tienda -->
+        <a href="../02-iniciarSesion/iniciarSesion.html?origen=tienda">Iniciar Sesión</a>
+      </div>
+    </div>
+    <div class="footer-copy">
+      <p>&copy; 2024 Tu Cultura es Progreso. Todos los derechos reservados.</p>
+    </div>
+  </footer>
+
+  <!-- Botón volver arriba -->
+  <button id="btn-volver-arriba" onclick="window.scrollTo({top:0, behavior:'smooth'})" title="Volver arriba">
+    <i class="fas fa-chevron-up"></i>
+  </button>
+
+  <!-- Modal de Detalle de Producto -->
+  <div class="modal" id="modal-detalle-producto">
+    <div class="modal-contenido modal-detalle">
+      <div class="modal-header">
+        <h2 id="detalle-nombre">Nombre del Producto</h2>
+        <button class="modal-cerrar" onclick="cerrarModalDetalle()">&times;</button>
+      </div>
+      <div class="modal-cuerpo-detalle">
+        <div class="detalle-imagen">
+          <img src="" id="detalle-img" alt="Producto">
+        </div>
+        <div class="detalle-info">
+          <span class="producto-categoria" id="detalle-categoria">Categoría</span>
+          <div class="detalle-precios" id="detalle-precios">
+            <!-- Se llena dinámicamente -->
+          </div>
+          <div class="detalle-descripcion">
+            <h3>Descripción</h3>
+            <p id="detalle-descripcion-texto">Aquí va la descripción detallada...</p>
+          </div>
+          <div class="detalle-acciones">
+            <button id="btn-modal-agregar" class="btn-primario">
+              <i class="fas fa-cart-plus"></i> Agregar al Carrito
+            </button>
+            <button class="btn-secundario" onclick="cerrarModalDetalle()">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ Scripts al final del body -->
+  <script src="../sweetalert2.min.js"></script>
+  <script src="js/tienda.js"></script>
+</body>
+
+</html>

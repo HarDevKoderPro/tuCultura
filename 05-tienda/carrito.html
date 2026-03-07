@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#023859">
+    <title>Carrito de Compras - Tu Cultura es Progreso</title>
+    
+    <link rel="shortcut icon" href="../01-principal/imagenes/LogoTCPCircle.png" type="image/x-icon">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/tienda.css">
+    <link rel="stylesheet" href="../01-principal/css/normalize.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="tienda-header">
+        <div class="tienda-header-content">
+            <a href="index.html" class="tienda-logo">
+                <img src="../01-principal/imagenes/LogoTCPCircle.png" alt="Tu Cultura es Progreso">
+                <span>TCP Tienda</span>
+            </a>
+            
+            <div class="tienda-header-iconos">
+                <a href="index.html" class="tienda-header-icono" title="Tienda">
+                    <i class="fas fa-store"></i>
+                    <span>Tienda</span>
+                </a>
+                <a href="../index.html" class="tienda-header-icono" title="Inicio">
+                    <i class="fas fa-home"></i>
+                    <span>Inicio</span>
+                </a>
+                <a href="../02-iniciarSesion/iniciarSesion.html" class="tienda-header-icono" id="icono-usuario">
+                    <i class="fas fa-user"></i>
+                    <span>Cuenta</span>
+                </a>
+            </div>
+        </div>
+    </header>
+    
+    <nav class="nav-categorias">
+        <a href="index.html">Tienda</a>
+        <span style="color: #999; padding: 0 0.5rem;">></span>
+        <span>Carrito de Compras</span>
+    </nav>
+    
+    <!-- Contenido -->
+    <main class="tienda-container">
+        <h1 style="color: var(--color-primario); margin-bottom: 1.5rem;"><i class="fas fa-shopping-cart"></i> Mi Carrito</h1>
+        
+        <div class="carrito-contenido" id="carrito-contenido">
+            <div class="loading">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="tienda-footer">
+        <div class="footer-contenido">
+            <div class="footer-seccion">
+                <h3>Tu Cultura es Progreso</h3>
+                <a href="../index.html">Ir al sitio principal</a>
+            </div>
+            <div class="footer-seccion">
+                <h3>Mi Cuenta</h3>
+                <a href="mis-pedidos.html">Mis Pedidos</a>
+                <a href="../02-iniciarSesion/iniciarSesion.html">Iniciar Sesión</a>
+            </div>
+        </div>
+        <div class="footer-copy">
+            <p>&copy; 2024 Tu Cultura es Progreso.</p>
+        </div>
+    </footer>
+    
+    <script src="../sweetalert2.min.js"></script>
+    <script src="js/carrito.js"></script>
+</body>
+</html>

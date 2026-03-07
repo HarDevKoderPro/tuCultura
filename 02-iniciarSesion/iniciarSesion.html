@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iniciar Sesion</title>
+  <link rel="stylesheet" href="./css/normalize.css">
+  <link rel="stylesheet" href="./css/iniciarSesionDesktop.css">
+  <link rel="stylesheet" href="./css/iniciarSesionMobile.css">
+  <link rel="stylesheet" href="./css/sweetalert2.css">
+  <link rel="shortcut icon" href="../01-principal/imagenes/LogoTCPCircle.png" type="image/x-icon">
+</head>
+
+<body>
+  <!-- Contenedor General -->
+  <div class="contenedorGeneral">
+    <!-- Formulario -->
+    <div class="formulario">
+      <div class="tituloPrincipal">Iniciar Sesión</div>
+
+      <!-- Input Email -->
+      <label class="label">
+        <input type="email" class="label__input" id="inputEmail" placeholder=" " autocomplete="off">
+        <span class="label__span">Correo Electrónico</span>
+      </label>
+
+      <!-- Input Password -->
+      <label class="label">
+        <input type="password" class="label__input" id="inputPass" placeholder=" " autocomplete="off">
+        <span class="label__span">Contraseña</span>
+      </label>
+
+      <!-- Botón de validación -->
+      <button class="btnIniciarSesion" id="btnIniciarSesion">Ingresar</button>
+
+      <!-- Links inferiores -->
+      <div class="contenedorLinksInferiores">
+        <a href="#" id="linkOlvidastePass">¿Olvidaste la contraseña?</a>
+        <a href="../03-registrarse/registrarse.html">Registrarse</a>
+        <a href="../index.html">Salir</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="../sweetalert2.min.js"></script>
+  <script src="js/iniciarSesion.js" defer></script>
+</body>
+
+</html>

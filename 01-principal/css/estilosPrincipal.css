@@ -1,0 +1,302 @@
+/* Estilos De Pagina Principal (Mobile-First)  */
+/* ------------------------------------------- */
+/* Fuente personalizada */
+@font-face {
+  font-family: "miFuente";
+  src: url("../fonts/Roboto-Regular.ttf");
+}
+
+/* Reset General */
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+/* Configuracion Base Pagina */
+html {
+  font-size: 10px;
+  scroll-behavior: smooth;
+  scroll-padding-top: 190px;
+}
+
+/* Configuracion Base del Contenido */
+body {
+  font-family: miFuente;
+  background: Azure;
+}
+
+/* Estructura Grid General de la Pagina (1 Columna=Mobile) */
+.grid-container {
+  width: 100%;
+  display: grid;
+  grid-template:
+    "header" auto
+    "main" auto
+    "footer" auto;
+}
+
+/* Configuracion  General del area de la Cabecera */
+.header {
+  grid-area: header;
+  background-image: url(../imagenes/cabecera.jpg);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: fixed;
+  z-index: 1000;
+  width: inherit;
+  box-shadow: 1rem 0.5rem 0.5rem black;
+}
+
+/* Configuracion General del area del Contenido */
+.main {
+  grid-area: main;
+  background: Azure;
+}
+
+/* Configuracion General del area del Pie de Pagina */
+.footer {
+  grid-area: footer;
+}
+
+/* Elementos de la cabecera */
+/* Logotipo Principal */
+.logo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.logo img {
+  width: 85%;
+}
+
+/* Menu de navegacion */
+header nav {
+  width: 100%;
+  height: 100%;
+  position: fixed;
+  z-index: 10000;
+  right: 100%;
+  margin: 0;
+  top: 10rem;
+  left: -40rem;
+  overflow: scroll;
+  text-align: center;
+  background: rgba(2, 56, 89, 0.8);
+}
+
+header nav ul {
+  list-style: none;
+  height: auto;
+  padding: 2rem 0;
+  width: 100%;
+}
+
+header nav ul li {
+  font-size: 2.4rem;
+}
+
+header nav ul li a {
+  display: block;
+  color: #fff;
+  text-decoration: none;
+  width: 100%;
+  height: 100%;
+  padding: 2rem;
+}
+
+header nav ul li:hover {
+  background: #e6344a;
+}
+
+header nav ul li a span {
+  margin-right: 1rem;
+  display: inline-block;
+}
+
+.menu_bar {
+  display: block;
+  width: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background: transparent;
+}
+
+/* Icono de Hamburguesa para menú móvil */
+.menu_bar .bt-menu {
+  display: block;
+  padding: 1rem;
+  color: #fff;
+  overflow: hidden;
+  font-size: 2.5rem;
+  font-weight: normal;
+  text-decoration: none;
+}
+
+/* Icono de Hamburguesa para menú móvil */
+.menu_bar span {
+  float: right;
+  font-size: 2.5rem;
+}
+
+.container-contenido {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Elementos de la Seccion del Contenido (Main) */
+/* Contenedor Main */
+.container-contenido > * {
+  text-align: left;
+  padding: 2rem;
+  font-size: 1.8rem;
+  font-weight: 500;
+  line-height: 2.8rem;
+  letter-spacing: 0.03em;
+}
+
+.container-contenido img {
+  display: block;
+  margin: auto;
+  margin-bottom: 2rem;
+  width: 70%;
+}
+
+.container-contenido h2 {
+  text-align: center;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+/* Sección Inicio  */
+.inicio {
+  grid-area: inicio;
+  background: rgb(196, 230, 230);
+  padding-top: 20rem;
+}
+
+/* Sección Misión  */
+.mision {
+  grid-area: mision;
+  background: Beige;
+}
+
+.mision img {
+  width: 100%;
+}
+
+/* Sección Visión  */
+.vision {
+  grid-area: vision;
+  background: Lavender;
+}
+
+.vision img {
+  width: 100%;
+}
+
+/* Sección  Términos y Condiciones  */
+.terminos {
+  grid-area: terminos;
+  background: Gainsboro;
+}
+
+.terminos .linksTerminos {
+  color: #0389ff;
+  font-weight: bold;
+}
+
+.terminos h5 {
+  font-weight: bold;
+  text-align: center;
+  margin: 1.5rem auto;
+  font-size: 1.6rem;
+}
+
+.terminos img {
+  width: 100%;
+}
+
+.responsabilidadesLista {
+  margin-left: 2.5rem;
+  margin-bottom: 1.5rem;
+  text-align: left;
+  font-size: 1.8rem;
+  font-weight: 500;
+  line-height: 2.5rem;
+}
+
+/* Listas con viñetas de Terminos */
+.textoContenido ul {
+  width: fit-content;
+  margin-left: 20px;
+}
+
+/* Sección  Pie de Página  */
+.footer {
+  grid-area: footer;
+  box-shadow: 1rem 0.5rem 0.5rem black;
+
+  background-color: #f3dc80;
+  background-image: -webkit-linear-gradient(359deg, #f3dc80 0%, #7fb8d4 78%);
+  background-image: -moz-linear-gradient(359deg, #f3dc80 0%, #7fb8d4 78%);
+  background-image: -o-linear-gradient(359deg, #f3dc80 0%, #7fb8d4 78%);
+  background-image: linear-gradient(359deg, #f3dc80 0%, #7fb8d4 78%);
+}
+
+.contenido-pie {
+  display: flex;
+  flex-direction: column;
+  margin: auto;
+  padding: 1rem;
+  align-items: center;
+}
+
+.contenido-pie .facebook {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid silver;
+  margin-bottom: 15px;
+  display: grid;
+  place-items: center;
+  background-color: aliceblue;
+  padding: 5px 0px 0px 5px;
+}
+
+.contenido-pie .facebook img {
+  width: 125%;
+  object-fit: cover;
+}
+
+.contenido-pie p {
+  color: rgb(41, 38, 38);
+  font-size: 1.8em;
+  font-weight: 500;
+  text-align: center;
+  text-decoration: none;
+}
+
+.contenido-pie .whatsapp {
+  width: fit-content;
+  height: auto;
+  display: flex;
+  align-items: center;
+}
+
+.contenido-pie .whatsapp img {
+  display: block;
+  width: 5em;
+}
+
+.contenido-pie .whatsapp a {
+  color: rgb(41, 38, 38);
+  font-size: 1.8em;
+  text-decoration: none;
+  width: fit-content;
+}

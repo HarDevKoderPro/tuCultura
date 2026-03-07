@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#023859">
+    <title>Mis Pedidos - Tu Cultura es Progreso</title>
+    
+    <link rel="shortcut icon" href="../01-principal/imagenes/LogoTCPCircle.png" type="image/x-icon">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/tienda.css">
+    <link rel="stylesheet" href="../01-principal/css/normalize.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="tienda-header">
+        <div class="tienda-header-content">
+            <a href="index.html" class="tienda-logo">
+                <img src="../01-principal/imagenes/LogoTCPCircle.png" alt="Tu Cultura es Progreso">
+                <span>TCP Tienda</span>
+            </a>
+            
+            <div class="tienda-header-iconos">
+                <a href="index.html" class="tienda-header-icono" title="Tienda">
+                    <i class="fas fa-store"></i>
+                    <span>Tienda</span>
+                </a>
+                <a href="carrito.html" class="tienda-header-icono" id="icono-carrito">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="carrito-badge" id="carrito-cantidad">0</span>
+                </a>
+            </div>
+        </div>
+    </header>
+    
+    <nav class="nav-categorias">
+        <a href="index.html">Tienda</a>
+        <span style="color: #999; padding: 0 0.5rem;">></span>
+        <span>Mis Pedidos</span>
+    </nav>
+    
+    <!-- Contenido -->
+    <main class="tienda-container">
+        <h1 style="color: var(--color-primario); margin-bottom: 1.5rem;"><i class="fas fa-list-alt"></i> Mis Pedidos</h1>
+        
+        <div id="pedidos-contenido">
+            <div class="loading">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Modal Detalle Pedido -->
+    <div class="modal" id="modal-detalle">
+        <div class="modal-contenido" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2>Detalle del Pedido</h2>
+                <button class="modal-cerrar" onclick="cerrarModal()">&times;</button>
+            </div>
+            <div id="modal-body">
+                <div class="loading"><div class="spinner"></div></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="tienda-footer">
+        <div class="footer-copy">
+            <p>&copy; 2024 Tu Cultura es Progreso.</p>
+        </div>
+    </footer>
+    
+    <script src="../sweetalert2.min.js"></script>
+    <script src="js/pedidos.js"></script>
+</body>
+</html>
