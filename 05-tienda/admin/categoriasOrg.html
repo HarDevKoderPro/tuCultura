@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Categorías - Admin Tienda</title>
+    
+    <link rel="shortcut icon" href="../../01-principal/imagenes/LogoTCPCircle.png" type="image/x-icon">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/tienda.css">
+    <link rel="stylesheet" href="../../01-principal/css/normalize.css">
+    <style>
+        body { background: #f0f2f5; }
+        .admin-sidebar { background: var(--color-primario); padding: 1rem; position: fixed; top: 0; left: 0; height: 100vh; width: 250px; z-index: 1000; }
+        .admin-sidebar-logo { display: flex; align-items: center; gap: 0.5rem; padding: 1rem; color: #fff; text-decoration: none; margin-bottom: 1rem; }
+        .admin-sidebar-logo img { height: 40px; }
+        .admin-sidebar-logo span { font-weight: bold; font-size: 1.1rem; }
+        .admin-sidebar-menu { list-style: none; }
+        .admin-sidebar-menu li a { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: rgba(255,255,255,0.8); text-decoration: none; border-radius: var(--radio-borde); transition: var(--transicion); }
+        .admin-sidebar-menu li a:hover, .admin-sidebar-menu li a.activo { background: rgba(255,255,255,0.1); color: #fff; }
+        .admin-main { margin-left: 250px; padding: 1.5rem; min-height: 100vh; }
+        .admin-header-bar { background: #fff; padding: 1rem 1.5rem; margin: -1.5rem -1.5rem 1.5rem; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--sombra); flex-wrap: wrap; gap: 1rem; }
+        @media (max-width: 768px) { .admin-sidebar { display: none; } .admin-main { margin-left: 0; } }
+    </style>
+</head>
+<body>
+    <aside class="admin-sidebar">
+        <a href="index.html" class="admin-sidebar-logo">
+            <img src="../../01-principal/imagenes/LogoTCPCircle.png" alt="Logo">
+            <span>Admin Tienda</span>
+        </a>
+        <ul class="admin-sidebar-menu">
+            <li><a href="index.html"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+            <li><a href="productos.html"><i class="fas fa-box"></i> Productos</a></li>
+            <li><a href="categorias.html" class="activo"><i class="fas fa-tags"></i> Categorías</a></li>
+            <li><a href="pedidos.html"><i class="fas fa-shopping-bag"></i> Pedidos</a></li>
+            <li><a href="../index.html"><i class="fas fa-store"></i> Ver Tienda</a></li>
+        </ul>
+    </aside>
+    
+    <main class="admin-main">
+        <div class="admin-header-bar">
+            <h1 style="font-size: 1.5rem; color: var(--color-primario);"><i class="fas fa-tags"></i> Gestión de Categorías</h1>
+            <button class="btn-primario" onclick="abrirModalCategoria()">
+                <i class="fas fa-plus"></i> Nueva Categoría
+            </button>
+        </div>
+        
+        <div class="admin-tabla-container">
+            <table class="admin-tabla" id="tabla-categorias">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Descripción</th>
+                        <th>Productos</th>
+                        <th>Activo</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="6"><div class="loading"><div class="spinner"></div></div></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+    
+    <!-- Modal Categoría -->
+    <div class="modal" id="modal-categoria">
+        <div class="modal-contenido" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2 id="modal-titulo-cat">Nueva Categoría</h2>
+                <button class="modal-cerrar" onclick="cerrarModal()">&times;</button>
+            </div>
+            <form id="form-categoria" onsubmit="guardarCategoria(event)">
+                <input type="hidden" id="categoria-id" name="id">
+                
+                <div class="form-grupo">
+                    <label for="categoria-nombre">Nombre *</label>
+                    <input type="text" id="categoria-nombre" name="nombre" required>
+                </div>
+                
+                <div class="form-grupo">
+                    <label for="categoria-descripcion">Descripción</label>
+                    <textarea id="categoria-descripcion" name="descripcion" rows="3"></textarea>
+                </div>
+                
+                <div class="form-grupo">
+                    <label>Activo</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="categoria-activo" name="activo" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="submit" class="btn-primario"><i class="fas fa-save"></i> Guardar</button>
+                    <button type="button" class="btn-secundario" onclick="cerrarModal()">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script src="../../sweetalert2.min.js"></script>
+    <script>
+        const API_BASE = '../php/admin.php';
+        let categorias = [];
+        
+        document.addEventListener('DOMContentLoaded', cargarCategorias);
+        
+        async function cargarCategorias() {
+            try {
+                const response = await fetch(`${API_BASE}?action=categorias_listar`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    categorias = data.categorias;
+                    renderizarCategorias();
+                } else {
+                    Swal.fire('Error', data.error, 'error').then(() => window.location.href = '../index.html');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        function renderizarCategorias() {
+            const tbody = document.querySelector('#tabla-categorias tbody');
+            
+            if (categorias.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6">No hay categorías</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = categorias.map(c => `
+                <tr>
+                    <td>${c.id}</td>
+                    <td><strong>${c.nombre}</strong></td>
+                    <td>${c.descripcion || '-'}</td>
+                    <td>${c.total_productos}</td>
+                    <td>${c.activo ? '<span style="color: green;">\u2713 S\u00ed</span>' : '<span style="color: red;">\u2717 No</span>'}</td>
+                    <td>
+                        <button class="btn-accion editar" onclick="editarCategoria(${c.id})"><i class="fas fa-edit"></i></button>
+                        <button class="btn-accion eliminar" onclick="eliminarCategoria(${c.id})"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        function abrirModalCategoria() {
+            document.getElementById('modal-titulo-cat').textContent = 'Nueva Categoría';
+            document.getElementById('form-categoria').reset();
+            document.getElementById('categoria-id').value = '';
+            document.getElementById('categoria-activo').checked = true;
+            document.getElementById('modal-categoria').classList.add('activo');
+        }
+        
+        function editarCategoria(id) {
+            const cat = categorias.find(c => c.id === id);
+            if (!cat) return;
+            
+            document.getElementById('modal-titulo-cat').textContent = 'Editar Categoría';
+            document.getElementById('categoria-id').value = cat.id;
+            document.getElementById('categoria-nombre').value = cat.nombre;
+            document.getElementById('categoria-descripcion').value = cat.descripcion || '';
+            document.getElementById('categoria-activo').checked = cat.activo == 1;
+            document.getElementById('modal-categoria').classList.add('activo');
+        }
+        
+        async function guardarCategoria(event) {
+            event.preventDefault();
+            const form = document.getElementById('form-categoria');
+            const formData = new FormData(form);
+            const id = formData.get('id');
+            
+            formData.set('activo', document.getElementById('categoria-activo').checked ? 1 : 0);
+            
+            const action = id ? 'categoria_actualizar' : 'categoria_crear';
+            
+            try {
+                const response = await fetch(`${API_BASE}?action=${action}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    Swal.fire('\u00c9xito', data.mensaje, 'success');
+                    cerrarModal();
+                    cargarCategorias();
+                } else {
+                    Swal.fire('Error', data.error, 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        async function eliminarCategoria(id) {
+            const result = await Swal.fire({
+                icon: 'warning',
+                title: '\u00bfEliminar categor\u00eda?',
+                text: 'Esta acci\u00f3n no se puede deshacer',
+                showCancelButton: true,
+                confirmButtonText: 'S\u00ed, eliminar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#dc3545'
+            });
+            
+            if (!result.isConfirmed) return;
+            
+            const formData = new FormData();
+            formData.append('id', id);
+            
+            try {
+                const response = await fetch(`${API_BASE}?action=categoria_eliminar`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    Swal.fire('Eliminado', data.mensaje, 'success');
+                    cargarCategorias();
+                } else {
+                    Swal.fire('Error', data.error, 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        function cerrarModal() {
+            document.getElementById('modal-categoria').classList.remove('activo');
+        }
+        
+        document.getElementById('modal-categoria').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) cerrarModal();
+        });
+    </script>
+</body>
+</html>

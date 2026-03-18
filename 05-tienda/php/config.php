@@ -102,6 +102,22 @@ function esAdmin()
   global $admins;
   return isset($_SESSION['email']) && in_array($_SESSION['email'], $admins);
 }
+/**
+ * ✅ Verifica que el usuario logueado sea un CLIENTE (no admin)
+ * Usa el rol de sesión si existe, o verifica contra la lista de admins como fallback
+ */
+function esClienteLogueado()
+{
+  if (!usuarioLogueado()) return false;
+
+  // Verificar por rol en sesión (establecido en login)
+  if (isset($_SESSION['rol'])) {
+    return $_SESSION['rol'] === 'cliente';
+  }
+
+  // Fallback: si no hay rol en sesión (sesiones antiguas), verificar contra lista de admins
+  return !esAdmin();
+}
 function esEmailAdmin($email)
 {
   global $admins;

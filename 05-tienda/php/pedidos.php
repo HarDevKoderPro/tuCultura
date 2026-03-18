@@ -36,6 +36,11 @@ function verificarCheckout($conn) {
     if (!usuarioLogueado()) {
         jsonResponse(['success' => false, 'requiere_login' => true, 'mensaje' => 'Debe iniciar sesión para continuar']);
     }
+
+    // ✅ Rechazar sesiones de administrador en el checkout
+    if (!esClienteLogueado()) {
+        jsonResponse(['success' => false, 'es_admin' => true, 'mensaje' => 'Los administradores no pueden realizar compras. Cierre sesión e ingrese como cliente.']);
+    }
     
     $usuario_id = obtenerUsuarioId($conn, $_SESSION['email']);
     
@@ -70,6 +75,11 @@ function crearPedido($conn) {
     // Verificar autenticación
     if (!usuarioLogueado()) {
         jsonResponse(['error' => 'Debe iniciar sesión para realizar un pedido', 'requiere_login' => true], 401);
+    }
+
+    // ✅ Rechazar sesiones de administrador
+    if (!esClienteLogueado()) {
+        jsonResponse(['error' => 'Los administradores no pueden realizar pedidos. Cierre sesión e ingrese como cliente.', 'es_admin' => true], 403);
     }
     
     $usuario_id = obtenerUsuarioId($conn, $_SESSION['email']);

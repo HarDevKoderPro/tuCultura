@@ -36,7 +36,10 @@
             <li><a href="productos.html"><i class="fas fa-box"></i> Productos</a></li>
             <li><a href="categorias.html"><i class="fas fa-tags"></i> Categorías</a></li>
             <li><a href="pedidos.html" class="activo"><i class="fas fa-shopping-bag"></i> Pedidos</a></li>
-            <li><a href="../index.html"><i class="fas fa-store"></i> Ver Tienda</a></li>
+            <li><a href="../php/logout_admin.php" onclick="return confirm('¿Desea ir a la tienda? Se cerrará su sesión de administrador.');"><i class="fas fa-store"></i> Ver Tienda</a></li>
+            <li style="margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 1rem;">
+                <a href="../php/logout_admin.php" style="color: #ff6b6b;"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
+            </li>
         </ul>
     </aside>
     

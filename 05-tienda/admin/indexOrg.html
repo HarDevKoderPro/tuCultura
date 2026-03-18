@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#023859">
+    <title>Panel de Administración - Tienda TCP</title>
+    
+    <link rel="shortcut icon" href="../../01-principal/imagenes/LogoTCPCircle.png" type="image/x-icon">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/tienda.css">
+    <link rel="stylesheet" href="../../01-principal/css/normalize.css">
+    <style>
+        body { background: #f0f2f5; }
+        .admin-sidebar {
+            background: var(--color-primario);
+            padding: 1rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 250px;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+        .admin-sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem;
+            color: #fff;
+            text-decoration: none;
+            margin-bottom: 1rem;
+        }
+        .admin-sidebar-logo img { height: 40px; }
+        .admin-sidebar-logo span { font-weight: bold; font-size: 1.1rem; }
+        .admin-sidebar-menu { list-style: none; }
+        .admin-sidebar-menu li a {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            border-radius: var(--radio-borde);
+            transition: var(--transicion);
+        }
+        .admin-sidebar-menu li a:hover,
+        .admin-sidebar-menu li a.activo {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+        }
+        .admin-sidebar-menu li a i { width: 20px; text-align: center; }
+        .admin-main {
+            margin-left: 250px;
+            padding: 1.5rem;
+            min-height: 100vh;
+        }
+        .admin-header-bar {
+            background: #fff;
+            padding: 1rem 1.5rem;
+            margin: -1.5rem -1.5rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--sombra);
+        }
+        .admin-user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        @media (max-width: 768px) {
+            .admin-sidebar { display: none; }
+            .admin-main { margin-left: 0; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="admin-sidebar">
+        <a href="index.html" class="admin-sidebar-logo">
+            <img src="../../01-principal/imagenes/LogoTCPCircle.png" alt="Logo">
+            <span>Admin Tienda</span>
+        </a>
+        
+        <ul class="admin-sidebar-menu">
+            <li><a href="index.html" class="activo"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+            <li><a href="productos.html"><i class="fas fa-box"></i> Productos</a></li>
+            <li><a href="categorias.html"><i class="fas fa-tags"></i> Categorías</a></li>
+            <li><a href="pedidos.html"><i class="fas fa-shopping-bag"></i> Pedidos</a></li>
+            <li><a href="../index.html"><i class="fas fa-store"></i> Ver Tienda</a></li>
+            <li><a href="../../index.html"><i class="fas fa-home"></i> Sitio Principal</a></li>
+        </ul>
+    </aside>
+    
+    <!-- Contenido Principal -->
+    <main class="admin-main">
+        <div class="admin-header-bar">
+            <h1 style="font-size: 1.5rem; color: var(--color-primario);">Dashboard</h1>
+            <div class="admin-user-info">
+                <i class="fas fa-user-shield"></i>
+                <span id="admin-email">Administrador</span>
+            </div>
+        </div>
+        
+        <!-- Stats Cards -->
+        <div class="stats-grid" id="stats-grid">
+            <div class="stat-card">
+                <i class="fas fa-box"></i>
+                <div class="stat-valor" id="stat-productos">-</div>
+                <div class="stat-label">Productos</div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-shopping-bag"></i>
+                <div class="stat-valor" id="stat-pedidos">-</div>
+                <div class="stat-label">Total Pedidos</div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-clock"></i>
+                <div class="stat-valor" id="stat-pendientes">-</div>
+                <div class="stat-label">Pedidos Pendientes</div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-dollar-sign"></i>
+                <div class="stat-valor" id="stat-ventas">-</div>
+                <div class="stat-label">Ventas del Mes</div>
+            </div>
+        </div>
+        
+        <!-- Grid de contenido -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+            <!-- Últimos Pedidos -->
+            <div class="admin-tabla-container">
+                <h3 style="padding: 1rem; border-bottom: 1px solid var(--color-borde);">
+                    <i class="fas fa-list"></i> Últimos Pedidos
+                </h3>
+                <table class="admin-tabla" id="tabla-ultimos-pedidos">
+                    <thead>
+                        <tr>
+                            <th>Pedido</th>
+                            <th>Cliente</th>
+                            <th>Total</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="4" class="loading"><div class="spinner"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Productos Populares -->
+            <div class="admin-tabla-container">
+                <h3 style="padding: 1rem; border-bottom: 1px solid var(--color-borde);">
+                    <i class="fas fa-star"></i> Productos Más Vendidos
+                </h3>
+                <table class="admin-tabla" id="tabla-populares">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Vendidos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="2" class="loading"><div class="spinner"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Alertas -->
+        <div id="alertas" style="margin-top: 1.5rem;"></div>
+    </main>
+    
+    <script src="../../sweetalert2.min.js"></script>
+    <script>
+        const API_BASE = '../php/admin.php';
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarDashboard();
+        });
+        
+        async function cargarDashboard() {
+            try {
+                const response = await fetch(`${API_BASE}?action=dashboard`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const d = data.dashboard;
+                    
+                    // Stats
+                    document.getElementById('stat-productos').textContent = d.total_productos;
+                    document.getElementById('stat-pedidos').textContent = d.total_pedidos;
+                    document.getElementById('stat-pendientes').textContent = d.pedidos_pendientes;
+                    document.getElementById('stat-ventas').textContent = d.ventas_mes_formateado;
+                    
+                    // Últimos pedidos
+                    const tbodyPedidos = document.querySelector('#tabla-ultimos-pedidos tbody');
+                    if (d.ultimos_pedidos.length > 0) {
+                        tbodyPedidos.innerHTML = d.ultimos_pedidos.map(p => `
+                            <tr>
+                                <td>${p.numero_pedido}</td>
+                                <td>${p.nombres || 'N/A'} ${p.apellidos || ''}</td>
+                                <td>${p.total_formateado}</td>
+                                <td><span class="pedido-estado ${p.estado}">${p.estado}</span></td>
+                            </tr>
+                        `).join('');
+                    } else {
+                        tbodyPedidos.innerHTML = '<tr><td colspan="4">Sin pedidos</td></tr>';
+                    }
+                    
+                    // Productos populares
+                    const tbodyPopulares = document.querySelector('#tabla-populares tbody');
+                    if (d.productos_populares.length > 0) {
+                        tbodyPopulares.innerHTML = d.productos_populares.map(p => `
+                            <tr>
+                                <td>${p.nombre}</td>
+                                <td>${p.total_vendido}</td>
+                            </tr>
+                        `).join('');
+                    } else {
+                        tbodyPopulares.innerHTML = '<tr><td colspan="2">Sin datos</td></tr>';
+                    }
+                    
+                    // Alertas
+                    const alertas = document.getElementById('alertas');
+                    if (d.productos_bajo_stock > 0) {
+                        alertas.innerHTML = `
+                            <div class="mensaje advertencia">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <strong>Atención:</strong> ${d.productos_bajo_stock} productos con bajo stock (menos de 10 unidades).
+                                <a href="productos.html">Ver productos</a>
+                            </div>
+                        `;
+                    }
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Acceso Denegado',
+                        text: data.error || 'No tienes permisos de administrador',
+                        confirmButtonText: 'Volver'
+                    }).then(() => {
+                        window.location.href = '../index.html';
+                    });
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Pedidos - Admin Tienda</title>
+    
+    <link rel="shortcut icon" href="../../01-principal/imagenes/LogoTCPCircle.png" type="image/x-icon">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/tienda.css">
+    <link rel="stylesheet" href="../../01-principal/css/normalize.css">
+    <style>
+        body { background: #f0f2f5; }
+        .admin-sidebar { background: var(--color-primario); padding: 1rem; position: fixed; top: 0; left: 0; height: 100vh; width: 250px; z-index: 1000; }
+        .admin-sidebar-logo { display: flex; align-items: center; gap: 0.5rem; padding: 1rem; color: #fff; text-decoration: none; margin-bottom: 1rem; }
+        .admin-sidebar-logo img { height: 40px; }
+        .admin-sidebar-logo span { font-weight: bold; }
+        .admin-sidebar-menu { list-style: none; }
+        .admin-sidebar-menu li a { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: rgba(255,255,255,0.8); text-decoration: none; border-radius: var(--radio-borde); transition: var(--transicion); }
+        .admin-sidebar-menu li a:hover, .admin-sidebar-menu li a.activo { background: rgba(255,255,255,0.1); color: #fff; }
+        .admin-main { margin-left: 250px; padding: 1.5rem; min-height: 100vh; }
+        .admin-header-bar { background: #fff; padding: 1rem 1.5rem; margin: -1.5rem -1.5rem 1.5rem; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--sombra); flex-wrap: wrap; gap: 1rem; }
+        .filtros-pedidos { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .filtros-pedidos select { padding: 0.5rem; border: 1px solid var(--color-borde); border-radius: var(--radio-borde); }
+        @media (max-width: 768px) { .admin-sidebar { display: none; } .admin-main { margin-left: 0; } }
+    </style>
+</head>
+<body>
+    <aside class="admin-sidebar">
+        <a href="index.html" class="admin-sidebar-logo">
+            <img src="../../01-principal/imagenes/LogoTCPCircle.png" alt="Logo">
+            <span>Admin Tienda</span>
+        </a>
+        <ul class="admin-sidebar-menu">
+            <li><a href="index.html"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+            <li><a href="productos.html"><i class="fas fa-box"></i> Productos</a></li>
+            <li><a href="categorias.html"><i class="fas fa-tags"></i> Categorías</a></li>
+            <li><a href="pedidos.html" class="activo"><i class="fas fa-shopping-bag"></i> Pedidos</a></li>
+            <li><a href="../index.html"><i class="fas fa-store"></i> Ver Tienda</a></li>
+        </ul>
+    </aside>
+    
+    <main class="admin-main">
+        <div class="admin-header-bar">
+            <h1 style="font-size: 1.5rem; color: var(--color-primario);"><i class="fas fa-shopping-bag"></i> Gestión de Pedidos</h1>
+            <div class="filtros-pedidos">
+                <select id="filtro-estado" onchange="cargarPedidos()">
+                    <option value="">Todos los estados</option>
+                    <option value="pendiente">Pendientes</option>
+                    <option value="confirmado">Confirmados</option>
+                    <option value="procesando">Procesando</option>
+                    <option value="enviado">Enviados</option>
+                    <option value="entregado">Entregados</option>
+                    <option value="cancelado">Cancelados</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="admin-tabla-container">
+            <table class="admin-tabla" id="tabla-pedidos">
+                <thead>
+                    <tr>
+                        <th>N\u00b0 Pedido</th>
+                        <th>Cliente</th>
+                        <th>Email</th>
+                        <th>Productos</th>
+                        <th>Total</th>
+                        <th>Estado</th>
+                        <th>Fecha</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="8"><div class="loading"><div class="spinner"></div></div></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+    
+    <!-- Modal Detalle -->
+    <div class="modal" id="modal-pedido">
+        <div class="modal-contenido" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2>Detalle del Pedido</h2>
+                <button class="modal-cerrar" onclick="cerrarModal()">&times;</button>
+            </div>
+            <div id="modal-body"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+    </div>
+    
+    <script src="../../sweetalert2.min.js"></script>
+    <script>
+        const API_BASE = '../php/admin.php';
+        let pedidos = [];
+        
+        document.addEventListener('DOMContentLoaded', cargarPedidos);
+        
+        async function cargarPedidos() {
+            const estado = document.getElementById('filtro-estado').value;
+            const tbody = document.querySelector('#tabla-pedidos tbody');
+            tbody.innerHTML = '<tr><td colspan="8"><div class="loading"><div class="spinner"></div></div></td></tr>';
+            
+            try {
+                const url = estado ? `${API_BASE}?action=pedidos_listar&estado=${estado}` : `${API_BASE}?action=pedidos_listar`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success) {
+                    pedidos = data.pedidos;
+                    renderizarPedidos();
+                } else {
+                    Swal.fire('Error', data.error, 'error').then(() => window.location.href = '../index.html');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        function renderizarPedidos() {
+            const tbody = document.querySelector('#tabla-pedidos tbody');
+            
+            if (pedidos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8">No hay pedidos</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = pedidos.map(p => `
+                <tr>
+                    <td><strong>${p.numero_pedido}</strong></td>
+                    <td>${p.nombres || 'N/A'} ${p.apellidos || ''}</td>
+                    <td>${p.email_envio}</td>
+                    <td>${p.total_items}</td>
+                    <td><strong>${p.total_formateado}</strong></td>
+                    <td>
+                        <select onchange="cambiarEstado(${p.id}, this.value)" style="padding: 0.25rem; border-radius: 4px;">
+                            <option value="pendiente" ${p.estado === 'pendiente' ? 'selected' : ''}>Pendiente</option>
+                            <option value="confirmado" ${p.estado === 'confirmado' ? 'selected' : ''}>Confirmado</option>
+                            <option value="procesando" ${p.estado === 'procesando' ? 'selected' : ''}>Procesando</option>
+                            <option value="enviado" ${p.estado === 'enviado' ? 'selected' : ''}>Enviado</option>
+                            <option value="entregado" ${p.estado === 'entregado' ? 'selected' : ''}>Entregado</option>
+                            <option value="cancelado" ${p.estado === 'cancelado' ? 'selected' : ''}>Cancelado</option>
+                        </select>
+                    </td>
+                    <td>${p.fecha_formateada}</td>
+                    <td>
+                        <button class="btn-accion editar" onclick="verDetalle(${p.id})"><i class="fas fa-eye"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        async function cambiarEstado(pedidoId, nuevoEstado) {
+            const formData = new FormData();
+            formData.append('id', pedidoId);
+            formData.append('estado', nuevoEstado);
+            
+            try {
+                const response = await fetch(`${API_BASE}?action=pedido_actualizar_estado`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    Swal.fire({ icon: 'success', title: 'Estado actualizado', timer: 1500, showConfirmButton: false });
+                } else {
+                    Swal.fire('Error', data.error, 'error');
+                    cargarPedidos();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        async function verDetalle(pedidoId) {
+            const modal = document.getElementById('modal-pedido');
+            const modalBody = document.getElementById('modal-body');
+            modal.classList.add('activo');
+            modalBody.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}?action=pedido_detalle&id=${pedidoId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const p = data.pedido;
+                    modalBody.innerHTML = `
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                            <div>
+                                <h4>Informaci\u00f3n del Pedido</h4>
+                                <p><strong>N\u00famero:</strong> ${p.numero_pedido}</p>
+                                <p><strong>Fecha:</strong> ${p.fecha_formateada}</p>
+                                <p><strong>Estado:</strong> <span class="pedido-estado ${p.estado}">${p.estado_texto}</span></p>
+                                <p><strong>M\u00e9todo de pago:</strong> ${p.metodo_pago}</p>
+                            </div>
+                            <div>
+                                <h4>Datos de Env\u00edo</h4>
+                                <p>${p.nombre_envio} ${p.apellido_envio}</p>
+                                <p>${p.direccion_envio}</p>
+                                <p>${p.ciudad_envio}, ${p.departamento_envio}</p>
+                                <p>Tel: ${p.telefono_envio}</p>
+                                <p>Email: ${p.email_envio}</p>
+                            </div>
+                        </div>
+                        <h4>Productos</h4>
+                        <div style="max-height: 200px; overflow-y: auto;">
+                            ${p.detalles.map(d => `
+                                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                                    <span>${d.nombre_producto} (x${d.cantidad})</span>
+                                    <span>${d.subtotal_formateado}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--color-borde);">
+                            <div class="resumen-linea"><span>Subtotal</span><span>${p.subtotal_formateado}</span></div>
+                            <div class="resumen-linea"><span>Env\u00edo</span><span>${p.costo_envio_formateado}</span></div>
+                            <div class="resumen-linea total"><span>Total</span><span>${p.total_formateado}</span></div>
+                        </div>
+                        ${p.notas ? `<p style="margin-top: 1rem;"><strong>Notas:</strong> ${p.notas}</p>` : ''}
+                    `;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                modalBody.innerHTML = '<p class="mensaje error">Error al cargar el detalle</p>';
+            }
+        }
+        
+        function cerrarModal() {
+            document.getElementById('modal-pedido').classList.remove('activo');
+        }
+        
+        document.getElementById('modal-pedido').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) cerrarModal();
+        });
+    </script>
+</body>
+</html>

@@ -53,6 +53,9 @@ if ($result->num_rows === 1) {
     // Lista de administradores
     $admins  = ['luisfer5428@gmail.com', 'haroldvaldes@yahoo.com'];
     $esAdmin = in_array(strtolower($email), array_map('strtolower', $admins));
+
+    // ✅ Guardar rol en sesión para diferenciar admin de cliente
+    $_SESSION['rol'] = $esAdmin ? 'admin' : 'cliente';
   }
 }
 
