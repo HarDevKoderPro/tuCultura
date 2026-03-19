@@ -89,7 +89,7 @@
         showCancelButton: true,
         confirmButtonColor: '#023859',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: '<i class="fas fa-sign-out-alt"></i> Sí, cerrar sesión',
+        confirmButtonText: 'Sí, cerrar sesión',
         cancelButtonText: 'Cancelar'
       }).then(function (result) {
         if (result.isConfirmed) {
