@@ -35,7 +35,7 @@ async function verificarYCargarCheckout() {
                         
                         <p style="color: #666; font-size: 1.1rem; margin-bottom: 2rem;">Necesitas una cuenta para realizar tu compra.</p>
                         
-                        <a href="../02-iniciarSesion/iniciarSesion.html?origen=tienda&returnUrl=checkout.html" 
+                        <a href="../02-iniciarSesion/iniciarSesion.html?origen=tienda" 
                            style="display: inline-flex; align-items: center; gap: 10px; background: #1e3a5a; color: white; padding: 0.8rem 2rem; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 1rem; transition: background 0.3s ease;">
                             <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
                         </a>

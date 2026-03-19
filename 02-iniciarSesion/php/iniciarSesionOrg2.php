@@ -29,11 +29,6 @@ if (!isset($data['email'], $data['pass'])) {
 $email = trim($data['email']);
 $pass  = trim($data['pass']);
 
-// ✅ Leer parámetros de redirección enviados desde el frontend
-// Estos parámetros permiten que PHP decida la URL de destino tras el login
-$origen    = isset($data['origen']) ? trim($data['origen']) : '';
-$returnUrl = isset($data['returnUrl']) ? trim($data['returnUrl']) : '';
-
 // ✅ Consulta con nombres Y apellidos
 $stmt = $conn->prepare("SELECT id, pass, nombres, apellidos FROM registros WHERE email = ? LIMIT 1");
 $stmt->bind_param("s", $email);
@@ -65,40 +60,9 @@ if ($result->num_rows === 1) {
 }
 
 if ($login_valido) {
-  // =====================================================
-  // ✅ LÓGICA DE REDIRECCIÓN CENTRALIZADA EN PHP
-  // PHP decide la URL de destino. JS solo redirige a donde PHP indique.
-  // Esto elimina la dependencia de sessionStorage para redirecciones.
-  // =====================================================
-
-  $redirectUrl = '';
-
-  if ($esAdmin) {
-    // ✅ Administrador: siempre va al panel admin (no puede comprar)
-    // Sin importar si viene de tienda, checkout, etc.
-    $redirectUrl = '../05-tienda/admin/index.html';
-  } elseif (!empty($returnUrl)) {
-    // ✅ Cliente con returnUrl (ej: viene del checkout)
-    // Solo permitir URLs relativas dentro de la tienda por seguridad
-    $allowedReturns = ['checkout.html', 'carrito.html', 'mis-pedidos.html'];
-    if (in_array($returnUrl, $allowedReturns)) {
-      $redirectUrl = '../05-tienda/' . $returnUrl;
-    } else {
-      // returnUrl no reconocida → comportamiento por defecto
-      $redirectUrl = '../04-contenido/php/contenido.php';
-    }
-  } elseif ($origen === 'tienda') {
-    // ✅ Cliente que viene de la tienda pero sin returnUrl específico
-    $redirectUrl = '../05-tienda/index.html';
-  } else {
-    // ✅ Comportamiento por defecto: ir a contenido
-    $redirectUrl = '../04-contenido/php/contenido.php';
-  }
-
   echo json_encode([
-    "respuesta"   => true,
-    "esAdmin"     => $esAdmin,
-    "redirectUrl" => $redirectUrl
+    "respuesta" => true,
+    "esAdmin"   => $esAdmin
   ]);
 } else {
   // Mensaje genérico por seguridad (no especifica si es correo o contraseña)

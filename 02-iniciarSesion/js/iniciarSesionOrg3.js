@@ -28,24 +28,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     try {
-      // ✅ Recoger parámetros de contexto para enviarlos al PHP
-      // PHP decide la URL de destino (NO dependemos de sessionStorage)
-      const params = new URLSearchParams(window.location.search);
-      const origen = params.get("origen") || "";
-      const returnUrlParam = params.get("returnUrl") || sessionStorage.getItem("returnUrl") || "";
-
       const response = await fetch("php/iniciarSesion.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, pass, origen, returnUrl: returnUrlParam }),
+        body: JSON.stringify({ email, pass }),
       });
 
       const data = await response.json();
 
       if (data.respuesta) {
-        // ✅ Limpiar sessionStorage ya que PHP maneja la redirección
-        sessionStorage.removeItem("returnUrl");
-
         Swal.fire({
           icon: "success",
           title: "¡Bienvenido!",
@@ -53,13 +44,34 @@ document.addEventListener("DOMContentLoaded", () => {
           timer: 1500,
           showConfirmButton: false,
         }).then(() => {
-          // ✅ PHP devuelve la URL de destino → JS solo redirige
-          // La lógica de redirección está centralizada en el backend
-          if (data.redirectUrl) {
-            window.location.href = data.redirectUrl;
+          // ✅ Detección automática de basePath (funciona en local Y servidor)
+          const pathParts = window.location.pathname.split("/");
+          const index02 = pathParts.indexOf("02-iniciarSesion");
+          const basePath = index02 !== -1
+            ? pathParts.slice(0, index02).join("/")
+            : "";
+
+          const params = new URLSearchParams(window.location.search);
+          const esTienda = params.get("origen") === "tienda";
+
+          // ✅ Verificar si hay una URL de retorno guardada (ej: desde checkout)
+          const returnUrl = sessionStorage.getItem("returnUrl");
+
+          if (returnUrl && !data.esAdmin) {
+            // Cliente con URL de retorno → redirigir a checkout/carrito/etc.
+            sessionStorage.removeItem("returnUrl");
+            window.location.href = `${basePath}/05-tienda/${returnUrl}`;
+          } else if (returnUrl && data.esAdmin) {
+            // Admin intentó comprar → limpiar returnUrl y enviar al panel
+            sessionStorage.removeItem("returnUrl");
+            window.location.href = `${basePath}/05-tienda/admin/index.html`;
+          } else if (esTienda && data.esAdmin) {
+            window.location.href = `${basePath}/05-tienda/admin/index.html`;
+          } else if (esTienda) {
+            // ✅ Cliente que inició sesión desde la tienda → volver a la tienda
+            window.location.href = `${basePath}/05-tienda/index.html`;
           } else {
-            // Fallback por si acaso (no debería ocurrir)
-            window.location.href = "../04-contenido/php/contenido.php";
+            window.location.href = `${basePath}/04-contenido/php/contenido.php`;
           }
         });
       } else {
