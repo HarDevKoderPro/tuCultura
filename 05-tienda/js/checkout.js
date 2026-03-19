@@ -185,9 +185,14 @@ function renderizarCheckout(usuario, carrito) {
                     </label>
                 </div>
                 
-                <button type="submit" class="btn-checkout" id="btn-confirmar">
-                    <i class="fas fa-check"></i> Confirmar Pedido
-                </button>
+                <div class="checkout-acciones">
+                    <button type="submit" class="btn-checkout" id="btn-confirmar">
+                        <i class="fas fa-check"></i> Confirmar Pedido
+                    </button>
+                    <button type="button" class="btn-cancelar-checkout" id="btn-cancelar-checkout" onclick="cancelarCheckout()">
+                        <i class="fas fa-store"></i> Seguir Comprando
+                    </button>
+                </div>
             </form>
         </div>
         
@@ -269,4 +274,32 @@ async function procesarPedido(event) {
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-check"></i> Confirmar Pedido';
   }
+}
+
+
+
+/**
+ * Cancelar checkout y volver a la tienda.
+ * Mantiene el carrito intacto para que el usuario pueda regresar después.
+ * La sesión del usuario permanece activa.
+ */
+function cancelarCheckout() {
+  Swal.fire({
+    title: '¿Deseas volver a la tienda?',
+    text: 'Tu carrito se mantendrá guardado para cuando quieras continuar.',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: '<i class="fas fa-store"></i> Sí, seguir comprando',
+    cancelButtonText: 'Quedarme aquí',
+    customClass: {
+      popup: 'swal-tcp-popup',
+      confirmButton: 'btn-swal-confirm',
+      cancelButton: 'btn-swal-cancel'
+    },
+    buttonsStyling: false
+  }).then((result) => {
+    if (result.isConfirmed) {
+      window.location.href = 'index.html';
+    }
+  });
 }

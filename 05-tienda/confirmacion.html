@@ -19,6 +19,16 @@
                 <img src="../01-principal/imagenes/LogoTCPCircle.png" alt="Tu Cultura es Progreso">
                 <span>TCP Tienda</span>
             </a>
+            <div class="tienda-header-iconos">
+                <a href="index.html" class="tienda-header-icono" title="Tienda">
+                    <i class="fas fa-store"></i>
+                    <span>Tienda</span>
+                </a>
+                <a href="../02-iniciarSesion/iniciarSesion.html?origen=tienda" class="tienda-header-icono" id="icono-usuario">
+                    <i class="fas fa-user"></i>
+                    <span>Cuenta</span>
+                </a>
+            </div>
         </div>
     </header>
     
@@ -49,6 +59,8 @@
         </div>
     </footer>
     
+    <script src="../sweetalert2.min.js"></script>
+    <script src="js/sesion-ui.js"></script>
     <script>
         // Obtener número de pedido de URL
         const params = new URLSearchParams(window.location.search);

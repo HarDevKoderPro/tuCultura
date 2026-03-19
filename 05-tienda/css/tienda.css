@@ -703,6 +703,39 @@ body {
 
 .btn-checkout:hover { background: #e55a2b; }
 
+.checkout-acciones {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.checkout-acciones .btn-checkout {
+    margin-top: 0;
+}
+
+.btn-cancelar-checkout {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    background: transparent;
+    color: var(--color-primario);
+    border: 2px solid var(--color-primario);
+    border-radius: var(--radio-borde);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transicion);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-cancelar-checkout:hover {
+    background: var(--color-primario);
+    color: #fff;
+}
+
 .btn-seguir-comprando {
     display: block;
     text-align: center;
@@ -1495,5 +1528,64 @@ body {
     position: static;
     max-height: none;
     overflow-y: visible;
+  }
+}
+
+
+/* ==========================================
+   Estilos para Sesión de Usuario (Logout)
+   ========================================== */
+
+.sesion-usuario-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sesion-nombre-usuario {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radio-borde);
+  background: rgba(255, 255, 255, 0.1);
+  white-space: nowrap;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sesion-nombre-usuario i {
+  color: #4ade80;
+  font-size: 0.9rem;
+}
+
+.btn-cerrar-sesion {
+  color: #fff !important;
+  background: rgba(220, 53, 69, 0.25);
+  border-radius: var(--radio-borde);
+  padding: 0.4rem 0.8rem !important;
+  font-size: 0.85rem;
+  transition: var(--transicion);
+  cursor: pointer;
+}
+
+.btn-cerrar-sesion:hover {
+  background: rgba(220, 53, 69, 0.7) !important;
+}
+
+.btn-cerrar-sesion i {
+  font-size: 1.1rem !important;
+}
+
+/* Responsive: ocultar nombre en móvil */
+@media (max-width: 576px) {
+  .sesion-nombre-usuario {
+    display: none;
+  }
+  .btn-cerrar-sesion .texto-icono {
+    display: none;
   }
 }
