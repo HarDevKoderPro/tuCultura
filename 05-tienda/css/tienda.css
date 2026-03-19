@@ -1217,9 +1217,9 @@ body {
     z-index: 99999 !important;
 }
 
-/* Ocultar el icono SOLO dentro del popup de SweetAlert2 */
+/* Mostrar el icono de SweetAlert2 correctamente */
 .swal2-popup .swal2-icon {
-    display: none !important;
+    margin: 1.5rem auto !important;
 }
 
 .swal-tcp-popup {
@@ -1266,6 +1266,22 @@ body {
 
 .btn-swal-confirm:active,
 .btn-swal-danger:active { transform: scale(0.95); }
+
+/* Contenedor de botones de SweetAlert2 */
+.swal-tcp-popup .swal2-actions {
+    display: flex !important;
+    justify-content: center !important;
+    gap: 0.5rem !important;
+    margin-top: 1rem !important;
+}
+
+/* Texto del modal */
+.swal-tcp-popup .swal2-html-container {
+    color: #555 !important;
+    font-size: 1.05rem !important;
+    line-height: 1.5 !important;
+    margin: 0.5rem 1rem 0 !important;
+}
 
 @media (max-width: 480px) {
     .swal2-actions {

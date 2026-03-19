@@ -87,10 +87,15 @@
         text: 'Tu carrito se mantendrá guardado para cuando vuelvas.',
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: '#023859',
-        cancelButtonColor: '#6c757d',
         confirmButtonText: 'Sí, cerrar sesión',
-        cancelButtonText: 'Cancelar'
+        cancelButtonText: 'Cancelar',
+        customClass: {
+          popup: 'swal-tcp-popup',
+          title: 'swal-tcp-title',
+          confirmButton: 'btn-swal-confirm',
+          cancelButton: 'btn-swal-cancel'
+        },
+        buttonsStyling: false
       }).then(function (result) {
         if (result.isConfirmed) {
           ejecutarLogout();
