@@ -273,7 +273,5 @@ function irAlCheckout() {
     return;
   }
 
-  // ✅ Guardar returnUrl ANTES de ir al checkout (por si se redirige a login)
-  sessionStorage.setItem("returnUrl", "checkout.html");
   window.location.href = "checkout.html";
 }

@@ -44,12 +44,19 @@ document.addEventListener("DOMContentLoaded", () => {
           timer: 1500,
           showConfirmButton: false,
         }).then(() => {
-          // ✅ Detección automática de basePath (funciona en local Y servidor)
-          const pathParts = window.location.pathname.split("/");
-          const index02 = pathParts.indexOf("02-iniciarSesion");
-          const basePath = index02 !== -1
-            ? pathParts.slice(0, index02).join("/")
-            : "";
+          // ✅ Detección automática de entorno
+          const isLocal = window.location.hostname === "localhost";
+          let basePath;
+
+          if (isLocal) {
+            // En local: extraer la base desde la URL actual
+            const pathParts = window.location.pathname.split("/");
+            const index02 = pathParts.indexOf("02-iniciarSesion");
+            basePath = pathParts.slice(0, index02).join("/");
+          } else {
+            // En servidor real: la raíz es /
+            basePath = "";
+          }
 
           const params = new URLSearchParams(window.location.search);
           const esTienda = params.get("origen") === "tienda";
@@ -57,14 +64,11 @@ document.addEventListener("DOMContentLoaded", () => {
           // ✅ Verificar si hay una URL de retorno guardada (ej: desde checkout)
           const returnUrl = sessionStorage.getItem("returnUrl");
 
-          if (returnUrl && !data.esAdmin) {
-            // Cliente con URL de retorno → redirigir a checkout/carrito/etc.
+          if (returnUrl) {
+            // Limpiar returnUrl para que no se reutilice
             sessionStorage.removeItem("returnUrl");
+            // Redirigir de vuelta a la tienda (checkout, carrito, etc.)
             window.location.href = `${basePath}/05-tienda/${returnUrl}`;
-          } else if (returnUrl && data.esAdmin) {
-            // Admin intentó comprar → limpiar returnUrl y enviar al panel
-            sessionStorage.removeItem("returnUrl");
-            window.location.href = `${basePath}/05-tienda/admin/index.html`;
           } else if (esTienda && data.esAdmin) {
             window.location.href = `${basePath}/05-tienda/admin/index.html`;
           } else if (esTienda) {

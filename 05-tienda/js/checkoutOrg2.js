@@ -21,9 +21,6 @@ async function verificarYCargarCheckout() {
 
     if (!dataVerif.success) {
       if (dataVerif.requiere_login) {
-        // ✅ Guardar returnUrl ANTES de mostrar el enlace (más robusto que onclick)
-        sessionStorage.setItem('returnUrl', 'checkout.html');
-        
         // ✅ Usuario no logueado: mostrar mensaje de login
         container.innerHTML = `
                     <div style="grid-column: 1/-1; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); padding: 4rem 2rem; text-align: center; max-width: 900px; margin: 1rem auto; border: 1px solid #eee;">
@@ -36,6 +33,7 @@ async function verificarYCargarCheckout() {
                         <p style="color: #666; font-size: 1.1rem; margin-bottom: 2rem;">Necesitas una cuenta para realizar tu compra.</p>
                         
                         <a href="../02-iniciarSesion/iniciarSesion.html?origen=tienda" 
+                           onclick="sessionStorage.setItem('returnUrl', 'checkout.html')"
                            style="display: inline-flex; align-items: center; gap: 10px; background: #1e3a5a; color: white; padding: 0.8rem 2rem; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 1rem; transition: background 0.3s ease;">
                             <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
                         </a>
@@ -68,9 +66,6 @@ async function verificarYCargarCheckout() {
         return;
       }
     }
-
-    // ✅ Checkout cargó exitosamente → limpiar returnUrl para que no persista
-    sessionStorage.removeItem("returnUrl");
 
     const responseCarrito = await fetch(`${API_BASE}carrito.php?action=ver`);
     const dataCarrito = await responseCarrito.json();
