@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#023859">
-    <title>Producto - Tu Cultura es Progreso</title>
+    <title>Carrito de Compras - Tu Cultura es Progreso</title>
     
     <link rel="shortcut icon" href="../01-principal/imagenes/LogoTCPCircle.png" type="image/x-icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -20,48 +20,38 @@
                 <span>TCP Tienda</span>
             </a>
             
-            <div class="tienda-busqueda">
-                <input type="text" id="busqueda-input" placeholder="Buscar productos...">
-                <button id="btn-buscar"><i class="fas fa-search"></i></button>
-            </div>
-            
             <div class="tienda-header-iconos">
+                <a href="index.html" class="tienda-header-icono" title="Tienda">
+                    <i class="fas fa-store"></i>
+                    <span>Tienda</span>
+                </a>
                 <a href="../index.html" class="tienda-header-icono" title="Inicio">
                     <i class="fas fa-home"></i>
+                    <span>Inicio</span>
                 </a>
-                <a href="carrito.html" class="tienda-header-icono" id="icono-carrito" title="Carrito">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span class="carrito-badge" id="carrito-cantidad">0</span>
-                </a>
-                <a href="../02-iniciarSesion/iniciarSesion.html?origen=tienda" class="tienda-header-icono" id="icono-usuario">
+                <a href="../02-iniciarSesion/iniciarSesion.html" class="tienda-header-icono" id="icono-usuario">
                     <i class="fas fa-user"></i>
+                    <span>Cuenta</span>
                 </a>
             </div>
         </div>
     </header>
     
-    <!-- Breadcrumb -->
     <nav class="nav-categorias">
         <a href="index.html">Tienda</a>
         <span style="color: #999; padding: 0 0.5rem;">></span>
-        <span id="breadcrumb-categoria">Categoría</span>
-        <span style="color: #999; padding: 0 0.5rem;">></span>
-        <span id="breadcrumb-producto">Producto</span>
+        <span>Carrito de Compras</span>
     </nav>
     
     <!-- Contenido -->
     <main class="tienda-container">
-        <div class="producto-detalle" id="producto-detalle">
+        <h1 style="color: var(--color-primario); margin-bottom: 1.5rem;"><i class="fas fa-shopping-cart"></i> Mi Carrito</h1>
+        
+        <div class="carrito-contenido" id="carrito-contenido">
             <div class="loading">
                 <div class="spinner"></div>
             </div>
         </div>
-        
-        <!-- Productos Relacionados -->
-        <section style="margin-top: 2rem;">
-            <h2 style="color: var(--color-primario); margin-bottom: 1rem;"><i class="fas fa-th-large"></i> Productos Relacionados</h2>
-            <div class="productos-grid" id="productos-relacionados"></div>
-        </section>
     </main>
     
     <!-- Footer -->
@@ -72,9 +62,9 @@
                 <a href="../index.html">Ir al sitio principal</a>
             </div>
             <div class="footer-seccion">
-                <h3>Ayuda</h3>
-                <a href="carrito.html">Mi Carrito</a>
+                <h3>Mi Cuenta</h3>
                 <a href="mis-pedidos.html">Mis Pedidos</a>
+                <a href="../02-iniciarSesion/iniciarSesion.html">Iniciar Sesión</a>
             </div>
         </div>
         <div class="footer-copy">
@@ -83,6 +73,6 @@
     </footer>
     
     <script src="../sweetalert2.min.js"></script>
-    <script src="js/producto.js"></script>
+    <script src="js/carrito.js"></script>
 </body>
 </html>

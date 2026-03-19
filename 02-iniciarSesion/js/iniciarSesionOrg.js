@@ -31,7 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const response = await fetch("php/iniciarSesion.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email, pass: pass }),
+        body: JSON.stringify({ email, pass }),
       });
 
       const data = await response.json();
@@ -44,17 +44,27 @@ document.addEventListener("DOMContentLoaded", () => {
           timer: 1500,
           showConfirmButton: false,
         }).then(() => {
-          const pathParts = window.location.pathname.split("/");
-          const index02 = pathParts.indexOf("02-iniciarSesion");
-          const basePath = pathParts.slice(0, index02).join("/") + "/";
+          // ✅ Detección automática de entorno
+          const isLocal = window.location.hostname === "localhost";
+          let basePath;
+
+          if (isLocal) {
+            // En local: extraer la base desde la URL actual
+            const pathParts = window.location.pathname.split("/");
+            const index02 = pathParts.indexOf("02-iniciarSesion");
+            basePath = pathParts.slice(0, index02).join("/");
+          } else {
+            // En servidor real: la raíz es /
+            basePath = "";
+          }
 
           const params = new URLSearchParams(window.location.search);
           const esTienda = params.get("origen") === "tienda";
 
           if (esTienda && data.esAdmin) {
-            window.location.href = basePath + "05-tienda/admin/index.html";
+            window.location.href = `${basePath}/05-tienda/admin/index.html`;
           } else {
-            window.location.href = basePath + "04-contenido/php/contenido.php";
+            window.location.href = `${basePath}/04-contenido/php/contenido.php`;
           }
         });
       } else {
@@ -92,11 +102,10 @@ document.addEventListener("DOMContentLoaded", () => {
             Swal.showValidationMessage("Debes ingresar un correo válido.");
             return false;
           }
-          // PHP detecta acción 1: solo recibe { email }
           return fetch("php/recuperarPass.php", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: email }),
+            body: JSON.stringify({ email }),
           })
             .then((r) => r.json())
             .then((data) => {
@@ -106,7 +115,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 );
                 return false;
               }
-              return { email: email };
+              return { email };
             })
             .catch(() => {
               Swal.showValidationMessage("Error de conexión con el servidor.");
@@ -135,7 +144,6 @@ document.addEventListener("DOMContentLoaded", () => {
               );
               return false;
             }
-            // PHP detecta acción 2: recibe { email, codigo }
             return fetch("php/recuperarPass.php", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -180,14 +188,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 );
                 return false;
               }
-              // PHP detecta acción 3: recibe { email, nuevaPass }
               return fetch("php/recuperarPass.php", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  email: result.value.email,
-                  nuevaPass: nuevaPass,
-                }),
+                body: JSON.stringify({ email: result.value.email, nuevaPass }),
               })
                 .then((r) => r.json())
                 .then((data) => {

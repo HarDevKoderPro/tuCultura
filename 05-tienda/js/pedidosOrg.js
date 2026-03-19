@@ -30,7 +30,7 @@ async function cargarPedidos() {
                     <i class="fas fa-user-lock" style="font-size: 4rem; color: #023859; margin-bottom: 1rem;"></i>
                     <h2>Inicia Sesi\u00f3n</h2>
                     <p>Debes iniciar sesi\u00f3n para ver tus pedidos.</p>
-                    <a href="../02-iniciarSesion/iniciarSesion.html?origen=tienda" class="btn-primario" style="display: inline-block; margin-top: 1rem;">
+                    <a href="../02-iniciarSesion/iniciarSesion.html" class="btn-primario" style="display: inline-block; margin-top: 1rem;">
                         <i class="fas fa-sign-in-alt"></i> Iniciar Sesi\u00f3n
                     </a>
                 </div>

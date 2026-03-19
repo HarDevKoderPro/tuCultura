@@ -61,8 +61,19 @@ document.addEventListener("DOMContentLoaded", () => {
           const params = new URLSearchParams(window.location.search);
           const esTienda = params.get("origen") === "tienda";
 
-          if (esTienda && data.esAdmin) {
+          // ✅ Verificar si hay una URL de retorno guardada (ej: desde checkout)
+          const returnUrl = sessionStorage.getItem("returnUrl");
+
+          if (returnUrl) {
+            // Limpiar returnUrl para que no se reutilice
+            sessionStorage.removeItem("returnUrl");
+            // Redirigir de vuelta a la tienda (checkout, carrito, etc.)
+            window.location.href = `${basePath}/05-tienda/${returnUrl}`;
+          } else if (esTienda && data.esAdmin) {
             window.location.href = `${basePath}/05-tienda/admin/index.html`;
+          } else if (esTienda) {
+            // ✅ Cliente que inició sesión desde la tienda → volver a la tienda
+            window.location.href = `${basePath}/05-tienda/index.html`;
           } else {
             window.location.href = `${basePath}/04-contenido/php/contenido.php`;
           }

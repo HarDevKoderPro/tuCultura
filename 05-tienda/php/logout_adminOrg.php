@@ -29,6 +29,6 @@ if (ini_get("session.use_cookies")) {
 // Destruir la sesión completamente
 session_destroy();
 
-// ✅ Redirigir a la tienda en lugar del login
-header("Location: ../index.html");
+// Redirigir al login
+header("Location: ../../02-iniciarSesion/iniciarSesion.html");
 exit;
