@@ -202,7 +202,9 @@ function crearProducto($conn) {
     $marca = sanitizar($_POST['marca'] ?? '');
     $destacado = isset($_POST['destacado']) ? 1 : 0;
     $activo = isset($_POST['activo']) ? 1 : 0;
-    $imagen = sanitizar($_POST['imagen'] ?? '');
+    
+    // Procesar imagen subida
+    $imagen = procesarImagenSubida();
     
     $stmt = $conn->prepare("
         INSERT INTO productos (nombre, descripcion, descripcion_corta, precio, precio_oferta, 
@@ -244,7 +246,16 @@ function actualizarProducto($conn) {
     $marca = sanitizar($_POST['marca'] ?? '');
     $destacado = isset($_POST['destacado']) && $_POST['destacado'] ? 1 : 0;
     $activo = isset($_POST['activo']) && $_POST['activo'] ? 1 : 0;
-    $imagen = sanitizar($_POST['imagen'] ?? '');
+    
+    // Procesar imagen: nueva subida o mantener actual
+    $imagenNueva = procesarImagenSubida();
+    if ($imagenNueva) {
+        $imagen = $imagenNueva;
+    } elseif (!empty($_POST['imagen_actual'])) {
+        $imagen = sanitizar($_POST['imagen_actual']);
+    } else {
+        $imagen = '';
+    }
     
     $stmt = $conn->prepare("
         UPDATE productos SET 
@@ -453,6 +464,90 @@ function detallePedidoAdmin($conn) {
     $pedido['detalles'] = $detalles;
     
     jsonResponse(['success' => true, 'pedido' => $pedido]);
+}
+
+// ==================== UTILIDAD: SUBIDA DE IMÁGENES ====================
+
+/**
+ * Procesa la imagen subida desde el formulario de producto.
+ * Valida tipo MIME, extensión real, tamaño y que sea una imagen válida.
+ * Guarda en ../imagenes/productos/ con nombre único.
+ * @return string Nombre del archivo guardado, o cadena vacía si no hay imagen.
+ */
+function procesarImagenSubida() {
+    if (!isset($_FILES['imagen_file']) || $_FILES['imagen_file']['error'] === UPLOAD_ERR_NO_FILE) {
+        return '';
+    }
+    
+    $archivo = $_FILES['imagen_file'];
+    
+    // Verificar errores de subida
+    if ($archivo['error'] !== UPLOAD_ERR_OK) {
+        $errores = [
+            UPLOAD_ERR_INI_SIZE   => 'El archivo excede el tamaño máximo del servidor.',
+            UPLOAD_ERR_FORM_SIZE  => 'El archivo excede el tamaño máximo del formulario.',
+            UPLOAD_ERR_PARTIAL    => 'El archivo se subió parcialmente.',
+            UPLOAD_ERR_NO_TMP_DIR => 'Falta la carpeta temporal del servidor.',
+            UPLOAD_ERR_CANT_WRITE => 'No se pudo escribir el archivo en disco.',
+            UPLOAD_ERR_EXTENSION  => 'Una extensión de PHP detuvo la subida.',
+        ];
+        $msg = $errores[$archivo['error']] ?? 'Error desconocido al subir la imagen.';
+        jsonResponse(['error' => $msg], 400);
+    }
+    
+    // Validar tamaño (máximo 5 MB)
+    $maxSize = 5 * 1024 * 1024;
+    if ($archivo['size'] > $maxSize) {
+        jsonResponse(['error' => 'La imagen excede el tamaño máximo de 5 MB.'], 400);
+    }
+    
+    // Validar tipo MIME real (no confiar solo en el nombre)
+    $mimePermitidos = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'];
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mimeReal = $finfo->file($archivo['tmp_name']);
+    
+    if (!in_array($mimeReal, $mimePermitidos)) {
+        jsonResponse(['error' => 'Tipo de archivo no permitido. Usa: JPG, PNG, WebP, GIF o AVIF.'], 400);
+    }
+    
+    // Validar que sea realmente una imagen
+    $infoImagen = @getimagesize($archivo['tmp_name']);
+    if ($infoImagen === false) {
+        jsonResponse(['error' => 'El archivo no es una imagen válida.'], 400);
+    }
+    
+    // Validar extensión del nombre original
+    $extensionesPermitidas = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'];
+    $nombreOriginal = $archivo['name'];
+    $extension = strtolower(pathinfo($nombreOriginal, PATHINFO_EXTENSION));
+    
+    if (!in_array($extension, $extensionesPermitidas)) {
+        jsonResponse(['error' => 'Extensión de archivo no permitida.'], 400);
+    }
+    
+    // Generar nombre único: timestamp_random.ext
+    $nombreUnico = time() . '_' . bin2hex(random_bytes(6)) . '.' . $extension;
+    
+    // Crear carpeta de destino si no existe
+    $carpetaDestino = __DIR__ . '/../imagenes/productos/';
+    if (!is_dir($carpetaDestino)) {
+        mkdir($carpetaDestino, 0755, true);
+    }
+    
+    $rutaDestino = $carpetaDestino . $nombreUnico;
+    
+    // Prevenir sobrescritura (aunque el nombre es único, por seguridad)
+    while (file_exists($rutaDestino)) {
+        $nombreUnico = time() . '_' . bin2hex(random_bytes(6)) . '.' . $extension;
+        $rutaDestino = $carpetaDestino . $nombreUnico;
+    }
+    
+    // Mover archivo
+    if (!move_uploaded_file($archivo['tmp_name'], $rutaDestino)) {
+        jsonResponse(['error' => 'Error al guardar la imagen en el servidor.'], 500);
+    }
+    
+    return $nombreUnico;
 }
 
 function actualizarEstadoPedido($conn) {

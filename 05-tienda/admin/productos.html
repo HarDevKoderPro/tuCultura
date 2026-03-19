@@ -41,6 +41,75 @@
             display: flex; justify-content: space-between; align-items: center;
             box-shadow: var(--sombra); flex-wrap: wrap; gap: 1rem;
         }
+        /* Selector de imagen */
+        .imagen-upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s, background 0.3s;
+            background: #fafafa;
+            position: relative;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .imagen-upload-area:hover, .imagen-upload-area.dragover {
+            border-color: var(--color-primario);
+            background: #f0f4ff;
+        }
+        .imagen-upload-placeholder {
+            color: #999;
+        }
+        .imagen-upload-placeholder i {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            display: block;
+            color: #bbb;
+        }
+        .imagen-upload-placeholder p {
+            margin: 0.3rem 0;
+            font-size: 0.95rem;
+        }
+        .imagen-upload-placeholder small {
+            color: #aaa;
+            font-size: 0.8rem;
+        }
+        .imagen-preview-container {
+            position: relative;
+            display: inline-block;
+        }
+        .imagen-preview-container img {
+            max-height: 180px;
+            max-width: 100%;
+            border-radius: 8px;
+            object-fit: contain;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .btn-quitar-imagen {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #dc3545;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+        .btn-quitar-imagen:hover {
+            transform: scale(1.1);
+        }
+
         @media (max-width: 768px) {
             .admin-sidebar { display: none; }
             .admin-main { margin-left: 0; }
@@ -148,8 +217,25 @@
                 </div>
                 
                 <div class="form-grupo">
-                    <label for="producto-imagen">Nombre de imagen</label>
-                    <input type="text" id="producto-imagen" name="imagen" placeholder="ejemplo.jpg">
+                    <label>Imagen del producto</label>
+                    <div class="imagen-upload-area" id="imagen-upload-area">
+                        <div class="imagen-preview-container" id="imagen-preview-container" style="display:none;">
+                            <img id="imagen-preview" src="" alt="Vista previa">
+                            <button type="button" class="btn-quitar-imagen" onclick="quitarImagen()" title="Quitar imagen">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="imagen-upload-placeholder" id="imagen-upload-placeholder">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p>Haz clic o arrastra una imagen aquí</p>
+                            <small>JPG, PNG, WebP, GIF, AVIF — Máx. 5 MB</small>
+                        </div>
+                        <input type="file" id="producto-imagen-file" name="imagen_file" 
+                               accept=".jpg,.jpeg,.png,.webp,.gif,.avif"
+                               style="display:none;">
+                    </div>
+                    <small id="imagen-nombre-archivo" style="color:#666; margin-top:0.3rem; display:block;"></small>
+                    <small id="imagen-error" style="color:#dc3545; margin-top:0.3rem; display:none;"></small>
                 </div>
                 
                 <div class="form-fila">

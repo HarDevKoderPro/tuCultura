@@ -1,16 +1,150 @@
 /**
  * JavaScript para Gestión de Productos - Admin
+ * Con selector visual de imágenes, validaciones y subida automática
  */
 
 const API_BASE = '../php/admin.php';
 let productos = [];
 let categorias = [];
+let imagenSeleccionada = null; // File object de la imagen nueva
+let imagenActual = '';         // Nombre de imagen existente (al editar)
 
+// ==================== CONSTANTES DE VALIDACIÓN ====================
+const FORMATOS_PERMITIDOS = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'];
+const EXTENSIONES_PERMITIDAS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'];
+const MAX_TAMANO = 5 * 1024 * 1024; // 5 MB
+
+// ==================== INICIALIZACIÓN ====================
 document.addEventListener('DOMContentLoaded', () => {
     cargarCategorias();
     cargarProductos();
+    inicializarSelectorImagen();
 });
 
+// ==================== SELECTOR DE IMAGEN ====================
+function inicializarSelectorImagen() {
+    const uploadArea = document.getElementById('imagen-upload-area');
+    const fileInput = document.getElementById('producto-imagen-file');
+
+    // Click en el área abre el selector de archivos
+    uploadArea.addEventListener('click', (e) => {
+        // No abrir si se hizo clic en el botón de quitar
+        if (e.target.closest('.btn-quitar-imagen')) return;
+        fileInput.click();
+    });
+
+    // Cambio de archivo
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+            procesarArchivoImagen(e.target.files[0]);
+        }
+    });
+
+    // Drag & Drop
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+    });
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            procesarArchivoImagen(e.dataTransfer.files[0]);
+        }
+    });
+}
+
+function procesarArchivoImagen(file) {
+    const errorEl = document.getElementById('imagen-error');
+    const nombreEl = document.getElementById('imagen-nombre-archivo');
+    errorEl.style.display = 'none';
+    errorEl.textContent = '';
+    nombreEl.textContent = '';
+
+    // Validar tipo MIME
+    if (!FORMATOS_PERMITIDOS.includes(file.type)) {
+        mostrarErrorImagen('Formato no permitido. Usa: JPG, PNG, WebP, GIF o AVIF.');
+        return;
+    }
+
+    // Validar extensión
+    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    if (!EXTENSIONES_PERMITIDAS.includes(ext)) {
+        mostrarErrorImagen('Extensión de archivo no permitida.');
+        return;
+    }
+
+    // Validar tamaño
+    if (file.size > MAX_TAMANO) {
+        const tamanoMB = (file.size / (1024 * 1024)).toFixed(1);
+        mostrarErrorImagen(`El archivo pesa ${tamanoMB} MB. El máximo permitido es 5 MB.`);
+        return;
+    }
+
+    // Validar que sea realmente una imagen
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            // Es una imagen válida
+            imagenSeleccionada = file;
+            mostrarVistaPrevia(e.target.result, file.name);
+        };
+        img.onerror = function() {
+            mostrarErrorImagen('El archivo no es una imagen válida.');
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function mostrarVistaPrevia(src, nombre) {
+    const preview = document.getElementById('imagen-preview');
+    const previewContainer = document.getElementById('imagen-preview-container');
+    const placeholder = document.getElementById('imagen-upload-placeholder');
+    const nombreEl = document.getElementById('imagen-nombre-archivo');
+
+    preview.src = src;
+    previewContainer.style.display = 'inline-block';
+    placeholder.style.display = 'none';
+    nombreEl.textContent = nombre ? `📎 ${nombre}` : '';
+}
+
+function mostrarErrorImagen(mensaje) {
+    const errorEl = document.getElementById('imagen-error');
+    errorEl.textContent = mensaje;
+    errorEl.style.display = 'block';
+    // Limpiar el input file
+    document.getElementById('producto-imagen-file').value = '';
+}
+
+function quitarImagen() {
+    imagenSeleccionada = null;
+    imagenActual = '';
+
+    const preview = document.getElementById('imagen-preview');
+    const previewContainer = document.getElementById('imagen-preview-container');
+    const placeholder = document.getElementById('imagen-upload-placeholder');
+    const nombreEl = document.getElementById('imagen-nombre-archivo');
+    const errorEl = document.getElementById('imagen-error');
+    const fileInput = document.getElementById('producto-imagen-file');
+
+    preview.src = '';
+    previewContainer.style.display = 'none';
+    placeholder.style.display = 'block';
+    nombreEl.textContent = '';
+    errorEl.style.display = 'none';
+    fileInput.value = '';
+}
+
+function resetearSelectorImagen() {
+    quitarImagen();
+}
+
+// ==================== CATEGORÍAS ====================
 async function cargarCategorias() {
     try {
         const response = await fetch(`${API_BASE}?action=categorias_listar`);
@@ -27,6 +161,7 @@ async function cargarCategorias() {
     }
 }
 
+// ==================== PRODUCTOS ====================
 async function cargarProductos() {
     const tbody = document.querySelector('#tabla-productos tbody');
     
@@ -64,8 +199,9 @@ function renderizarProductos() {
     tbody.innerHTML = productos.map(p => `
         <tr>
             <td>
-                <img src="../imagenes/productos/${p.imagen || '../01-principal/imagenes/fondo-producto.png'}" 
+                <img src="../imagenes/productos/${p.imagen || 'sin-imagen.png'}" 
                      alt="${p.nombre}"
+                     style="width:50px; height:50px; object-fit:cover; border-radius:6px;"
                      onerror="this.src='../../01-principal/imagenes/fondo-producto.png'">
             </td>
             <td><strong>${p.nombre}</strong><br><small>${p.sku || ''}</small></td>
@@ -82,7 +218,7 @@ function renderizarProductos() {
                 </span>
             </td>
             <td>${p.destacado ? '<i class="fas fa-star" style="color: gold;"></i>' : '-'}</td>
-            <td>${p.activo ? '<span style="color: green;">\u2713</span>' : '<span style="color: red;">\u2717</span>'}</td>
+            <td>${p.activo ? '<span style="color: green;">✓</span>' : '<span style="color: red;">✗</span>'}</td>
             <td>
                 <button class="btn-accion editar" onclick="editarProducto(${p.id})" title="Editar">
                     <i class="fas fa-edit"></i>
@@ -95,11 +231,13 @@ function renderizarProductos() {
     `).join('');
 }
 
+// ==================== MODAL ====================
 function abrirModalProducto() {
     document.getElementById('modal-titulo').textContent = 'Nuevo Producto';
     document.getElementById('form-producto').reset();
     document.getElementById('producto-id').value = '';
     document.getElementById('producto-activo').checked = true;
+    resetearSelectorImagen();
     document.getElementById('modal-producto').classList.add('activo');
 }
 
@@ -121,9 +259,15 @@ async function editarProducto(id) {
             document.getElementById('producto-stock').value = p.stock;
             document.getElementById('producto-sku').value = p.sku || '';
             document.getElementById('producto-marca').value = p.marca || '';
-            document.getElementById('producto-imagen').value = p.imagen || '';
             document.getElementById('producto-destacado').checked = p.destacado == 1;
             document.getElementById('producto-activo').checked = p.activo == 1;
+            
+            // Mostrar imagen actual si existe
+            resetearSelectorImagen();
+            if (p.imagen) {
+                imagenActual = p.imagen;
+                mostrarVistaPrevia(`../imagenes/productos/${p.imagen}`, p.imagen);
+            }
             
             document.getElementById('modal-producto').classList.add('activo');
         }
@@ -132,6 +276,7 @@ async function editarProducto(id) {
     }
 }
 
+// ==================== GUARDAR PRODUCTO ====================
 async function guardarProducto(event) {
     event.preventDefault();
     
@@ -142,6 +287,19 @@ async function guardarProducto(event) {
     // Manejar checkboxes
     formData.set('destacado', document.getElementById('producto-destacado').checked ? 1 : 0);
     formData.set('activo', document.getElementById('producto-activo').checked ? 1 : 0);
+    
+    // Eliminar el campo file del FormData nativo (lo agregaremos manualmente)
+    formData.delete('imagen_file');
+    
+    // Agregar imagen según el caso
+    if (imagenSeleccionada) {
+        // Nueva imagen seleccionada → subir archivo
+        formData.append('imagen_file', imagenSeleccionada);
+    } else if (imagenActual) {
+        // Mantener imagen actual (editando sin cambiar imagen)
+        formData.append('imagen_actual', imagenActual);
+    }
+    // Si no hay ni imagenSeleccionada ni imagenActual, no se envía imagen
     
     const action = id ? 'producto_actualizar' : 'producto_crear';
     
@@ -156,7 +314,7 @@ async function guardarProducto(event) {
         if (data.success) {
             Swal.fire({
                 icon: 'success',
-                title: '\u00c9xito',
+                title: 'Éxito',
                 text: data.mensaje,
                 timer: 2000,
                 showConfirmButton: false
@@ -172,17 +330,18 @@ async function guardarProducto(event) {
         }
     } catch (error) {
         console.error('Error:', error);
-        Swal.fire('Error', 'Error de conexi\u00f3n', 'error');
+        Swal.fire('Error', 'Error de conexión', 'error');
     }
 }
 
+// ==================== ELIMINAR PRODUCTO ====================
 async function eliminarProducto(id) {
     const result = await Swal.fire({
         icon: 'warning',
-        title: '\u00bfEliminar producto?',
-        text: 'El producto ser\u00e1 desactivado',
+        title: '¿Eliminar producto?',
+        text: 'El producto será desactivado',
         showCancelButton: true,
-        confirmButtonText: 'S\u00ed, eliminar',
+        confirmButtonText: 'Sí, eliminar',
         cancelButtonText: 'Cancelar',
         confirmButtonColor: '#dc3545'
     });
@@ -217,6 +376,7 @@ async function eliminarProducto(id) {
     }
 }
 
+// ==================== UTILIDADES ====================
 function cerrarModal() {
     document.getElementById('modal-producto').classList.remove('activo');
 }
