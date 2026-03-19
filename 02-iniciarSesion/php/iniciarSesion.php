@@ -73,12 +73,15 @@ if ($login_valido) {
 
   $redirectUrl = '';
 
-  if ($esAdmin) {
-    // ✅ Administrador: siempre va al panel admin (no puede comprar)
-    // Sin importar si viene de tienda, checkout, etc.
+  if ($origen === 'homepage') {
+    // ✅ 1. Viene de homepage → SIEMPRE ir a contenido (incluido admin)
+    // Admin que entra desde "Usuarios" en homepage debe ver contenido, no panel admin
+    $redirectUrl = '../04-contenido/php/contenido.php';
+  } elseif ($esAdmin && $origen === 'tienda') {
+    // ✅ 2. Admin que viene de tienda → panel admin
     $redirectUrl = '../05-tienda/admin/index.html';
   } elseif (!empty($returnUrl)) {
-    // ✅ Cliente con returnUrl (ej: viene del checkout)
+    // ✅ 3. Cliente con returnUrl (ej: viene del checkout)
     // Solo permitir URLs relativas dentro de la tienda por seguridad
     $allowedReturns = ['checkout.html', 'carrito.html', 'mis-pedidos.html'];
     if (in_array($returnUrl, $allowedReturns)) {
@@ -88,10 +91,10 @@ if ($login_valido) {
       $redirectUrl = '../04-contenido/php/contenido.php';
     }
   } elseif ($origen === 'tienda') {
-    // ✅ Cliente que viene de la tienda pero sin returnUrl específico
+    // ✅ 4. Cliente que viene de la tienda pero sin returnUrl específico
     $redirectUrl = '../05-tienda/index.html';
   } else {
-    // ✅ Comportamiento por defecto: ir a contenido
+    // ✅ 5. Default → ir a contenido
     $redirectUrl = '../04-contenido/php/contenido.php';
   }
 
