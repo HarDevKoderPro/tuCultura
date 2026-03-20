@@ -5,6 +5,7 @@
 
 const API_BASE = '../php/admin.php';
 let productos = [];
+let todosLosProductos = []; // Copia completa para filtrado por búsqueda
 let categorias = [];
 let imagenSeleccionada = null; // File object de la imagen nueva
 let imagenActual = '';         // Nombre de imagen existente (al editar)
@@ -19,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     cargarCategorias();
     cargarProductos();
     inicializarSelectorImagen();
+    inicializarBuscador();
 });
 
 // ==================== SELECTOR DE IMAGEN ====================
@@ -170,8 +172,9 @@ async function cargarProductos() {
         const data = await response.json();
         
         if (data.success) {
+            todosLosProductos = data.productos; // Guardar copia completa
             productos = data.productos;
-            renderizarProductos();
+            filtrarProductosPorBusqueda(); // Aplicar filtro activo si existe
         } else {
             Swal.fire({
                 icon: 'error',
@@ -229,6 +232,28 @@ function renderizarProductos() {
             </td>
         </tr>
     `).join('');
+}
+
+// ==================== BUSCADOR DE PRODUCTOS ====================
+function inicializarBuscador() {
+    const searchInput = document.getElementById('searchProductos');
+    if (searchInput) {
+        searchInput.addEventListener('input', filtrarProductosPorBusqueda);
+    }
+}
+
+function filtrarProductosPorBusqueda() {
+    const searchInput = document.getElementById('searchProductos');
+    const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+    if (searchTerm === '') {
+        productos = todosLosProductos;
+    } else {
+        productos = todosLosProductos.filter(p =>
+            p.nombre.toLowerCase().includes(searchTerm)
+        );
+    }
+    renderizarProductos();
 }
 
 // ==================== MODAL ====================
