@@ -147,11 +147,12 @@ function obtenerDashboard($conn) {
 // ==================== PRODUCTOS ====================
 
 function listarProductosAdmin($conn) {
+    // Ordenar productos alfabéticamente por nombre (A → Z)
     $result = $conn->query("
         SELECT p.*, c.nombre as categoria_nombre
         FROM productos p
         LEFT JOIN categorias c ON p.categoria_id = c.id
-        ORDER BY p.fecha_creacion DESC
+        ORDER BY p.nombre ASC
     ");
     
     $productos = [];
