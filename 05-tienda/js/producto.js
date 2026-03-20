@@ -53,7 +53,9 @@ async function cargarProducto(id) {
         
         if (data.success) {
             productoActual = data.producto;
-            renderizarProducto(data.producto);
+            // Usar umbral dinámico del backend
+            const umbral = data.umbral_bajo_stock !== undefined ? data.umbral_bajo_stock : 10;
+            renderizarProducto(data.producto, umbral);
             renderizarRelacionados(data.producto.relacionados);
             actualizarBreadcrumb(data.producto);
             document.title = `${data.producto.nombre} - Tu Cultura es Progreso`;
@@ -66,19 +68,19 @@ async function cargarProducto(id) {
     }
 }
 
-function renderizarProducto(producto) {
+function renderizarProducto(producto, umbral = 10) {
     const container = document.getElementById('producto-detalle');
     const imagen = producto.imagen || '../01-principal/imagenes/fondo-producto.png';
     const tieneOferta = producto.precio_oferta && producto.precio_oferta < producto.precio;
     
-    // Estado del stock
+    // Estado del stock con umbral dinámico
     let stockHtml = '';
-    if (producto.stock > 10) {
-        stockHtml = '<span class="stock-disponible"><i class="fas fa-check-circle"></i> En stock</span>';
-    } else if (producto.stock > 0) {
-        stockHtml = `<span class="stock-bajo"><i class="fas fa-exclamation-circle"></i> ¡Solo quedan ${producto.stock} unidades!</span>`;
+    if (producto.stock === 0) {
+        stockHtml = '<div class="badge-agotado">❌ Producto agotado</div>';
+    } else if (producto.stock > 0 && producto.stock <= umbral) {
+        stockHtml = `<div class="badge-bajo-stock">⚠️ Quedan ${producto.stock} unidades</div>`;
     } else {
-        stockHtml = '<span class="stock-agotado"><i class="fas fa-times-circle"></i> Agotado</span>';
+        stockHtml = '<span class="stock-disponible"><i class="fas fa-check-circle"></i> En stock</span>';
     }
     
     container.innerHTML = `
@@ -132,8 +134,8 @@ function renderizarProducto(producto) {
                     <i class="fas fa-cart-plus"></i> Agregar al Carrito
                 </button>
             ` : `
-                <button class="btn-agregar-grande" disabled style="background: #ccc; cursor: not-allowed;">
-                    <i class="fas fa-times"></i> Producto Agotado
+                <button class="btn-agregar-grande btn-disabled" disabled>
+                    <i class="fas fa-ban"></i> Producto Agotado
                 </button>
             `}
         </div>

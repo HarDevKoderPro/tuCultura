@@ -12,6 +12,17 @@ header('Content-Type: application/json');
 $action = $_GET['action'] ?? 'listar';
 $response = ['success' => false];
 
+// Obtener umbral de bajo stock desde configuración
+$umbralBajoStock = 10; // valor por defecto
+try {
+  $stmtUmbral = $pdo->prepare("SELECT valor FROM configuracion_tienda WHERE clave = 'umbral_bajo_stock'");
+  $stmtUmbral->execute();
+  $rowUmbral = $stmtUmbral->fetch();
+  if ($rowUmbral) $umbralBajoStock = intval($rowUmbral['valor']);
+} catch (Exception $e) {
+  // tabla puede no existir, usar valor por defecto
+}
+
 try {
   switch ($action) {
     case 'listar':
@@ -74,6 +85,7 @@ try {
       $response = [
         'success' => true,
         'productos' => array_map('formatearProducto', $productos),
+        'umbral_bajo_stock' => $umbralBajoStock,
         'paginacion' => [
           'total' => (int)$total_productos,
           'pagina' => (int)$pagina,
@@ -97,7 +109,8 @@ try {
         $pdo->prepare("UPDATE productos SET vistas = vistas + 1 WHERE id = ?")->execute([$id]);
         $response = [
           'success' => true,
-          'producto' => formatearProducto($producto)
+          'producto' => formatearProducto($producto),
+          'umbral_bajo_stock' => $umbralBajoStock
         ];
       } else {
         $response['error'] = 'Producto no encontrado';
@@ -121,7 +134,8 @@ try {
 
       $response = [
         'success' => true,
-        'productos' => array_map('formatearProducto', $productos)
+        'productos' => array_map('formatearProducto', $productos),
+        'umbral_bajo_stock' => $umbralBajoStock
       ];
       break;
 
@@ -137,7 +151,8 @@ try {
 
       $response = [
         'success' => true,
-        'productos' => array_map('formatearProducto', $productos)
+        'productos' => array_map('formatearProducto', $productos),
+        'umbral_bajo_stock' => $umbralBajoStock
       ];
       break;
   }

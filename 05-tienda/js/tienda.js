@@ -18,6 +18,7 @@ let ordenActual = "relevancia";
 let precioMin = null;
 let precioMax = null;
 let timeoutPrecio = null;
+let umbralBajoStock = 10; // se actualiza desde el backend
 
 // ==== INICIALIZACIÓN ====
 
@@ -223,6 +224,7 @@ async function cargarProductos() {
     const data = JSON.parse(text);
 
     if (data.success) {
+      if (data.umbral_bajo_stock !== undefined) umbralBajoStock = data.umbral_bajo_stock;
       productos = data.productos;
       renderizarProductos(data.productos);
       renderizarPaginacion(data.paginacion);
@@ -248,6 +250,7 @@ async function cargarProductosDestacados() {
     );
     const data = await response.json();
     if (data.success && data.productos.length > 0) {
+      if (data.umbral_bajo_stock !== undefined) umbralBajoStock = data.umbral_bajo_stock;
       seccion.classList.remove("oculto");
       grid.innerHTML = data.productos
         .map((p) => crearTarjetaProducto(p))
@@ -283,11 +286,36 @@ function crearTarjetaProducto(producto) {
   const tieneOferta =
     producto.precio_oferta && producto.precio_oferta < producto.precio;
 
+  const stock = producto.stock !== undefined ? producto.stock : 999;
+  const agotado = stock === 0;
+  const bajoStock = !agotado && stock > 0 && stock <= umbralBajoStock;
+
+  // Badge de stock
+  let badgeStock = "";
+  if (agotado) {
+    badgeStock = `<div class="badge-agotado">❌ Producto agotado</div>`;
+  } else if (bajoStock) {
+    badgeStock = `<div class="badge-bajo-stock">⚠️ Quedan ${stock} unidades</div>`;
+  }
+
+  // Botón: deshabilitado si agotado
+  let botonHTML = "";
+  if (agotado) {
+    botonHTML = `<button class="btn-agregar-carrito btn-disabled" disabled>
+      <i class="fas fa-ban"></i> Agotado
+    </button>`;
+  } else {
+    botonHTML = `<button class="btn-agregar-carrito" data-id="${producto.id}">
+      <i class="fas fa-cart-plus"></i> Agregar
+    </button>`;
+  }
+
   return `
-    <article class="producto-card" data-id="${producto.id}" onclick="verDetalleProducto(${producto.id})">
+    <article class="producto-card${agotado ? " producto-agotado" : ""}" data-id="${producto.id}" onclick="verDetalleProducto(${producto.id})">
       <div class="producto-imagen">
         ${tieneOferta ? `<span class="producto-badge oferta">-${producto.descuento_porcentaje}%</span>` : ""}
         ${producto.destacado ? '<span class="producto-badge">Destacado</span>' : ""}
+        ${agotado ? '<span class="producto-badge agotado-badge">Agotado</span>' : ""}
         <img src="${imgSrc}" alt="${producto.nombre}" onerror="this.src='${imgFallback}'">
       </div>
       <div class="producto-info">
@@ -303,10 +331,9 @@ function crearTarjetaProducto(producto) {
               : `<span class="producto-precio">${producto.precio_formateado}</span>`
           }
         </div>
+        ${badgeStock}
         <div class="producto-acciones">
-          <button class="btn-agregar-carrito" data-id="${producto.id}">
-            <i class="fas fa-cart-plus"></i> Agregar
-          </button>
+          ${botonHTML}
         </div>
       </div>
     </article>
@@ -357,11 +384,35 @@ function verDetalleProducto(id) {
       ? `<ul class="lista-detalle">${items.map((i) => `<li>${i}</li>`).join("")}</ul>`
       : `<p>${descripcion}</p>`;
 
+  // Badge de stock en modal
+  const stockModalEl = document.getElementById("detalle-stock-badge");
+  if (stockModalEl) {
+    const stock = p.stock !== undefined ? p.stock : 999;
+    if (stock === 0) {
+      stockModalEl.innerHTML = `<div class="badge-agotado">❌ Producto agotado</div>`;
+    } else if (stock > 0 && stock <= umbralBajoStock) {
+      stockModalEl.innerHTML = `<div class="badge-bajo-stock">⚠️ Quedan ${stock} unidades</div>`;
+    } else {
+      stockModalEl.innerHTML = "";
+    }
+  }
+
   const btnAgregar = document.getElementById("btn-modal-agregar");
-  btnAgregar.onclick = () => {
-    agregarAlCarrito(p.id);
-    cerrarModalDetalle();
-  };
+  const stock = p.stock !== undefined ? p.stock : 999;
+  if (stock === 0) {
+    btnAgregar.disabled = true;
+    btnAgregar.classList.add("btn-disabled");
+    btnAgregar.innerHTML = '<i class="fas fa-ban"></i> Agotado';
+    btnAgregar.onclick = null;
+  } else {
+    btnAgregar.disabled = false;
+    btnAgregar.classList.remove("btn-disabled");
+    btnAgregar.innerHTML = '<i class="fas fa-cart-plus"></i> Agregar al carrito';
+    btnAgregar.onclick = () => {
+      agregarAlCarrito(p.id);
+      cerrarModalDetalle();
+    };
+  }
 
   document.getElementById("modal-detalle-producto").classList.add("activo");
 }
@@ -374,6 +425,12 @@ function cerrarModalDetalle() {
 // ==== CARRITO ====
 
 async function agregarAlCarrito(productoId, cantidad = 1) {
+  // Verificar stock en frontend antes de enviar
+  const prod = productos.find((x) => x.id == productoId);
+  if (prod && prod.stock === 0) {
+    return; // producto agotado, no hacer nada
+  }
+
   try {
     const formData = new FormData();
     formData.append("producto_id", productoId);
@@ -462,6 +519,7 @@ async function buscarProductos() {
     const data = await response.json();
 
     if (data.success) {
+      if (data.umbral_bajo_stock !== undefined) umbralBajoStock = data.umbral_bajo_stock;
       productos = data.productos;
       renderizarProductos(data.productos);
       const pag = document.getElementById("paginacion");
