@@ -54,6 +54,14 @@ switch ($action) {
         eliminarCategoria($conn);
         break;
     
+    // Configuración
+    case 'obtenerUmbral':
+        obtenerUmbral($conn);
+        break;
+    case 'actualizarUmbral':
+        actualizarUmbralBajoStock($conn);
+        break;
+    
     // Pedidos
     case 'pedidos_listar':
         listarPedidosAdmin($conn);
@@ -69,9 +77,90 @@ switch ($action) {
         jsonResponse(['error' => 'Acción no válida'], 400);
 }
 
+// ==================== CONFIGURACIÓN ====================
+
+/**
+ * Obtiene un valor de configuración de la tabla configuracion_tienda.
+ * Crea la tabla automáticamente si no existe.
+ */
+function obtenerConfiguracion($conn, $clave, $valorDefault = null) {
+    // Asegurar que la tabla existe
+    crearTablaConfiguracion($conn);
+    
+    $stmt = $conn->prepare("SELECT valor FROM configuracion_tienda WHERE clave = ?");
+    $stmt->bind_param("s", $clave);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($row = $result->fetch_assoc()) {
+        return $row['valor'];
+    }
+    return $valorDefault;
+}
+
+/**
+ * Actualiza un valor de configuración.
+ */
+function actualizarConfiguracion($conn, $clave, $valor) {
+    crearTablaConfiguracion($conn);
+    
+    $stmt = $conn->prepare("INSERT INTO configuracion_tienda (clave, valor) VALUES (?, ?) ON DUPLICATE KEY UPDATE valor = ?, fecha_modificacion = CURRENT_TIMESTAMP");
+    $stmt->bind_param("sss", $clave, $valor, $valor);
+    return $stmt->execute();
+}
+
+/**
+ * Crea la tabla configuracion_tienda si no existe (auto-migración).
+ */
+function crearTablaConfiguracion($conn) {
+    static $verificada = false;
+    if ($verificada) return;
+    
+    $conn->query("CREATE TABLE IF NOT EXISTS configuracion_tienda (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        clave VARCHAR(50) UNIQUE NOT NULL,
+        valor VARCHAR(255) NOT NULL,
+        descripcion TEXT,
+        fecha_modificacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    
+    // Insertar valor por defecto si no existe
+    $conn->query("INSERT IGNORE INTO configuracion_tienda (clave, valor, descripcion) VALUES ('umbral_bajo_stock', '10', 'Cantidad mínima de stock para considerar un producto como bajo stock')");
+    
+    $verificada = true;
+}
+
+/**
+ * Endpoint: Obtener umbral de bajo stock actual.
+ */
+function obtenerUmbral($conn) {
+    $umbral = obtenerConfiguracion($conn, 'umbral_bajo_stock', '10');
+    jsonResponse(['success' => true, 'umbral' => intval($umbral)]);
+}
+
+/**
+ * Endpoint: Actualizar umbral de bajo stock.
+ */
+function actualizarUmbralBajoStock($conn) {
+    $umbral = isset($_POST['umbral']) ? intval($_POST['umbral']) : 0;
+    
+    if ($umbral < 1 || $umbral > 100) {
+        jsonResponse(['error' => 'El umbral debe estar entre 1 y 100'], 400);
+    }
+    
+    if (actualizarConfiguracion($conn, 'umbral_bajo_stock', strval($umbral))) {
+        jsonResponse(['success' => true, 'mensaje' => 'Umbral actualizado a ' . $umbral . ' unidades', 'umbral' => $umbral]);
+    } else {
+        jsonResponse(['error' => 'Error al actualizar el umbral'], 500);
+    }
+}
+
 // ==================== DASHBOARD ====================
 
 function obtenerDashboard($conn) {
+    // Obtener umbral de bajo stock dinámico
+    $umbralBajoStock = intval(obtenerConfiguracion($conn, 'umbral_bajo_stock', '10'));
+    
     // Total productos
     $totalProductos = $conn->query("SELECT COUNT(*) as total FROM productos WHERE activo = 1")->fetch_assoc()['total'];
     
@@ -93,8 +182,11 @@ function obtenerDashboard($conn) {
         AND YEAR(fecha_creacion) = YEAR(CURRENT_DATE())
     ")->fetch_assoc()['total'];
     
-    // Productos con bajo stock (menos de 10)
-    $productosBajoStock = $conn->query("SELECT COUNT(*) as total FROM productos WHERE activo = 1 AND stock < 10")->fetch_assoc()['total'];
+    // Productos con bajo stock (umbral dinámico)
+    $stmtBajoStock = $conn->prepare("SELECT COUNT(*) as total FROM productos WHERE activo = 1 AND stock < ?");
+    $stmtBajoStock->bind_param("i", $umbralBajoStock);
+    $stmtBajoStock->execute();
+    $productosBajoStock = $stmtBajoStock->get_result()->fetch_assoc()['total'];
     
     // Últimos 5 pedidos
     $ultimosPedidos = [];
@@ -138,6 +230,7 @@ function obtenerDashboard($conn) {
             'ventas_mes' => floatval($ventasMes),
             'ventas_mes_formateado' => formatearPrecio($ventasMes),
             'productos_bajo_stock' => intval($productosBajoStock),
+            'umbral_bajo_stock' => $umbralBajoStock,
             'ultimos_pedidos' => $ultimosPedidos,
             'productos_populares' => $productosPopulares
         ]
