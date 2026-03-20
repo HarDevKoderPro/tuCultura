@@ -106,6 +106,12 @@
         .btn-configurar-umbral i {
             font-size: 0.7rem;
         }
+        /* Hover en tarjeta bajo stock */
+        .stat-card.warning-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(255, 193, 7, 0.35);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
         .umbral-info {
             font-size: 0.7rem;
             color: #999;
@@ -170,12 +176,12 @@
                 <div class="stat-valor" id="stat-ventas">-</div>
                 <div class="stat-label">Ventas del Mes</div>
             </div>
-            <div class="stat-card warning-card">
+            <div class="stat-card warning-card" id="card-bajo-stock" onclick="abrirGestionBajoStock()" style="cursor:pointer;" title="Clic para gestionar productos con bajo stock">
                 <i class="fas fa-exclamation-triangle"></i>
                 <div class="stat-valor" id="totalBajoStock">-</div>
                 <div class="stat-label">Bajo Stock</div>
                 <div class="umbral-info">Umbral: <span id="umbralActual">10</span> uds.</div>
-                <button class="btn-configurar-umbral" onclick="configurarUmbral()">
+                <button class="btn-configurar-umbral" onclick="event.stopPropagation(); configurarUmbral();">
                     <i class="fas fa-cog"></i> Configurar
                 </button>
             </div>
@@ -353,6 +359,263 @@
                 await guardarUmbral(nuevoUmbral);
             }
         }
+        
+        // ==================== GESTIÓN BAJO STOCK ====================
+        
+        let productosBajoStockOriginal = []; // copia original para detectar cambios
+        
+        async function abrirGestionBajoStock() {
+            // Mostrar loading
+            Swal.fire({
+                title: 'Cargando productos...',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+            
+            try {
+                const response = await fetch(`${API_BASE}?action=listarProductosBajoStock`);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    Swal.fire({ icon: 'error', title: 'Error', text: data.error || 'No se pudieron cargar los productos' });
+                    return;
+                }
+                
+                const productos = data.productos;
+                const umbral = data.umbral;
+                productosBajoStockOriginal = productos.map(p => ({ id: p.id, stock: parseInt(p.stock) }));
+                
+                if (productos.length === 0) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: '¡Todo en orden!',
+                        html: `<p>No hay productos con stock menor a <strong>${umbral} unidades</strong>.</p>`,
+                        confirmButtonColor: '#023859'
+                    });
+                    return;
+                }
+                
+                // Construir tabla HTML
+                let filasHTML = productos.map((p, i) => {
+                    const imgSrc = p.imagen ? `../imagenes/productos/${p.imagen}` : '../../01-principal/imagenes/fondo-producto.png';
+                    const stockClass = parseInt(p.stock) === 0 ? 'stock-critico' : 'stock-bajo';
+                    return `
+                        <tr class="fila-producto ${stockClass}" data-id="${p.id}" data-stock-original="${p.stock}">
+                            <td style="text-align:center;">
+                                <img src="${imgSrc}" alt="${p.nombre}" 
+                                     style="width:45px; height:45px; object-fit:cover; border-radius:6px; border:1px solid #eee;"
+                                     onerror="this.src='../../01-principal/imagenes/fondo-producto.png'">
+                            </td>
+                            <td>
+                                <strong>${p.nombre}</strong>
+                                ${p.categoria_nombre ? `<br><small style="color:#999;">${p.categoria_nombre}</small>` : ''}
+                            </td>
+                            <td style="text-align:center;">
+                                <input type="number" min="0" value="${p.stock}" 
+                                       class="input-stock-modal" data-producto-id="${p.id}"
+                                       onchange="marcarCambioStock(this)" oninput="marcarCambioStock(this)">
+                            </td>
+                            <td style="text-align:center; color:#999; font-size:0.85rem;">${umbral}</td>
+                            <td style="text-align:right; font-size:0.85rem;">${p.precio_formateado}</td>
+                        </tr>
+                    `;
+                }).join('');
+                
+                const htmlModal = `
+                    <style>
+                        .tabla-bajo-stock { width:100%; border-collapse:collapse; font-size:0.9rem; }
+                        .tabla-bajo-stock th { background:#f8f9fa; color:#333; padding:0.6rem 0.5rem; text-align:left; border-bottom:2px solid #dee2e6; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.3px; }
+                        .tabla-bajo-stock td { padding:0.5rem; border-bottom:1px solid #f0f0f0; vertical-align:middle; }
+                        .tabla-bajo-stock tr:hover { background:#fffbeb; }
+                        .tabla-bajo-stock tr.stock-critico { background:#fff5f5; }
+                        .tabla-bajo-stock tr.stock-critico:hover { background:#ffe8e8; }
+                        .tabla-bajo-stock tr.fila-modificada td { background: rgba(255, 193, 7, 0.08); }
+                        .input-stock-modal { width:70px; padding:0.35rem 0.5rem; text-align:center; border:1.5px solid #ddd; border-radius:6px; font-size:0.95rem; transition:border-color 0.2s, box-shadow 0.2s; }
+                        .input-stock-modal:focus { border-color:#ffc107; box-shadow:0 0 0 2px rgba(255,193,7,0.2); outline:none; }
+                        .input-stock-modal.modificado { border-color:#ffc107; background:#fffde7; font-weight:600; }
+                        .input-stock-modal.invalido { border-color:#dc3545; background:#fff5f5; }
+                        .resumen-cambios { background:#f8f9fa; padding:0.6rem 1rem; border-radius:8px; margin-top:0.8rem; font-size:0.85rem; color:#555; display:flex; justify-content:space-between; align-items:center; }
+                        .badge-cambios { background:#ffc107; color:#333; padding:0.2rem 0.6rem; border-radius:12px; font-weight:700; font-size:0.8rem; }
+                        .contenedor-tabla-modal { max-height:50vh; overflow-y:auto; border:1px solid #eee; border-radius:8px; }
+                    </style>
+                    <div class="contenedor-tabla-modal">
+                        <table class="tabla-bajo-stock">
+                            <thead>
+                                <tr>
+                                    <th style="text-align:center; width:60px;">Img</th>
+                                    <th>Producto</th>
+                                    <th style="text-align:center; width:90px;">Stock</th>
+                                    <th style="text-align:center; width:70px;">Umbral</th>
+                                    <th style="text-align:right; width:90px;">Precio</th>
+                                </tr>
+                            </thead>
+                            <tbody>${filasHTML}</tbody>
+                        </table>
+                    </div>
+                    <div class="resumen-cambios">
+                        <span><i class="fas fa-info-circle"></i> ${productos.length} producto(s) con bajo stock</span>
+                        <span id="contador-cambios" style="display:none;"><span class="badge-cambios" id="num-cambios">0</span> cambio(s) pendientes</span>
+                    </div>
+                `;
+                
+                const result = await Swal.fire({
+                    title: '<i class="fas fa-boxes" style="color:#e67e22;"></i> Productos con Bajo Stock',
+                    html: htmlModal,
+                    width: '750px',
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="fas fa-save"></i> Guardar Cambios',
+                    cancelButtonText: 'Cerrar',
+                    confirmButtonColor: '#023859',
+                    cancelButtonColor: '#6c757d',
+                    showCloseButton: true,
+                    focusConfirm: false,
+                    preConfirm: () => {
+                        return recogerCambiosStock();
+                    },
+                    didOpen: () => {
+                        // Desactivar botón guardar si no hay cambios
+                        actualizarContadorCambios();
+                    }
+                });
+                
+                if (result.isConfirmed && result.value && result.value.length > 0) {
+                    await guardarStockMasivo(result.value);
+                }
+                
+            } catch (error) {
+                console.error('Error cargando productos bajo stock:', error);
+                Swal.fire({ icon: 'error', title: 'Error de conexión', text: 'No se pudo conectar con el servidor.' });
+            }
+        }
+        
+        function marcarCambioStock(input) {
+            const id = input.dataset.productoId;
+            const valorActual = parseInt(input.value);
+            const original = productosBajoStockOriginal.find(p => p.id == id);
+            const fila = input.closest('tr');
+            
+            // Validación: no negativos
+            if (valorActual < 0 || isNaN(valorActual)) {
+                input.classList.add('invalido');
+                input.classList.remove('modificado');
+                fila.classList.remove('fila-modificada');
+                return;
+            }
+            input.classList.remove('invalido');
+            
+            if (original && valorActual !== original.stock) {
+                input.classList.add('modificado');
+                fila.classList.add('fila-modificada');
+            } else {
+                input.classList.remove('modificado');
+                fila.classList.remove('fila-modificada');
+            }
+            
+            actualizarContadorCambios();
+        }
+        
+        function actualizarContadorCambios() {
+            const inputs = document.querySelectorAll('.input-stock-modal.modificado');
+            const contadorEl = document.getElementById('contador-cambios');
+            const numEl = document.getElementById('num-cambios');
+            const btnConfirm = document.querySelector('.swal2-confirm');
+            
+            if (contadorEl && numEl) {
+                if (inputs.length > 0) {
+                    contadorEl.style.display = '';
+                    numEl.textContent = inputs.length;
+                } else {
+                    contadorEl.style.display = 'none';
+                }
+            }
+            
+            // Habilitar/deshabilitar botón guardar
+            if (btnConfirm) {
+                if (inputs.length === 0) {
+                    btnConfirm.disabled = true;
+                    btnConfirm.style.opacity = '0.5';
+                    btnConfirm.style.cursor = 'not-allowed';
+                } else {
+                    btnConfirm.disabled = false;
+                    btnConfirm.style.opacity = '1';
+                    btnConfirm.style.cursor = 'pointer';
+                }
+            }
+        }
+        
+        function recogerCambiosStock() {
+            const inputs = document.querySelectorAll('.input-stock-modal');
+            const cambios = [];
+            let hayInvalidos = false;
+            
+            inputs.forEach(input => {
+                const id = input.dataset.productoId;
+                const valorActual = parseInt(input.value);
+                const original = productosBajoStockOriginal.find(p => p.id == id);
+                
+                if (isNaN(valorActual) || valorActual < 0) {
+                    hayInvalidos = true;
+                    input.classList.add('invalido');
+                    return;
+                }
+                
+                if (original && valorActual !== original.stock) {
+                    cambios.push({ id: parseInt(id), stock: valorActual });
+                }
+            });
+            
+            if (hayInvalidos) {
+                Swal.showValidationMessage('Hay valores de stock inválidos (no pueden ser negativos).');
+                return false;
+            }
+            
+            if (cambios.length === 0) {
+                Swal.showValidationMessage('No hay cambios para guardar.');
+                return false;
+            }
+            
+            return cambios;
+        }
+        
+        async function guardarStockMasivo(cambios) {
+            Swal.fire({
+                title: 'Guardando cambios...',
+                html: `Actualizando stock de ${cambios.length} producto(s)...`,
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+            
+            try {
+                const response = await fetch(`${API_BASE}?action=actualizarStockMasivo`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ productos: cambios })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    await Swal.fire({
+                        icon: 'success',
+                        title: '¡Stock Actualizado!',
+                        html: `<p>${data.mensaje}</p>
+                               ${data.errores && data.errores.length > 0 ? '<p style="color:#dc3545; font-size:0.85rem;"><strong>Advertencias:</strong> ' + data.errores.join(', ') + '</p>' : ''}`,
+                        confirmButtonColor: '#023859',
+                        timer: 3000,
+                        timerProgressBar: true
+                    });
+                    
+                    // Recargar dashboard
+                    cargarDashboard();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Error', text: data.error || 'No se pudieron guardar los cambios.', confirmButtonColor: '#dc3545' });
+                }
+            } catch (error) {
+                console.error('Error al guardar stock masivo:', error);
+                Swal.fire({ icon: 'error', title: 'Error de conexión', text: 'No se pudo conectar con el servidor.' });
+            }
+        }
+        
+        // ==================== CONFIGURAR UMBRAL ====================
         
         async function guardarUmbral(umbral) {
             try {

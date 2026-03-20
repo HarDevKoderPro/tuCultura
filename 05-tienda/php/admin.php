@@ -62,6 +62,14 @@ switch ($action) {
         actualizarUmbralBajoStock($conn);
         break;
     
+    // Bajo Stock
+    case 'listarProductosBajoStock':
+        listarProductosBajoStock($conn);
+        break;
+    case 'actualizarStockMasivo':
+        actualizarStockMasivo($conn);
+        break;
+    
     // Pedidos
     case 'pedidos_listar':
         listarPedidosAdmin($conn);
@@ -234,6 +242,86 @@ function obtenerDashboard($conn) {
             'ultimos_pedidos' => $ultimosPedidos,
             'productos_populares' => $productosPopulares
         ]
+    ]);
+}
+
+// ==================== BAJO STOCK ====================
+
+/**
+ * Lista productos con stock menor al umbral configurado.
+ */
+function listarProductosBajoStock($conn) {
+    $umbral = intval(obtenerConfiguracion($conn, 'umbral_bajo_stock', '10'));
+    
+    $stmt = $conn->prepare("
+        SELECT p.id, p.nombre, p.stock, p.precio, p.imagen, c.nombre as categoria_nombre
+        FROM productos p
+        LEFT JOIN categorias c ON p.categoria_id = c.id
+        WHERE p.activo = 1 AND p.stock < ?
+        ORDER BY p.nombre ASC
+    ");
+    $stmt->bind_param("i", $umbral);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    $productos = [];
+    while ($row = $result->fetch_assoc()) {
+        $row['precio_formateado'] = formatearPrecio($row['precio']);
+        $productos[] = $row;
+    }
+    
+    jsonResponse([
+        'success' => true,
+        'productos' => $productos,
+        'umbral' => $umbral,
+        'total' => count($productos)
+    ]);
+}
+
+/**
+ * Actualiza el stock de múltiples productos a la vez.
+ * Recibe JSON con array de {id, stock}.
+ */
+function actualizarStockMasivo($conn) {
+    // Leer JSON del body
+    $input = json_decode(file_get_contents('php://input'), true);
+    
+    if (!$input || !isset($input['productos']) || !is_array($input['productos'])) {
+        jsonResponse(['error' => 'Datos inválidos. Se espera un array de productos.'], 400);
+    }
+    
+    $productos = $input['productos'];
+    $actualizados = 0;
+    $errores = [];
+    
+    foreach ($productos as $item) {
+        $id = isset($item['id']) ? intval($item['id']) : 0;
+        $stock = isset($item['stock']) ? intval($item['stock']) : -1;
+        
+        if ($id <= 0) {
+            $errores[] = "ID inválido: {$item['id']}";
+            continue;
+        }
+        if ($stock < 0) {
+            $errores[] = "Stock negativo para producto ID {$id}";
+            continue;
+        }
+        
+        $stmt = $conn->prepare("UPDATE productos SET stock = ? WHERE id = ? AND activo = 1");
+        $stmt->bind_param("ii", $stock, $id);
+        
+        if ($stmt->execute() && $stmt->affected_rows >= 0) {
+            $actualizados++;
+        } else {
+            $errores[] = "Error al actualizar producto ID {$id}";
+        }
+    }
+    
+    jsonResponse([
+        'success' => true,
+        'mensaje' => "Se actualizaron {$actualizados} producto(s).",
+        'actualizados' => $actualizados,
+        'errores' => $errores
     ]);
 }
 
