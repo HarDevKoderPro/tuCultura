@@ -77,30 +77,6 @@ body {
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
 }
 
-.logo-textos {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.logo-titulo {
-  font-family: 'Dancing Script', cursive, sans-serif;
-  font-size: 1.4rem;
-  color: #fff;
-  margin: 0;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-  line-height: 1.2;
-  letter-spacing: 1px;
-}
-
-.logo-slogan {
-  font-family: 'Dancing Script', cursive, sans-serif;
-  font-size: 0.75rem;
-  color: #e0e0e0;
-  margin: 0;
-  text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
-  letter-spacing: 0.5px;
-}
 
 /* Menu de navegacion */
 header nav {
