@@ -58,7 +58,7 @@
     width: fit-content;
     border-radius: 10px;
     padding: 4px 8px;
-    background: rgba(0, 0, 0, 0.35);
+    background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
@@ -73,7 +73,7 @@
   }
 
   header nav ul li a {
-    color: #ffffff;
+    color: silver;
     width: fit-content;
     height: fit-content;
     padding: 4px 8px;
@@ -189,7 +189,7 @@
   }
 
   .terminos .linksTerminos {
-    color: #ffffff;
+    color: #0a249b;
     font-weight: bold;
     text-decoration: underline;
   }
@@ -199,7 +199,7 @@
     text-align: center;
     margin: 1.5rem auto;
     font-size: 1.6rem;
-    color: #fff3cd;
+    color: #0a249b;
   }
 
   .terminos img {

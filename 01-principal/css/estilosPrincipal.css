@@ -340,7 +340,7 @@ header nav ul li a span {
 
 /* Links dentro de secciones */
 .container-contenido a {
-  color: #fff3cd;
+  color: #1751bd;
   text-decoration: underline;
   font-weight: 600;
 }
@@ -351,18 +351,18 @@ header nav ul li a span {
 
 /* Títulos h2 en secciones */
 .container-contenido h2 {
-  color: #ffffff;
+  color: indigo
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* Subtítulos h5 en secciones */
 .container-contenido h5 {
-  color: #fff3cd;
+  color: #0f2790;
 }
 
 /* Listas dentro de términos */
 .terminos ul li a {
-  color: #ffffff;
+  color: #0c5b9b;
 }
 
 /* Span destacados */
