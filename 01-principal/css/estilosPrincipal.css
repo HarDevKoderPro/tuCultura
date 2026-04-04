@@ -23,7 +23,8 @@ html {
 /* Configuracion Base del Contenido */
 body {
   font-family: miFuente;
-  background: Azure;
+  background: rgb(227, 218, 218);
+  background-attachment: fixed;
 }
 
 /* Estructura Grid General de la Pagina (1 Columna=Mobile) */
@@ -45,14 +46,15 @@ body {
   background-repeat: no-repeat;
   position: fixed;
   z-index: 1000;
-  width: inherit;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  height: 180px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
 /* Configuracion General del area del Contenido */
 .main {
   grid-area: main;
-  background: Azure;
+  background: transparent;
 }
 
 /* Configuracion General del area del Pie de Pagina */
@@ -74,9 +76,8 @@ body {
   width: 100px;
   height: 100px;
   object-fit: contain;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
-
 
 /* Menu de navegacion */
 header nav {
@@ -90,7 +91,7 @@ header nav {
   left: -40rem;
   overflow: scroll;
   text-align: center;
-  background: rgba(2, 56, 89, 0.85);
+  background: rgba(2, 56, 89, 0.92);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
@@ -118,11 +119,11 @@ header nav ul li a {
 }
 
 header nav ul li:hover {
-  background: rgba(230, 52, 74, 0.8);
+  background: rgba(232, 115, 26, 0.85);
 }
 
 header nav ul li:active {
-  background: rgba(230, 52, 74, 1);
+  background: rgba(232, 115, 26, 1);
 }
 
 header nav ul li a span {
@@ -143,24 +144,26 @@ header nav ul li a span {
 .menu_bar .bt-menu {
   display: block;
   padding: 1rem;
-  color: #fff;
+  color: #130341;
   overflow: hidden;
   font-size: 2.5rem;
-  font-weight: normal;
+  font-weight: bold;
   text-decoration: none;
-  text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.6);
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6);
 }
 
 /* Icono de Hamburguesa para menú móvil */
 .menu_bar span {
   float: right;
   font-size: 2.5rem;
+  color: #093b2b;
 }
 
 .container-contenido {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 20px;
+  padding: 10px;
 }
 
 /* Elementos de la Seccion del Contenido (Main) */
@@ -172,6 +175,10 @@ header nav ul li a span {
   font-weight: 500;
   line-height: 2.8rem;
   letter-spacing: 0.03em;
+  /* Bordes para enmarcar secciones */
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 .container-contenido img {
@@ -190,14 +197,18 @@ header nav ul li a span {
 /* Sección Inicio  */
 .inicio {
   grid-area: inicio;
-  background: rgb(196, 230, 230);
-  padding-top: 13rem;
+  background: rgb(232, 232, 229);
+  color: #424141;
+  padding-top: 19rem;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 /* Sección Misión  */
 .mision {
   grid-area: mision;
-  background: Beige;
+     background: rgb(232, 232, 229);
+    color: #424141;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .mision img {
@@ -207,7 +218,9 @@ header nav ul li a span {
 /* Sección Visión  */
 .vision {
   grid-area: vision;
-  background: Lavender;
+     background: rgb(232, 232, 229);
+    color: #424141;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .vision img {
@@ -217,12 +230,15 @@ header nav ul li a span {
 /* Sección  Términos y Condiciones  */
 .terminos {
   grid-area: terminos;
-  background: Gainsboro;
+    background: rgb(232, 232, 229);
+    color: #424141;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .terminos .linksTerminos {
-  color: #0389ff;
+  color: #ffffff;
   font-weight: bold;
+  text-decoration: underline;
 }
 
 .terminos h5 {
@@ -230,6 +246,7 @@ header nav ul li a span {
   text-align: center;
   margin: 1.5rem auto;
   font-size: 1.6rem;
+  color: #fff3cd;
 }
 
 .terminos img {
@@ -254,13 +271,14 @@ header nav ul li a span {
 /* Sección  Pie de Página  */
 .footer {
   grid-area: footer;
-  box-shadow: 1rem 0.5rem 0.5rem black;
-
-  background-color: #f3dc80;
-  background-image: -webkit-linear-gradient(359deg, #f3dc80 0%, #7fb8d4 78%);
-  background-image: -moz-linear-gradient(359deg, #f3dc80 0%, #7fb8d4 78%);
-  background-image: -o-linear-gradient(359deg, #f3dc80 0%, #7fb8d4 78%);
-  background-image: linear-gradient(359deg, #f3dc80 0%, #7fb8d4 78%);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  background-color: #1a3a4a;
+  background-image: linear-gradient(
+    135deg,
+    #1a3a4a 0%,
+    #2a5060 50%,
+    #1a3a4a 100%
+  );
 }
 
 .contenido-pie {
@@ -290,7 +308,7 @@ header nav ul li a span {
 }
 
 .contenido-pie p {
-  color: rgb(41, 38, 38);
+  color: #e8eff5;
   font-size: 1.8em;
   font-weight: 500;
   text-align: center;
@@ -310,8 +328,45 @@ header nav ul li a span {
 }
 
 .contenido-pie .whatsapp a {
-  color: rgb(41, 38, 38);
+  color: #e8eff5;
   font-size: 1.8em;
   text-decoration: none;
   width: fit-content;
+}
+
+/* ========================================= */
+/* Estilos globales para fondos vibrantes    */
+/* ========================================= */
+
+/* Links dentro de secciones */
+.container-contenido a {
+  color: #fff3cd;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.container-contenido a:hover {
+  color: #ffffff;
+}
+
+/* Títulos h2 en secciones */
+.container-contenido h2 {
+  color: #ffffff;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Subtítulos h5 en secciones */
+.container-contenido h5 {
+  color: #fff3cd;
+}
+
+/* Listas dentro de términos */
+.terminos ul li a {
+  color: #ffffff;
+}
+
+/* Span destacados */
+.container-contenido span {
+  color: #fff176;
+  font-weight: 600;
 }

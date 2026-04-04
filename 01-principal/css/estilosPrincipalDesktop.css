@@ -1,9 +1,9 @@
-/* Estilos De Pagina Principal (Mobile-First)  */
+/* Estilos De Pagina Principal (Desktop)  */
 /* ------------------------------------------- */
 @media (min-width: 900px) {
   /* Configuracion Base Pagina */
   html {
-    scroll-padding-top: 300px;
+    scroll-padding-top: 310px;
     scroll-behavior: smooth;
   }
 
@@ -17,7 +17,7 @@
   .header {
     width: 100%;
     left: 0;
-    height: 300px;
+    height: 310px;
     display: flex;
     justify-content: space-between;
     background-image: url(../imagenes/cabecera-desktop.jpg);
@@ -33,13 +33,13 @@
     max-width: 200px;
     display: flex;
     justify-content: center;
-    overflow: hidden; /* evita que se salga */
+    overflow: hidden;
   }
 
   .logo img {
     width: 120%;
     height: auto;
-    object-fit: contain; /* mejor que cover para logos */
+    object-fit: contain;
   }
 
   /* Menu de navegacion */
@@ -58,9 +58,10 @@
     width: fit-content;
     border-radius: 10px;
     padding: 4px 8px;
-    background: rgba(0, 0, 0, 0.25);
+    background: rgba(0, 0, 0, 0.35);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
 
   header nav ul li {
@@ -77,18 +78,19 @@
     height: fit-content;
     padding: 4px 8px;
     border-radius: 5px;
-    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6), 0 0 8px rgba(0, 0, 0, 0.3);
-    font-weight: 500;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6);
+    font-weight: 600;
+    text-decoration: none;
   }
 
   header nav ul li:hover {
-    background: rgba(255, 255, 255, 0.25);
+    background: rgba(232, 115, 26, 0.7);
     border-radius: 8px;
     transform: translateY(-1px);
   }
 
   header nav ul li:active {
-    background: rgba(255, 255, 255, 0.35);
+    background: rgba(232, 115, 26, 0.9);
     transform: translateY(0);
   }
 
@@ -103,21 +105,26 @@
   .container-contenido {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 24px;
+    padding: 20px 40px;
   }
 
   /* Elementos de la Seccion del Contenido (Main) */
   /* Contenedor Main */
   .container-contenido > * {
     text-align: left;
-    padding: 2rem;
+    padding: 2.5rem 3rem;
     font-size: 1.6rem;
     font-weight: 500;
     line-height: 2.6rem;
     letter-spacing: 0.03em;
-    width: 90%;
-    max-width: 90%;
+    width: 100%;
+    max-width: 100%;
     margin: 0 auto;
+    /* Bordes para enmarcar secciones */
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   }
 
   .container-contenido img {
@@ -137,14 +144,19 @@
   /* Sección Inicio  */
   .inicio {
     grid-area: inicio;
-    background: rgb(196, 230, 230);
-    padding-top: 32rem;
+    background: rgb(232, 232, 229);
+    color: #424141;
+    padding-top: 33rem;
+    border-radius: 0 0 16px 16px !important;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
   }
 
   /* Sección Misión  */
   .mision {
     grid-area: mision;
-    background: Beige;
+      background: rgb(232, 232, 229);
+    color: #424141;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
   }
 
   .mision img {
@@ -157,7 +169,9 @@
   /* Sección Visión  */
   .vision {
     grid-area: vision;
-    background: Lavender;
+     background: rgb(232, 232, 229);
+    color: #424141;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
   }
 
   .vision img {
@@ -169,12 +183,15 @@
   /* Sección  Términos y Condiciones  */
   .terminos {
     grid-area: terminos;
-    background: Gainsboro;
+     background: rgb(232, 232, 229);
+    color: #424141;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
   }
 
   .terminos .linksTerminos {
-    color: #0389ff;
+    color: #ffffff;
     font-weight: bold;
+    text-decoration: underline;
   }
 
   .terminos h5 {
@@ -182,6 +199,7 @@
     text-align: center;
     margin: 1.5rem auto;
     font-size: 1.6rem;
+    color: #fff3cd;
   }
 
   .terminos img {
@@ -209,13 +227,9 @@
   .footer {
     grid-area: footer;
     width: 100%;
-    box-shadow: 1rem 0.5rem 0.5rem black;
-
-    background-color: #f3dc80;
-    background-image: -webkit-linear-gradient(359deg, #f3dc80 0%, #7fb8d4 78%);
-    background-image: -moz-linear-gradient(359deg, #f3dc80 0%, #7fb8d4 78%);
-    background-image: -o-linear-gradient(359deg, #f3dc80 0%, #7fb8d4 78%);
-    background-image: linear-gradient(359deg, #f3dc80 0%, #7fb8d4 78%);
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    background-color: #1a3a4a;
+    background-image: linear-gradient(135deg, #1a3a4a 0%, #2a5060 50%, #1a3a4a 100%);
   }
 
   .contenido-pie {
@@ -244,7 +258,7 @@
   }
 
   .contenido-pie p {
-    color: rgb(41, 38, 38);
+    color: #e8eff5;
     font-size: 1.8em;
     font-weight: 500;
     text-align: center;
@@ -264,7 +278,7 @@
   }
 
   .contenido-pie .whatsapp a {
-    color: rgb(41, 38, 38);
+    color: #e8eff5;
     font-size: 1.8em;
     text-decoration: none;
     width: fit-content;
@@ -323,7 +337,7 @@
     width: 100%;
     max-width: 500px;
     margin: 10px auto 10px auto;
-    background: Azure;
+    background: transparent;
     height: 200px;
   }
 
