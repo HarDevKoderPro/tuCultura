@@ -17,7 +17,7 @@
 html {
   font-size: 10px;
   scroll-behavior: smooth;
-  scroll-padding-top: 190px;
+  scroll-padding-top: 220px;
 }
 
 /* Configuracion Base del Contenido */
@@ -71,8 +71,8 @@ body {
 }
 
 .logo img {
-  width: 70px;
-  height: 70px;
+  width: 100px;
+  height: 100px;
   object-fit: contain;
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
 }
@@ -86,7 +86,7 @@ header nav {
   z-index: 10000;
   right: 100%;
   margin: 0;
-  top: 10rem;
+  top: 11rem;
   left: -40rem;
   overflow: scroll;
   text-align: center;
@@ -182,7 +182,7 @@ header nav ul li a span {
 .inicio {
   grid-area: inicio;
   background: rgb(196, 230, 230);
-  padding-top: 20rem;
+  padding-top: 23rem;
 }
 
 /* Sección Misión  */
