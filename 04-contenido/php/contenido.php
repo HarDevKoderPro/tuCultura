@@ -169,25 +169,31 @@ $registrosIniciales = obtenerRegistrosNivel1($conn, $_SESSION['email']);
 
       <div class="balanceGeneral">
 
-        <!-- No clickeable -->
+        <!-- No clickeable — Total del sistema -->
         <div class="stat-card">
-          <h3>Registros del Sistema</h3>
+          <h3>📊 Registros del Sistema</h3>
           <p class="stat-value"><?php echo $totalRegistros; ?></p>
         </div>
 
-        <!-- Clickeables -->
+        <!-- No clickeable — Total del usuario (suma Nivel 1+2+3, calculada por JS) -->
+        <div class="stat-card stat-card--usuario" id="card-total-usuario">
+          <h3>👤 Total Registros Usuario</h3>
+          <p class="stat-value"><span id="total-usuario-valor">0</span></p>
+        </div>
+
+        <!-- Clickeables — Cards por nivel -->
         <div class="stat-card stat-card--clickable stat-card--activa" data-nivel="1">
-          <h3>Registros Nivel 1</h3>
+          <h3>1️⃣ Registros Nivel 1</h3>
           <p class="stat-value"><?php echo $totalUsuario; ?></p>
         </div>
 
         <div class="stat-card stat-card--clickable" data-nivel="2">
-          <h3>Registros Nivel 2</h3>
+          <h3>2️⃣ Registros Nivel 2</h3>
           <p class="stat-value"><?php echo $totalReferidosDirectos; ?></p>
         </div>
 
         <div class="stat-card stat-card--clickable" data-nivel="3">
-          <h3>Registros Nivel 3</h3>
+          <h3>3️⃣ Registros Nivel 3</h3>
           <p class="stat-value"><?php echo $totalReferidosNivel3; ?></p>
         </div>
 

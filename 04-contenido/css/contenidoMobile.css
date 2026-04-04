@@ -106,27 +106,28 @@
     padding: 0;
   }
 
+  /* Card "Registros del Sistema" ocupa ancho completo */
   .balanceGeneral .stat-card:first-child {
     grid-column: 1 / -1;
   }
 
-  .balanceGeneral .stat-card:nth-child(4) {
-    grid-column: 1 / -1;
-    width: 50%;
-    margin: 0 auto;
-    justify-self: center;
-  }
+  /* Con 5 cards en grid 2 columnas, ya no hay card huérfana que centrar */
 
   .stat-card {
-    padding: 12px 5px;
+    padding: 10px 5px;
   }
 
   .stat-card h3 {
-    font-size: 0.9rem;
+    font-size: 0.82rem;
   }
 
   .stat-value {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
+  }
+
+  /* Card destacada usuario en mobile */
+  .stat-card--usuario {
+    border-width: 2px;
   }
 
   /* 6. Tabla */
@@ -295,27 +296,28 @@
     padding: 0;
   }
 
+  /* Card "Registros del Sistema" ocupa ancho completo */
   .balanceGeneral .stat-card:first-child {
     grid-column: 1 / -1;
   }
 
-  .balanceGeneral .stat-card:nth-child(4) {
-    grid-column: 1 / -1;
-    width: 50%;
-    margin: 0 auto;
-    justify-self: center;
-  }
+  /* Con 5 cards en grid 2 columnas, distribución par — sin card huérfana */
 
   .stat-card {
-    padding: 8px 5px;
+    padding: 6px 5px;
   }
 
   .stat-card h3 {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
   }
 
   .stat-value {
-    font-size: 1.3rem;
+    font-size: 1.1rem;
+  }
+
+  /* Card destacada usuario en landscape */
+  .stat-card--usuario {
+    border-width: 2px;
   }
 
   /* 6. Tabla — franja completa */

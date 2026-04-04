@@ -100,4 +100,33 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Nivel 1 activo por defecto al cargar
   setNivelActivo(1);
+
+  // ─────────────────────────────────────────
+  // CÁLCULO AUTOMÁTICO: TOTAL REGISTROS USUARIO
+  // Suma los valores de las cards Nivel 1 + Nivel 2 + Nivel 3
+  // y actualiza la card "Total Registros Usuario"
+  // ─────────────────────────────────────────
+  function calcularTotalUsuario() {
+    let total = 0;
+
+    // Recorrer cada card con data-nivel (1, 2 y 3)
+    document.querySelectorAll(".stat-card[data-nivel]").forEach((card) => {
+      // Obtener el elemento .stat-value dentro de la card
+      const valorEl = card.querySelector(".stat-value");
+      if (valorEl) {
+        // Parsear el texto a número; si no es válido, usar 0
+        const valor = parseInt(valorEl.textContent.trim(), 10);
+        total += isNaN(valor) ? 0 : valor;
+      }
+    });
+
+    // Actualizar el span de la card "Total Registros Usuario"
+    const spanTotal = document.getElementById("total-usuario-valor");
+    if (spanTotal) {
+      spanTotal.textContent = total;
+    }
+  }
+
+  // Ejecutar el cálculo al cargar la página
+  calcularTotalUsuario();
 });

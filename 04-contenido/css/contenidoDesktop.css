@@ -366,7 +366,7 @@ body {
   flex: 1;
   background: #fff;
   border-radius: 12px;
-  padding: 10px;
+  padding: 15px;
   text-align: center;
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15),
     inset 0 2px 4px rgba(255, 255, 255, 0.6);
@@ -374,16 +374,32 @@ body {
 }
 
 .stat-card h3 {
-  font-size: 1.2rem;
+  font-size: 20px;
   color: #333;
   margin-bottom: 2px;
   font-weight: 600;
 }
 
 .stat-value {
-  font-size: 2rem;
+  font-size: 40px;
   font-weight: bold;
   color: #0077cc;
+}
+
+/* ── Card destacada: Total Registros Usuario ── */
+.stat-card--usuario {
+  border: 2px solid #4A90E2;
+  background: #F0F7FF;
+  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.25),
+    inset 0 2px 4px rgba(255, 255, 255, 0.6);
+}
+
+.stat-card--usuario h3 {
+  color: #1e3a8a;
+}
+
+.stat-card--usuario .stat-value {
+  color: #1d4ed8;
 }
 
 /* Tarjetas clickeables */
