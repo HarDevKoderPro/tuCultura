@@ -17,7 +17,7 @@
 html {
   font-size: 10px;
   scroll-behavior: smooth;
-  scroll-padding-top: 220px;
+  scroll-padding-top: 120px;
 }
 
 /* Configuracion Base del Contenido */
@@ -182,7 +182,7 @@ header nav ul li a span {
 .inicio {
   grid-area: inicio;
   background: rgb(196, 230, 230);
-  padding-top: 23rem;
+  padding-top: 13rem;
 }
 
 /* Sección Misión  */
