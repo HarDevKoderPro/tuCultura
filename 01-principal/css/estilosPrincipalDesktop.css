@@ -3,7 +3,7 @@
 @media (min-width: 900px) {
   /* Configuracion Base Pagina */
   html {
-    scroll-padding-top: 165px;
+    scroll-padding-top: 600px;
     scroll-behavior: smooth;
   }
 
@@ -17,9 +17,13 @@
   .header {
     width: 100%;
     left: 0;
-    height: 180px;
+    height: 600px;
     display: flex;
     justify-content: space-between;
+    background-image: url(../imagenes/cabecera-desktop.jpg);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
   }
 
   /* Elementos de la cabecera */
@@ -52,27 +56,40 @@
   header nav ul {
     display: flex;
     width: fit-content;
-    border-radius: 5px;
-    padding: 2px 5px;
+    border-radius: 10px;
+    padding: 4px 8px;
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
 
   header nav ul li {
     font-size: 1.45rem;
     margin-right: 2px;
     padding: 5px;
+    border-radius: 8px;
+    transition: background 0.3s ease, transform 0.2s ease;
   }
 
   header nav ul li a {
-    color: #c4d6db;
+    color: #ffffff;
     width: fit-content;
     height: fit-content;
-    padding: 2px 2px;
+    padding: 4px 8px;
     border-radius: 5px;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6), 0 0 8px rgba(0, 0, 0, 0.3);
+    font-weight: 500;
   }
 
   header nav ul li:hover {
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(255, 255, 255, 0.25);
     border-radius: 8px;
+    transform: translateY(-1px);
+  }
+
+  header nav ul li:active {
+    background: rgba(255, 255, 255, 0.35);
+    transform: translateY(0);
   }
 
   header nav ul li a span {
@@ -121,7 +138,7 @@
   .inicio {
     grid-area: inicio;
     background: rgb(196, 230, 230);
-    padding-top: 20rem;
+    padding-top: 62rem;
   }
 
   /* Sección Misión  */
