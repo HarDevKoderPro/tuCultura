@@ -23,7 +23,7 @@ html {
 /* Configuracion Base del Contenido */
 body {
   font-family: miFuente;
-  background: rgb(227, 218, 218);
+  background: rgb(187, 187, 188);
   background-attachment: fixed;
 }
 
@@ -351,7 +351,7 @@ header nav ul li a span {
 
 /* Títulos h2 en secciones */
 .container-contenido h2 {
-  color: indigo
+  color: indigo;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
