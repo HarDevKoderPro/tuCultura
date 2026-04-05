@@ -53,8 +53,6 @@
     transition:
       background 0.3s ease,
       transform 0.2s ease;
-
-    transition: transform 0.3s ease;
   }
 
   header nav ul li a {
@@ -65,7 +63,7 @@
     border-radius: 5px;
     font-weight: bold;
     text-decoration: none;
-    
+    transition: transform 0.3s ease;
   }
 
   header nav ul li a:hover {
