@@ -68,95 +68,156 @@ $registrosIniciales = obtenerRegistrosNivel1($conn, $_SESSION['email']);
 
       <div class="contenedorTarjetas">
 
-        <!-- Tarjeta 1 -->
-        <div class="tarjeta">
-          <div class="tarjeta-inner">
-            <div class="tarjeta-frontal">
-              <h3 class="tarjeta-titulo">Auriculares Inalámbricos Pro</h3>
-              <div class="tarjeta-imagen">
-                <img src="../images/audifonosInalambricos.png" alt="Producto 1">
-              </div>
-              <div class="tarjeta-footer">Más información ↓</div>
-            </div>
-            <div class="tarjeta-trasera">
-              <div class="tarjeta-back-header">
-                <span class="tarjeta-categoria">Audífonos</span>
-              </div>
-              <div class="tarjeta-back-body">
-                <h3 class="tarjeta-nombre">Auriculares Inalámbricos Pro</h3>
-                <ul class="tarjeta-specs">
-                  <li>Bluetooth 5.3 de baja latencia</li>
-                  <li>Cancelación activa de ruido</li>
-                  <li>Hasta 24 horas con estuche</li>
-                </ul>
-              </div>
-              <div class="tarjeta-back-footer">
-                <span class="tarjeta-precio">$99.99</span>
-                <span class="tarjeta-envio">Envío gratis 24-48h</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <?php
+        /**
+         * Tarjetas giratorias dinámicas — carga productos vinculados desde JSON + BD
+         */
+        $tarjetasJSON = __DIR__ . '/../../05-tienda/php/tarjetas-contenido.json';
+        $productosVinculados = [];
 
-        <!-- Tarjeta 2 -->
-        <div class="tarjeta">
-          <div class="tarjeta-inner">
-            <div class="tarjeta-frontal">
-              <h3 class="tarjeta-titulo">Reloj Smart Fit X</h3>
-              <div class="tarjeta-imagen">
-                <img src="../images/smartWatch.png" alt="Producto 2">
-              </div>
-              <div class="tarjeta-footer">Más información ↓</div>
-            </div>
-            <div class="tarjeta-trasera">
-              <div class="tarjeta-back-header">
-                <span class="tarjeta-categoria">Smartwatch</span>
-              </div>
-              <div class="tarjeta-back-body">
-                <h3 class="tarjeta-nombre">Reloj Smart Fit X</h3>
-                <ul class="tarjeta-specs">
-                  <li>Monitoreo cardíaco continuo</li>
-                  <li>Resistencia al agua 5 ATM</li>
-                  <li>Notificaciones en tiempo real</li>
-                </ul>
-              </div>
-              <div class="tarjeta-back-footer">
-                <span class="tarjeta-precio">$149.99</span>
-                <span class="tarjeta-envio">Devolución gratis 30 días</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        if (file_exists($tarjetasJSON)) {
+            $jsonData = json_decode(file_get_contents($tarjetasJSON), true);
+            if (isset($jsonData['productos_vinculados']) && is_array($jsonData['productos_vinculados'])) {
+                $idsVinculados = $jsonData['productos_vinculados'];
 
-        <!-- Tarjeta 3 -->
+                if (!empty($idsVinculados)) {
+                    // Conexión a la BD de tienda (reutilizar config de tienda)
+                    $tiendaConfigPath = __DIR__ . '/../../05-tienda/php/config.php';
+                    if (file_exists($tiendaConfigPath)) {
+                        // Usar las mismas credenciales que la tienda
+                        $esLocal = in_array($_SERVER['HTTP_HOST'], ['localhost', '127.0.0.1', '::1']);
+                        $dbHost = $esLocal ? 'localhost' : '190.8.176.115';
+                        $dbConn = new mysqli($dbHost, 'tucultur', '@GWMU!J4p-mgyTJ7', 'tucultur_asociados');
+                        
+                        if (!$dbConn->connect_error) {
+                            $dbConn->set_charset("utf8mb4");
+                            $placeholders = implode(',', array_fill(0, count($idsVinculados), '?'));
+                            $types = str_repeat('i', count($idsVinculados));
+                            
+                            $stmt = $dbConn->prepare("
+                                SELECT p.id, p.nombre, p.descripcion, p.imagen, p.precio, 
+                                       p.precio_oferta, p.stock, p.marca,
+                                       c.nombre as categoria_nombre
+                                FROM productos p
+                                LEFT JOIN categorias c ON p.categoria_id = c.id
+                                WHERE p.id IN ($placeholders) AND p.activo = 1
+                            ");
+                            $stmt->bind_param($types, ...$idsVinculados);
+                            $stmt->execute();
+                            $result = $stmt->get_result();
+                            
+                            // Indexar por ID para mantener el orden del JSON
+                            $productosMap = [];
+                            while ($row = $result->fetch_assoc()) {
+                                $productosMap[$row['id']] = $row;
+                            }
+                            
+                            // Respetar el orden definido en el JSON
+                            foreach ($idsVinculados as $id) {
+                                if (isset($productosMap[$id])) {
+                                    $productosVinculados[] = $productosMap[$id];
+                                }
+                            }
+                            
+                            $dbConn->close();
+                        }
+                    }
+                }
+            }
+        }
+
+        // Renderizar tarjetas dinámicas o placeholder
+        if (!empty($productosVinculados)):
+            foreach ($productosVinculados as $idx => $prod):
+                $nombre = htmlspecialchars($prod['nombre']);
+                $categoria = htmlspecialchars($prod['categoria_nombre'] ?? 'Producto');
+                $descripcion = htmlspecialchars($prod['descripcion'] ?? '');
+                $imagen = $prod['imagen'] ? '../../05-tienda/imagenes/productos/' . htmlspecialchars($prod['imagen']) : '../images/audifonosInalambricos.png';
+                $precio = '$ ' . number_format($prod['precio'], 0, ',', '.');
+                $precioOferta = $prod['precio_oferta'] ? '$ ' . number_format($prod['precio_oferta'], 0, ',', '.') : '';
+                $stock = intval($prod['stock']);
+                $marca = htmlspecialchars($prod['marca'] ?? '');
+                
+                // Generar specs a partir de la descripción (dividir por líneas o puntos)
+                $specs = [];
+                if ($descripcion) {
+                    // Intentar dividir por saltos de línea o puntos
+                    $partes = preg_split('/[\n\r]+|(?<=\.)\s+/', $descripcion, 3, PREG_SPLIT_NO_EMPTY);
+                    foreach ($partes as $parte) {
+                        $parte = trim($parte, ". \t");
+                        if ($parte) $specs[] = $parte;
+                    }
+                }
+                if (empty($specs)) {
+                    $specs[] = $nombre;
+                    if ($marca) $specs[] = 'Marca: ' . $marca;
+                    if ($stock > 0) $specs[] = 'Disponible en stock';
+                    else $specs[] = 'Consultar disponibilidad';
+                }
+
+                $envioTexto = $stock > 0 ? 'Disponible' : 'Agotado';
+        ?>
+        <!-- Tarjeta <?php echo ($idx + 1); ?> — Dinámica -->
         <div class="tarjeta">
           <div class="tarjeta-inner">
             <div class="tarjeta-frontal">
-              <h3 class="tarjeta-titulo">Speaker Portátil 360º</h3>
+              <h3 class="tarjeta-titulo"><?php echo $nombre; ?></h3>
               <div class="tarjeta-imagen">
-                <img src="../images/bafleInalambrico.png" alt="Producto 3">
+                <img src="<?php echo $imagen; ?>" alt="<?php echo $nombre; ?>" onerror="this.src='../images/audifonosInalambricos.png'">
               </div>
               <div class="tarjeta-footer">Más información ↓</div>
             </div>
             <div class="tarjeta-trasera">
               <div class="tarjeta-back-header">
-                <span class="tarjeta-categoria">Altavoz</span>
+                <span class="tarjeta-categoria"><?php echo $categoria; ?></span>
               </div>
               <div class="tarjeta-back-body">
-                <h3 class="tarjeta-nombre">Speaker Portátil 360º</h3>
+                <h3 class="tarjeta-nombre"><?php echo $nombre; ?></h3>
                 <ul class="tarjeta-specs">
-                  <li>Sonido 360° envolvente</li>
-                  <li>Batería hasta 12 horas</li>
-                  <li>Resistente a salpicaduras IPX5</li>
+                  <?php foreach (array_slice($specs, 0, 3) as $spec): ?>
+                  <li><?php echo htmlspecialchars($spec); ?></li>
+                  <?php endforeach; ?>
                 </ul>
               </div>
               <div class="tarjeta-back-footer">
-                <span class="tarjeta-precio">$199.99</span>
-                <span class="tarjeta-envio">Stock limitado</span>
+                <?php if ($precioOferta): ?>
+                <span class="tarjeta-precio"><?php echo $precioOferta; ?></span>
+                <?php else: ?>
+                <span class="tarjeta-precio"><?php echo $precio; ?></span>
+                <?php endif; ?>
+                <span class="tarjeta-envio"><?php echo $envioTexto; ?></span>
               </div>
             </div>
           </div>
         </div>
+        <?php
+            endforeach;
+        else:
+        ?>
+        <!-- Tarjetas placeholder (sin productos vinculados) -->
+        <div class="tarjeta">
+          <div class="tarjeta-inner">
+            <div class="tarjeta-frontal">
+              <h3 class="tarjeta-titulo">Producto Destacado</h3>
+              <div class="tarjeta-imagen">
+                <img src="../images/audifonosInalambricos.png" alt="Producto">
+              </div>
+              <div class="tarjeta-footer">Más información ↓</div>
+            </div>
+            <div class="tarjeta-trasera">
+              <div class="tarjeta-back-header"><span class="tarjeta-categoria">Tienda</span></div>
+              <div class="tarjeta-back-body">
+                <h3 class="tarjeta-nombre">Próximamente</h3>
+                <ul class="tarjeta-specs"><li>Productos destacados de la tienda aparecerán aquí</li></ul>
+              </div>
+              <div class="tarjeta-back-footer">
+                <span class="tarjeta-precio">---</span>
+                <span class="tarjeta-envio">Visita la tienda</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <?php endif; ?>
 
       </div>
     </section>

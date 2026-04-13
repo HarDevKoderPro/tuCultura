@@ -137,6 +137,28 @@
             color: #aaa;
         }
 
+        /* Botón vincular tarjeta */
+        .btn-accion.vincular {
+            background: #17a2b8;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 0.35rem 0.5rem;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.2s, transform 0.2s;
+        }
+        .btn-accion.vincular:hover {
+            background: #138496;
+            transform: scale(1.05);
+        }
+        .btn-accion.vincular.vinculado {
+            background: #28a745;
+        }
+        .btn-accion.vincular.vinculado:hover {
+            background: #dc3545;
+        }
+
         @media (max-width: 768px) {
             .admin-sidebar { display: none; }
             .admin-main { margin-left: 0; }
@@ -184,11 +206,12 @@
                         <th>Stock</th>
                         <th>Destacado</th>
                         <th>Activo</th>
+                        <th>Contenido</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr><td colspan="8"><div class="loading"><div class="spinner"></div></div></td></tr>
+                    <tr><td colspan="9"><div class="loading"><div class="spinner"></div></div></td></tr>
                 </tbody>
             </table>
         </div>

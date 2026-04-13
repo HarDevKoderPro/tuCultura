@@ -4,9 +4,12 @@
  */
 
 const API_BASE = '../php/admin.php';
+const API_TARJETAS = '../php/admin-tarjetas.php';
+const MAX_VINCULOS = 3;
 let productos = [];
 let todosLosProductos = []; // Copia completa para filtrado por búsqueda
 let categorias = [];
+let idsVinculados = []; // IDs de productos vinculados a tarjetas giratorias
 let imagenSeleccionada = null; // File object de la imagen nueva
 let imagenActual = '';         // Nombre de imagen existente (al editar)
 
@@ -18,7 +21,7 @@ const MAX_TAMANO = 5 * 1024 * 1024; // 5 MB
 // ==================== INICIALIZACIÓN ====================
 document.addEventListener('DOMContentLoaded', () => {
     cargarCategorias();
-    cargarProductos();
+    cargarVinculados().then(() => cargarProductos());
     inicializarSelectorImagen();
     inicializarBuscador();
 });
@@ -195,11 +198,14 @@ function renderizarProductos() {
     const tbody = document.querySelector('#tabla-productos tbody');
     
     if (productos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8">No hay productos registrados</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9">No hay productos registrados</td></tr>';
         return;
     }
     
-    tbody.innerHTML = productos.map(p => `
+    tbody.innerHTML = productos.map(p => {
+        const estaVinculado = idsVinculados.includes(p.id);
+        const posicion = estaVinculado ? (idsVinculados.indexOf(p.id) + 1) : 0;
+        return `
         <tr>
             <td>
                 <img src="../imagenes/productos/${p.imagen || 'sin-imagen.png'}" 
@@ -223,6 +229,14 @@ function renderizarProductos() {
             <td>${p.destacado ? '<i class="fas fa-star" style="color: gold;"></i>' : '-'}</td>
             <td>${p.activo ? '<span style="color: green;">✓</span>' : '<span style="color: red;">✗</span>'}</td>
             <td>
+                <button class="btn-accion vincular ${estaVinculado ? 'vinculado' : ''}" 
+                        onclick="${estaVinculado ? `desvincularProducto(${p.id})` : `vincularProducto(${p.id})`}" 
+                        title="${estaVinculado ? `Desv. tarjeta ${posicion}` : 'Vincular a tarjeta'}">
+                    <i class="fas ${estaVinculado ? 'fa-link' : 'fa-plus-circle'}"></i>
+                    ${estaVinculado ? `T${posicion}` : ''}
+                </button>
+            </td>
+            <td>
                 <button class="btn-accion editar" onclick="editarProducto(${p.id})" title="Editar">
                     <i class="fas fa-edit"></i>
                 </button>
@@ -230,8 +244,8 @@ function renderizarProductos() {
                     <i class="fas fa-trash"></i>
                 </button>
             </td>
-        </tr>
-    `).join('');
+        </tr>`;
+    }).join('');
 }
 
 // ==================== BUSCADOR DE PRODUCTOS ====================
@@ -412,3 +426,127 @@ document.getElementById('modal-producto').addEventListener('click', (e) => {
         cerrarModal();
     }
 });
+
+// ==================== VINCULACIÓN TARJETAS GIRATORIAS ====================
+
+/**
+ * Carga la lista de IDs de productos vinculados a tarjetas giratorias
+ */
+async function cargarVinculados() {
+    try {
+        const response = await fetch(`${API_TARJETAS}?action=listar`);
+        const data = await response.json();
+        if (data.success) {
+            idsVinculados = data.ids.map(id => parseInt(id));
+        }
+    } catch (error) {
+        console.error('Error al cargar vinculados:', error);
+        idsVinculados = [];
+    }
+}
+
+/**
+ * Vincula un producto a una tarjeta giratoria
+ */
+async function vincularProducto(idProducto) {
+    // Verificar límite en frontend
+    if (idsVinculados.length >= MAX_VINCULOS) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Límite alcanzado',
+            html: `Ya hay <strong>${MAX_VINCULOS}</strong> productos vinculados a tarjetas.<br>Desvincula uno primero para agregar otro.`,
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#17a2b8'
+        });
+        return;
+    }
+
+    const result = await Swal.fire({
+        icon: 'question',
+        title: 'Vincular a tarjeta',
+        text: `¿Vincular este producto a la tarjeta giratoria ${idsVinculados.length + 1}?`,
+        showCancelButton: true,
+        confirmButtonText: 'Sí, vincular',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#17a2b8'
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+        const response = await fetch(`${API_TARJETAS}?action=vincular`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id_producto: idProducto })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Vinculado!',
+                text: data.mensaje,
+                timer: 2000,
+                showConfirmButton: false
+            });
+            await cargarVinculados();
+            renderizarProductos();
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.error
+            });
+        }
+    } catch (error) {
+        console.error('Error al vincular:', error);
+        Swal.fire('Error', 'Error de conexión al vincular producto', 'error');
+    }
+}
+
+/**
+ * Desvincula un producto de las tarjetas giratorias
+ */
+async function desvincularProducto(idProducto) {
+    const result = await Swal.fire({
+        icon: 'warning',
+        title: 'Desvincular producto',
+        text: '¿Quitar este producto de la tarjeta giratoria en la página de contenido?',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, desvincular',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc3545'
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+        const response = await fetch(`${API_TARJETAS}?action=desvincular`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id_producto: idProducto })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Desvinculado',
+                text: data.mensaje,
+                timer: 1500,
+                showConfirmButton: false
+            });
+            await cargarVinculados();
+            renderizarProductos();
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.error
+            });
+        }
+    } catch (error) {
+        console.error('Error al desvincular:', error);
+        Swal.fire('Error', 'Error de conexión al desvincular producto', 'error');
+    }
+}
