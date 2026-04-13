@@ -81,7 +81,6 @@ $registrosIniciales = obtenerRegistrosNivel1($conn, $_SESSION['email']);
             <div class="tarjeta-trasera">
               <div class="tarjeta-back-header">
                 <span class="tarjeta-categoria">Audífonos</span>
-                <button class="tarjeta-carrito" aria-label="Agregar al carrito">🛒</button>
               </div>
               <div class="tarjeta-back-body">
                 <h3 class="tarjeta-nombre">Auriculares Inalámbricos Pro</h3>
@@ -112,7 +111,6 @@ $registrosIniciales = obtenerRegistrosNivel1($conn, $_SESSION['email']);
             <div class="tarjeta-trasera">
               <div class="tarjeta-back-header">
                 <span class="tarjeta-categoria">Smartwatch</span>
-                <button class="tarjeta-carrito" aria-label="Agregar al carrito">🛒</button>
               </div>
               <div class="tarjeta-back-body">
                 <h3 class="tarjeta-nombre">Reloj Smart Fit X</h3>
@@ -143,7 +141,6 @@ $registrosIniciales = obtenerRegistrosNivel1($conn, $_SESSION['email']);
             <div class="tarjeta-trasera">
               <div class="tarjeta-back-header">
                 <span class="tarjeta-categoria">Altavoz</span>
-                <button class="tarjeta-carrito" aria-label="Agregar al carrito">🛒</button>
               </div>
               <div class="tarjeta-back-body">
                 <h3 class="tarjeta-nombre">Speaker Portátil 360º</h3>
