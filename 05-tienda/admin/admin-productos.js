@@ -427,6 +427,134 @@ document.getElementById('modal-producto').addEventListener('click', (e) => {
     }
 });
 
+// ==================== MODAL TARJETAS VINCULADAS ====================
+
+/**
+ * Abre el modal que muestra los productos vinculados a tarjetas giratorias
+ */
+async function abrirModalTarjetas() {
+    const modal = document.getElementById('modal-tarjetas');
+    const lista = document.getElementById('tarjetas-lista');
+    
+    modal.classList.add('activo');
+    lista.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+    try {
+        const response = await fetch(`${API_TARJETAS}?action=listar`);
+        const data = await response.json();
+
+        if (data.success) {
+            renderizarTarjetasModal(data.vinculados);
+        } else {
+            lista.innerHTML = '<p style="color:#dc3545; text-align:center;">Error al cargar los productos vinculados.</p>';
+        }
+    } catch (error) {
+        console.error('Error al cargar tarjetas:', error);
+        lista.innerHTML = '<p style="color:#dc3545; text-align:center;">Error de conexión.</p>';
+    }
+}
+
+/**
+ * Renderiza la lista de productos vinculados dentro del modal
+ */
+function renderizarTarjetasModal(vinculados) {
+    const lista = document.getElementById('tarjetas-lista');
+
+    if (!vinculados || vinculados.length === 0) {
+        lista.innerHTML = `
+            <div class="tarjetas-vacio">
+                <i class="fas fa-inbox"></i>
+                <p>No hay productos vinculados a tarjetas giratorias.</p>
+                <small>Usa el botón <strong><i class="fas fa-plus-circle"></i></strong> en la columna "Contenido" de la tabla para vincular productos.</small>
+            </div>`;
+        return;
+    }
+
+    lista.innerHTML = vinculados.map((p, idx) => `
+        <div class="tarjeta-item" id="tarjeta-item-${p.id}">
+            <div class="tarjeta-posicion">T${idx + 1}</div>
+            <img class="tarjeta-img" 
+                 src="../imagenes/productos/${p.imagen || 'sin-imagen.png'}" 
+                 alt="${p.nombre}"
+                 onerror="this.src='../../01-principal/imagenes/fondo-producto.png'">
+            <div class="tarjeta-info">
+                <div class="tarjeta-nombre" title="${p.nombre}">${p.nombre}</div>
+                <div class="tarjeta-meta">${p.categoria_nombre || 'Sin categoría'} · Stock: ${p.stock}</div>
+            </div>
+            <button class="btn-desvincular-modal" onclick="desvincularDesdeModal(${p.id})" title="Desvincular">
+                <i class="fas fa-unlink"></i> Quitar
+            </button>
+        </div>
+    `).join('');
+}
+
+/**
+ * Desvincula un producto desde el modal y actualiza en tiempo real
+ */
+async function desvincularDesdeModal(idProducto) {
+    const item = document.getElementById(`tarjeta-item-${idProducto}`);
+    if (item) {
+        item.style.opacity = '0.5';
+        item.style.pointerEvents = 'none';
+    }
+
+    try {
+        const response = await fetch(`${API_TARJETAS}?action=desvincular`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id_producto: idProducto })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            // Recargar el modal en tiempo real
+            const respLista = await fetch(`${API_TARJETAS}?action=listar`);
+            const dataLista = await respLista.json();
+            if (dataLista.success) {
+                idsVinculados = dataLista.ids.map(id => parseInt(id));
+                actualizarBadgeTarjetas();
+                renderizarTarjetasModal(dataLista.vinculados);
+            }
+            // Refrescar tabla principal de productos
+            renderizarProductos();
+        } else {
+            if (item) {
+                item.style.opacity = '1';
+                item.style.pointerEvents = 'auto';
+            }
+            Swal.fire({ icon: 'error', title: 'Error', text: data.error });
+        }
+    } catch (error) {
+        console.error('Error al desvincular desde modal:', error);
+        if (item) {
+            item.style.opacity = '1';
+            item.style.pointerEvents = 'auto';
+        }
+        Swal.fire('Error', 'Error de conexión al desvincular', 'error');
+    }
+}
+
+function cerrarModalTarjetas() {
+    document.getElementById('modal-tarjetas').classList.remove('activo');
+}
+
+// Cerrar modal tarjetas al hacer clic fuera
+document.getElementById('modal-tarjetas').addEventListener('click', (e) => {
+    if (e.target.classList.contains('modal')) {
+        cerrarModalTarjetas();
+    }
+});
+
+/**
+ * Actualiza el badge del botón de tarjetas vinculadas
+ */
+function actualizarBadgeTarjetas() {
+    const badge = document.getElementById('badge-tarjetas');
+    if (badge) {
+        badge.textContent = idsVinculados.length;
+    }
+}
+
 // ==================== VINCULACIÓN TARJETAS GIRATORIAS ====================
 
 /**
@@ -443,6 +571,7 @@ async function cargarVinculados() {
         console.error('Error al cargar vinculados:', error);
         idsVinculados = [];
     }
+    actualizarBadgeTarjetas();
 }
 
 /**

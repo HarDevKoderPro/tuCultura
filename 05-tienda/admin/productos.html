@@ -159,6 +159,134 @@
             background: #dc3545;
         }
 
+        /* Botón Tarjetas Vinculadas */
+        .btn-tarjetas-vinculadas {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #17a2b8;
+            color: #fff;
+            border: none;
+            border-radius: var(--radio-borde, 8px);
+            padding: 0.65rem 1.2rem;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.15s;
+            font-weight: 600;
+        }
+        .btn-tarjetas-vinculadas:hover {
+            background: #138496;
+            transform: translateY(-1px);
+        }
+        .badge-tarjetas {
+            background: rgba(255,255,255,0.25);
+            color: #fff;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        /* Modal Tarjetas */
+        .modal-tarjetas-contenido {
+            max-width: 560px;
+        }
+        .modal-tarjetas-desc {
+            color: #666;
+            font-size: 0.9rem;
+            margin: 0 0 1.25rem;
+            padding: 0 0.25rem;
+        }
+        .tarjetas-lista {
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+            min-height: 80px;
+        }
+        .tarjeta-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 0.85rem 1rem;
+            transition: box-shadow 0.2s, border-color 0.2s;
+        }
+        .tarjeta-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-color: #dee2e6;
+        }
+        .tarjeta-posicion {
+            background: #17a2b8;
+            color: #fff;
+            font-weight: bold;
+            font-size: 0.85rem;
+            border-radius: 8px;
+            min-width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .tarjeta-img {
+            width: 52px;
+            height: 52px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            flex-shrink: 0;
+        }
+        .tarjeta-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .tarjeta-nombre {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .tarjeta-meta {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 2px;
+        }
+        .btn-desvincular-modal {
+            background: transparent;
+            border: 1.5px solid #dc3545;
+            color: #dc3545;
+            border-radius: 6px;
+            padding: 0.4rem 0.7rem;
+            cursor: pointer;
+            font-size: 0.82rem;
+            transition: background 0.2s, color 0.2s;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .btn-desvincular-modal:hover {
+            background: #dc3545;
+            color: #fff;
+        }
+        .tarjetas-vacio {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: #999;
+        }
+        .tarjetas-vacio i {
+            font-size: 2.5rem;
+            margin-bottom: 0.75rem;
+            display: block;
+            color: #ccc;
+        }
+
         @media (max-width: 768px) {
             .admin-sidebar { display: none; }
             .admin-main { margin-left: 0; }
@@ -186,9 +314,15 @@
     <main class="admin-main">
         <div class="admin-header-bar">
             <h1 style="font-size: 1.5rem; color: var(--color-primario);"><i class="fas fa-box"></i> Gestión de Productos</h1>
-            <button class="btn-primario" onclick="abrirModalProducto()">
-                <i class="fas fa-plus"></i> Nuevo Producto
-            </button>
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                <button class="btn-primario" onclick="abrirModalProducto()">
+                    <i class="fas fa-plus"></i> Nuevo Producto
+                </button>
+                <button class="btn-tarjetas-vinculadas" onclick="abrirModalTarjetas()">
+                    <i class="fas fa-layer-group"></i> Tarjetas Vinculadas
+                    <span class="badge-tarjetas" id="badge-tarjetas">0</span>
+                </button>
+            </div>
         </div>
         
         <div class="search-productos-container">
@@ -317,6 +451,20 @@
         </div>
     </div>
     
+    <!-- Modal Tarjetas Vinculadas -->
+    <div class="modal" id="modal-tarjetas">
+        <div class="modal-contenido modal-tarjetas-contenido">
+            <div class="modal-header">
+                <h2><i class="fas fa-layer-group"></i> Tarjetas Giratorias Vinculadas</h2>
+                <button class="modal-cerrar" onclick="cerrarModalTarjetas()">&times;</button>
+            </div>
+            <p class="modal-tarjetas-desc">Productos mostrados en las tarjetas giratorias de la página de contenido (máx. 3).</p>
+            <div id="tarjetas-lista" class="tarjetas-lista">
+                <div class="loading"><div class="spinner"></div></div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
     <script src="admin-productos.js"></script>
 </body>
