@@ -138,14 +138,14 @@ $registrosIniciales = obtenerRegistrosNivel1($conn, $_SESSION['email']);
                 $stock = intval($prod['stock']);
                 $marca = htmlspecialchars($prod['marca'] ?? '');
                 
-                // Generar specs a partir de la descripción (dividir por líneas o puntos)
+                // Generar specs a partir de la descripción
+                // Separador: coma (,) o salto de línea — igual que en la tienda (tienda.js)
                 $specs = [];
                 if ($descripcion) {
-                    // Intentar dividir por saltos de línea o puntos
-                    $partes = preg_split('/[\n\r]+|(?<=\.)\s+/', $descripcion, 3, PREG_SPLIT_NO_EMPTY);
+                    $partes = preg_split('/,|\n|\r\n?/', $descripcion, -1, PREG_SPLIT_NO_EMPTY);
                     foreach ($partes as $parte) {
-                        $parte = trim($parte, ". \t");
-                        if ($parte) $specs[] = $parte;
+                        $parte = trim($parte);
+                        if (mb_strlen($parte) > 3) $specs[] = $parte;
                     }
                 }
                 if (empty($specs)) {
