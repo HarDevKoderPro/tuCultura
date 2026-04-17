@@ -40,7 +40,7 @@ body {
 /* Configuracion  General del area de la Cabecera */
 .header {
   grid-area: header;
-  background-image: url(../imagenes/cabecera-mobile.jpg);
+  background-image: url(../imagenes/CabeceraDesktop.png);
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
