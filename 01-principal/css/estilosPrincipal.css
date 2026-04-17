@@ -159,7 +159,7 @@ header nav ul li a span {
   letter-spacing: 0.03em;
   /* Bordes para enmarcar secciones */
   border: none;
-  border-radius: 12px;
+  /* border-radius: 12px; */
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
