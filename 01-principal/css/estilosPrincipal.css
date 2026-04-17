@@ -143,9 +143,8 @@ header nav ul li a span {
 .container-contenido {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 10px;
   /* padding: 10px; */
-  border: 2px solid red;
 }
 
 /* Elementos de la Seccion del Contenido (Main) */
