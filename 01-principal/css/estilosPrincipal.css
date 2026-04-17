@@ -23,7 +23,7 @@ html {
 /* Configuracion Base del Contenido */
 body {
   font-family: miFuente;
-  background: rgb(187, 187, 188);
+  background: rgb(56, 56, 56);
   background-attachment: fixed;
 }
 
@@ -48,7 +48,7 @@ body {
   z-index: 1000;
   width: 100%;
   height: 200px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
 }
 
 /* Configuracion General del area del Contenido */
@@ -61,23 +61,6 @@ body {
 .footer {
   grid-area: footer;
 }
-
-/* Elementos de la cabecera */
-/* Logotipo Principal */
-/* .logo {
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  gap: 10px;
-  padding: 5px 10px;
-}
-
-.logo img {
-  width: 100px;
-  height: 100px;
-  object-fit: contain;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-} */
 
 /* Menu de navegacion */
 header nav {
