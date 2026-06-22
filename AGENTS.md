@@ -191,5 +191,43 @@ Formato sugerido para cada actualizacion al final del archivo:
 
 Este documento es obligatorio como contexto base para cualquier nueva implementacion en tienda.
 
+## 14) Bitacora de continuidad (sesiones)
+
+Usar esta seccion para poder cerrar y retomar implementaciones sin perder contexto operativo.
+
+### 14.1 Estado actual
+
+- Feature activa: MercadoPago + sistema de puntos + card de puntos en `04-contenido/php/contenido.php`.
+- Regla de negocio acordada: con pago aprobado, sumar `+1` punto al comprador, `+1` al referente nivel 1 y `+1` al referente nivel 2.
+- Caso de referencia validado: `haroldvaldes@yahoo.com` -> `mary@gmail.com` -> `gaby@gmail.com` (compra de `gaby@gmail.com`).
+- Avance tecnico implementado: migracion base para tablas de pagos/puntos + helpers iniciales en tienda.
+
+### 14.2 Decisiones tomadas
+
+- 2026-06-21: los puntos se asignan solo cuando el pago queda aprobado (no en estado pendiente o al crear intento de pago).
+- 2026-06-21: cada usuario visualiza su propio acumulado de puntos en su espacio de `contenido.php`.
+- 2026-06-21: se implementa idempotencia en base de datos para evitar duplicidad de pagos/puntos ante reintentos.
+
+### 14.3 Pendiente inmediato (proxima sesion)
+
+1. [x] Definir modelo de datos para pagos y puntos (saldo + movimientos + idempotencia).
+2. [ ] Implementar flujo MercadoPago en checkout sin romper metodos existentes.
+3. [ ] Confirmar pago por webhook y ejecutar asignacion de puntos por linea vertical.
+4. [ ] Agregar card de puntos acumulados en `04-contenido/php/contenido.php`.
+5. [ ] Actualizar este `AGENTS.md` al cerrar cada iteracion.
+
+### 14.4 Verificacion pendiente
+
+- [ ] Flujo cliente validado (carrito -> checkout -> pago aprobado -> confirmacion).
+- [ ] Reparto de puntos validado para comprador + nivel 1 + nivel 2.
+- [ ] No duplicidad de puntos ante reintentos/webhooks repetidos.
+- [ ] No-regresion de funcionalidades actuales de tienda y contenido.
+
+### 14.5 Prompt recomendado para retomar
+
+`Lee AGENTS.md, resume estado actual, pendientes priorizados y ejecuta el primer pendiente inmediato sin romper contratos existentes.`
+
 ## Registro de cambios del contexto
 - 2026-06-21: creacion inicial de AGENTS.md con alcance, contratos API, flujos y checklist de no-regresion para `05-tienda`.
+- 2026-06-21: se agrega bitacora de continuidad para retomado de sesiones y contexto de la implementacion MercadoPago + puntos + card de puntos.
+- 2026-06-21: paso 1 implementado (base de datos de pagos/puntos + helpers iniciales) en `05-tienda/php/migrar_pagos_puntos.php` y `05-tienda/php/puntos-pagos-helpers.php`.
