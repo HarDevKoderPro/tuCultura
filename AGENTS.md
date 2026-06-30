@@ -212,7 +212,7 @@ Usar esta seccion para poder cerrar y retomar implementaciones sin perder contex
 ### 14.3 Pendiente inmediato (proxima sesion)
 
 1. [x] Definir modelo de datos para pagos y puntos (saldo + movimientos + idempotencia).
-2. [ ] Implementar `05-tienda/php/pagos.php?action=crear_preferencia` (sandbox) y preparar datos de carrito/usuario.
+2. [x] Implementar `05-tienda/php/pagos.php?action=crear_preferencia` (sandbox) y preparar datos de carrito/usuario.
 3. [ ] Integrar `mercadopago` en `05-tienda/js/checkout.js` sin romper `contraentrega`/`transferencia`.
 4. [ ] Implementar webhook de confirmacion de pago aprobado con idempotencia y asignacion de puntos (comprador + nivel 1 + nivel 2).
 5. [ ] Agregar card de puntos acumulados en `04-contenido/php/contenido.php`.
@@ -230,8 +230,13 @@ Usar esta seccion para poder cerrar y retomar implementaciones sin perder contex
 
 `Lee AGENTS.md, resume estado actual, pendientes priorizados y ejecuta el primer pendiente inmediato sin romper contratos existentes.`
 
+Siguiente paso recomendado para la proxima sesion:
+
+`Ejecuta el pendiente 3 de AGENTS.md: integrar MercadoPago en 05-tienda/js/checkout.js usando php/pagos.php?action=crear_preferencia, manteniendo contraentrega y transferencia sin regresiones.`
+
 ## Registro de cambios del contexto
 - 2026-06-21: creacion inicial de AGENTS.md con alcance, contratos API, flujos y checklist de no-regresion para `05-tienda`.
 - 2026-06-21: se agrega bitacora de continuidad para retomado de sesiones y contexto de la implementacion MercadoPago + puntos + card de puntos.
 - 2026-06-21: paso 1 implementado (base de datos de pagos/puntos + helpers iniciales) en `05-tienda/php/migrar_pagos_puntos.php` y `05-tienda/php/puntos-pagos-helpers.php`.
 - 2026-06-21: paso 1 validado manualmente en BD (tablas, indices unicos e idempotencia) y se detalla plan de continuidad para paso 2/3/4.
+- 2026-06-29: paso 2 implementado con nuevo endpoint `05-tienda/php/pagos.php?action=crear_preferencia` (sandbox), incluyendo preparacion de datos de carrito/usuario y registro en `pagos_tienda`.
