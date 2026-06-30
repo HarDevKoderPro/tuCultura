@@ -201,6 +201,7 @@ Usar esta seccion para poder cerrar y retomar implementaciones sin perder contex
 - Regla de negocio acordada: con pago aprobado, sumar `+1` punto al comprador, `+1` al referente nivel 1 y `+1` al referente nivel 2.
 - Caso de referencia validado: `haroldvaldes@yahoo.com` -> `mary@gmail.com` -> `gaby@gmail.com` (compra de `gaby@gmail.com`).
 - Avance tecnico implementado: migracion base para tablas de pagos/puntos + helpers iniciales en tienda.
+- Estado de validacion del paso 1: completado y verificado manualmente en BD (tablas, indices unicos, idempotencia y limpieza de datos de prueba).
 
 ### 14.2 Decisiones tomadas
 
@@ -211,13 +212,15 @@ Usar esta seccion para poder cerrar y retomar implementaciones sin perder contex
 ### 14.3 Pendiente inmediato (proxima sesion)
 
 1. [x] Definir modelo de datos para pagos y puntos (saldo + movimientos + idempotencia).
-2. [ ] Implementar flujo MercadoPago en checkout sin romper metodos existentes.
-3. [ ] Confirmar pago por webhook y ejecutar asignacion de puntos por linea vertical.
-4. [ ] Agregar card de puntos acumulados en `04-contenido/php/contenido.php`.
-5. [ ] Actualizar este `AGENTS.md` al cerrar cada iteracion.
+2. [ ] Implementar `05-tienda/php/pagos.php?action=crear_preferencia` (sandbox) y preparar datos de carrito/usuario.
+3. [ ] Integrar `mercadopago` en `05-tienda/js/checkout.js` sin romper `contraentrega`/`transferencia`.
+4. [ ] Implementar webhook de confirmacion de pago aprobado con idempotencia y asignacion de puntos (comprador + nivel 1 + nivel 2).
+5. [ ] Agregar card de puntos acumulados en `04-contenido/php/contenido.php`.
+6. [ ] Actualizar este `AGENTS.md` al cerrar cada iteracion.
 
 ### 14.4 Verificacion pendiente
 
+- [x] Paso 1 validado (migracion, indices unicos, pruebas de duplicado y limpieza de pruebas).
 - [ ] Flujo cliente validado (carrito -> checkout -> pago aprobado -> confirmacion).
 - [ ] Reparto de puntos validado para comprador + nivel 1 + nivel 2.
 - [ ] No duplicidad de puntos ante reintentos/webhooks repetidos.
@@ -231,3 +234,4 @@ Usar esta seccion para poder cerrar y retomar implementaciones sin perder contex
 - 2026-06-21: creacion inicial de AGENTS.md con alcance, contratos API, flujos y checklist de no-regresion para `05-tienda`.
 - 2026-06-21: se agrega bitacora de continuidad para retomado de sesiones y contexto de la implementacion MercadoPago + puntos + card de puntos.
 - 2026-06-21: paso 1 implementado (base de datos de pagos/puntos + helpers iniciales) en `05-tienda/php/migrar_pagos_puntos.php` y `05-tienda/php/puntos-pagos-helpers.php`.
+- 2026-06-21: paso 1 validado manualmente en BD (tablas, indices unicos e idempotencia) y se detalla plan de continuidad para paso 2/3/4.
