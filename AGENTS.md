@@ -197,6 +197,14 @@ Usar esta seccion para poder cerrar y retomar implementaciones sin perder contex
 
 ### 14.1 Estado actual
 
+- Entorno principal de trabajo actual: despliegue de prueba en VPS. La aplicacion se opera y valida en `https://vps.girabienes.com`; el hosting compartido y `https://www.girabienes.com` se conservan intactos como respaldo hasta decidir una migracion definitiva.
+- Ubicacion del proyecto en VPS: `/opt/apps/tucultura` (usuario SSH: `deploy`).
+- Infraestructura VPS: Docker Compose con `tucultura-app-1` (PHP 8.3 Apache), `tucultura-db-1` (MariaDB 11.4) y Caddy como proxy HTTPS compartido. Caddy enruta `vps.girabienes.com` hacia `tucultura-app-1:80` mediante la red Docker externa `proxy`.
+- Datos de prueba: la base aislada `tucultura_pruebas` se importa desde un respaldo del hosting. Las credenciales viven exclusivamente en `/opt/apps/tucultura/.env` con permisos `600`; no exponerlas ni copiarlas al repositorio.
+- Persistencia: `05-tienda/php/tarjetas-contenido.json` esta montado como volumen de archivo desde el host para conservar los vinculos de tarjetas tras reconstrucciones. Las imagenes de producto se copiaron desde el hosting a `05-tienda/imagenes/productos/`.
+- Cambios de compatibilidad aplicados solamente en la copia del VPS: conexiones de `05-tienda/php/config.php`, `02-iniciarSesion/php/iniciarSesion.php`, `04-contenido/php/conexion.php` y la consulta de productos vinculados en `04-contenido/php/contenido.php` usan las variables `DB_*` del contenedor. `contenido.php` corrige la redireccion sin sesion a `../../02-iniciarSesion/iniciarSesion.html`.
+- Validacion completada en VPS: HTTPS, catalogo, categorias, imagenes, carrito, login, checkout sin crear pedido, panel de contenido y vinculacion de hasta tres tarjetas giratorias.
+- Comportamiento conocido: los productos agregados al carrito antes de iniciar sesion no se migran automaticamente al carrito del usuario al autenticarse. Es comportamiento heredado; no es una falla propia del VPS.
 - Feature activa: MercadoPago + sistema de puntos + card de puntos en `04-contenido/php/contenido.php`.
 - Regla de negocio acordada: con pago aprobado, sumar `+1` punto al comprador, `+1` al referente nivel 1 y `+1` al referente nivel 2.
 - Caso de referencia validado: `haroldvaldes@yahoo.com` -> `mary@gmail.com` -> `gaby@gmail.com` (compra de `gaby@gmail.com`).
@@ -217,6 +225,15 @@ Usar esta seccion para poder cerrar y retomar implementaciones sin perder contex
 4. [ ] Implementar webhook de confirmacion de pago aprobado con idempotencia y asignacion de puntos (comprador + nivel 1 + nivel 2).
 5. [ ] Agregar card de puntos acumulados en `04-contenido/php/contenido.php`.
 6. [ ] Actualizar este `AGENTS.md` al cerrar cada iteracion.
+
+### 14.6 Operacion del entorno VPS
+
+- Trabajar por defecto en `/opt/apps/tucultura` dentro de la terminal VPS (`deploy@vmi3527475`), no sobre archivos del hosting compartido.
+- Tras cambios de codigo o `Dockerfile`, aplicar con: `cd /opt/apps/tucultura && docker compose up -d --build app`.
+- Tras cambios solo en `compose.yml`, validar primero con: `cd /opt/apps/tucultura && docker compose config --quiet`; despues aplicar con: `docker compose up -d app`.
+- Reconstruir/recrear `app` reinicia sesiones PHP activas. La BD y `tarjetas-contenido.json` permanecen persistentes.
+- Antes de modificar Caddy, respaldar `/opt/caddy/Caddyfile`; validar con `sudo docker exec caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile` y recargar con `sudo docker exec caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile`.
+- No publicar puertos para la nueva app: Caddy debe seguir siendo el unico contenedor expuesto en `80` y `443`.
 
 ### 14.4 Verificacion pendiente
 
@@ -240,3 +257,5 @@ Siguiente paso recomendado para la proxima sesion:
 - 2026-06-21: paso 1 implementado (base de datos de pagos/puntos + helpers iniciales) en `05-tienda/php/migrar_pagos_puntos.php` y `05-tienda/php/puntos-pagos-helpers.php`.
 - 2026-06-21: paso 1 validado manualmente en BD (tablas, indices unicos e idempotencia) y se detalla plan de continuidad para paso 2/3/4.
 - 2026-06-29: paso 2 implementado con nuevo endpoint `05-tienda/php/pagos.php?action=crear_preferencia` (sandbox), incluyendo preparacion de datos de carrito/usuario y registro en `pagos_tienda`.
+- 2026-09-06: se crea despliegue de prueba aislado en VPS bajo `/opt/apps/tucultura`, publicado en `https://vps.girabienes.com` con Docker Compose, MariaDB propia y Caddy. El hosting compartido se conserva sin redireccionar el dominio principal.
+- 2026-09-06: se adaptan en la copia VPS las conexiones de tienda, inicio de sesion y contenido para usar variables `DB_*`; se corrige la redireccion sin sesion de `04-contenido/php/contenido.php` y se persiste `tarjetas-contenido.json` mediante un montaje Docker.
