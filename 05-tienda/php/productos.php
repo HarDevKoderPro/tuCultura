@@ -146,7 +146,9 @@ try {
                                   LEFT JOIN categorias c ON p.categoria_id = c.id 
                                   WHERE p.activo = 1 AND p.destacado = 1 
                                   ORDER BY RAND() LIMIT ?");
-      $stmt->execute([$limite]);
+      // LIMIT requiere entero: con prepares emulados execute([...]) lo envia como cadena
+      $stmt->bindValue(1, $limite, PDO::PARAM_INT);
+      $stmt->execute();
       $productos = $stmt->fetchAll();
 
       $response = [
