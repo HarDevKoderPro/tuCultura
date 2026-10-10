@@ -13,17 +13,11 @@ if (session_status() === PHP_SESSION_NONE) {
 // ✅ Detección automática de entorno
 $esLocal = in_array($_SERVER['HTTP_HOST'], ['localhost', '127.0.0.1', '::1']);
 
-if ($esLocal) {
-  $host     = 'localhost';
-  $dbname   = 'tucultur_asociados';
-  $username = 'tucultur';
-  $password = '@GWMU!J4p-mgyTJ7';
-} else {
-  $host     = '190.8.176.115';
-  $dbname   = 'tucultur_asociados';
-  $username = 'tucultur';
-  $password = '@GWMU!J4p-mgyTJ7';
-}
+// ✅ Credenciales desde variables de entorno (VPS: /opt/apps/tucultura/.env)
+$host     = getenv('DB_HOST') ?: 'localhost';
+$dbname   = getenv('DB_NAME') ?: 'tucultur_asociados';
+$username = getenv('DB_USER') ?: 'tucultur';
+$password = getenv('DB_PASSWORD') ?: '';
 
 // ✅ Detección automática de rutas (sin importar nombre de carpeta)
 $scriptPath = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));

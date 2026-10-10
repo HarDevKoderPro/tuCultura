@@ -6,11 +6,10 @@ header('Content-Type: application/json');
 $data = json_decode(file_get_contents("php://input"), true);
 
 // Configurar credenciales de conexión a la base de datos
-$host = "190.8.176.115"; // Desarrollo Remoto
-// $host = "localhost"; // Desarrollo Local
-$user = "tucultur";      // Usuario de MySQL
-$password = "@GWMU!J4p-mgyTJ7";      // Contraseña de MySQL
-$dbname = "tucultur_asociados"; // Nombre de la base de datos
+$host = getenv('DB_HOST') ?: 'localhost';
+$user = getenv('DB_USER') ?: 'tucultur';
+$password = getenv('DB_PASSWORD') ?: '';
+$dbname = getenv('DB_NAME') ?: 'tucultur_asociados';
 
 $conn = new mysqli($host, $user, $password, $dbname);
 $conn->set_charset("utf8mb4");

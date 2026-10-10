@@ -1,0 +1,49 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      TZ: America/Bogota
+    volumes:
+      # Estado de runtime: no forma parte de la imagen ni del repositorio
+      - ./05-tienda/php/tarjetas-contenido.json:/var/www/html/05-tienda/php/tarjetas-contenido.json
+      - ./05-tienda/imagenes/productos:/var/www/html/05-tienda/imagenes/productos
+      - tucultura_sessions:/var/lib/php/sessions
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - tucultura_internal
+      - proxy
+
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      TZ: America/Bogota
+      MARIADB_DATABASE: ${DB_NAME}
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - tucultura_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - tucultura_internal
+
+networks:
+  tucultura_internal:
+    internal: true
+  proxy:
+    external: true
+    name: proxy
+
+volumes:
+  tucultura_db_data:
+  tucultura_sessions:

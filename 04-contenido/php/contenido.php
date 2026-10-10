@@ -2,7 +2,7 @@
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
-  header("Location: ../02-iniciarSesion/iniciarSesion.html");
+  header("Location: ../../02-iniciarSesion/iniciarSesion.html");
   exit;
 }
 
@@ -85,9 +85,12 @@ $registrosIniciales = obtenerRegistrosNivel1($conn, $_SESSION['email']);
                     $tiendaConfigPath = __DIR__ . '/../../05-tienda/php/config.php';
                     if (file_exists($tiendaConfigPath)) {
                         // Usar las mismas credenciales que la tienda
-                        $esLocal = in_array($_SERVER['HTTP_HOST'], ['localhost', '127.0.0.1', '::1']);
-                        $dbHost = $esLocal ? 'localhost' : '190.8.176.115';
-                        $dbConn = new mysqli($dbHost, 'tucultur', '@GWMU!J4p-mgyTJ7', 'tucultur_asociados');
+                        $dbConn = new mysqli(
+                            getenv('DB_HOST') ?: 'localhost',
+                            getenv('DB_USER') ?: 'tucultur',
+                            getenv('DB_PASSWORD') ?: '',
+                            getenv('DB_NAME') ?: 'tucultur_asociados'
+                        );
                         
                         if (!$dbConn->connect_error) {
                             $dbConn->set_charset("utf8mb4");

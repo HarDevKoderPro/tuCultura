@@ -1,1 +1,14 @@
 .aider*
+
+# Secretos y respaldos (nunca versionar: el repositorio es publico)
+.env
+*.sql
+*.sql.gz
+*.zip
+
+# Estado de runtime del VPS
+05-tienda/php/tarjetas-contenido.json
+05-tienda/imagenes/productos/*
+!05-tienda/imagenes/productos/.gitkeep
+!05-tienda/imagenes/productos/audifonosInalambricos.png
+.deploy.lock

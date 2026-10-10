@@ -1,0 +1,13 @@
+.git
+.github
+.env
+*.sql
+*.sql.gz
+*.zip
+CLAUDE.md
+AGENTS.md
+compose.yml
+Dockerfile
+scripts
+05-tienda/php/tarjetas-contenido.json
+.deploy.lock

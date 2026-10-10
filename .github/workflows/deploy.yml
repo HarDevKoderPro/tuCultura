@@ -1,24 +1,51 @@
-name: Deploy a Colombia Hosting
+name: Deploy a VPS
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false
 
 jobs:
-  web-deploy:
+  deploy:
     name: Deploy
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: vps
+      url: https://vps.girabienes.com
     steps:
-      - name: 🚚 Get latest code
-        uses: actions/checkout@v3
+      - name: 🔑 Configurar SSH
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
 
-      - name: 📂 Sync files
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: public_html/
-          # Esta opción ayuda a evitar bloqueos de firewall
-          protocol: ftp
+      - name: 🚀 Desplegar
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        # La llave tiene comando forzado en el VPS: ejecuta scripts/deploy.sh
+        run: |
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$VPS_USER@$VPS_HOST" deploy
+
+      - name: ✅ Verificar sitio publico
+        run: |
+          set -e
+          curl -fsS --max-time 15 --retry 3 --retry-all-errors https://vps.girabienes.com/ -o /dev/null
+          curl -fsS --max-time 15 --retry 3 --retry-all-errors "https://vps.girabienes.com/05-tienda/php/categorias.php?action=listar" | grep -q '"success":true'
+          curl -fsS --max-time 15 --retry 3 --retry-all-errors "https://vps.girabienes.com/05-tienda/php/productos.php" | grep -q '"success":true'
+          echo "Sitio y API de tienda responden correctamente"
+
+      - name: 🧹 Limpiar llave
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

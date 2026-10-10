@@ -1,10 +1,9 @@
 <?php
 // Configuración de conexión
-$host = "190.8.176.115"; // Desarrollo Remoto
-// $host = "localhost";
-$user = "tucultur";
-$password = "@GWMU!J4p-mgyTJ7";
-$dbname = "tucultur_asociados";
+$host = getenv('DB_HOST') ?: 'localhost';
+$user = getenv('DB_USER') ?: 'tucultur';
+$password = getenv('DB_PASSWORD') ?: '';
+$dbname = getenv('DB_NAME') ?: 'tucultur_asociados';
 
 // Crear conexión
 $conn = new mysqli($host, $user, $password, $dbname);
