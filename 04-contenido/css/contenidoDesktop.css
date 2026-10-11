@@ -351,15 +351,19 @@ body {
 }
 
 .balanceGeneral {
-  flex: 1 1 20%;
+  flex: 1 1 34%;
   padding: 10px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: stretch;
+  /* 6 cards en 2 columnas x 3 filas */
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  align-content: start;
   gap: 10px;
   margin: 5px auto;
   max-width: 900px;
+}
+
+.balanceGeneral .stat-card h3 {
+  font-size: 17px;
 }
 
 .stat-card {
@@ -403,11 +407,6 @@ body {
 }
 
 /* ── Card de puntos por compras ── */
-.puntosUsuario {
-  margin: 5px auto 10px;
-  max-width: 900px;
-}
-
 .stat-card--puntos {
   border: 2px solid #f59e0b;
   background: linear-gradient(135deg, #fffbeb, #fef3c7);
@@ -419,12 +418,6 @@ body {
 
 .stat-card--puntos .stat-value {
   color: #b45309;
-}
-
-.puntos-ayuda {
-  font-size: 0.85rem;
-  color: #78350f;
-  margin-top: 2px;
 }
 
 /* Tarjetas clickeables */
@@ -458,7 +451,7 @@ body {
 /* TABLA DE REGISTROS                          */
 /* ─────────────────────────────────────────── */
 .tablaRegistros {
-  flex: 1 1 80%;
+  flex: 1 1 66%;
   padding: 16px;
   display: flex;
   flex-direction: column;

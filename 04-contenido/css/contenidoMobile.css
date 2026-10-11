@@ -106,12 +106,8 @@
     padding: 0;
   }
 
-  /* Card "Registros del Sistema" ocupa ancho completo */
-  .balanceGeneral .stat-card:first-child {
-    grid-column: 1 / -1;
-  }
+  /* 6 cards (Mis Puntos + 5 de registros) llenan el grid 2x3: ninguna ocupa ancho completo */
 
-  /* Con 5 cards en grid 2 columnas, ya no hay card huérfana que centrar */
 
   .stat-card {
     padding: 10px 5px;
@@ -296,12 +292,8 @@
     padding: 0;
   }
 
-  /* Card "Registros del Sistema" ocupa ancho completo */
-  .balanceGeneral .stat-card:first-child {
-    grid-column: 1 / -1;
-  }
+  /* 6 cards (Mis Puntos + 5 de registros) llenan el grid 2x3: ninguna ocupa ancho completo */
 
-  /* Con 5 cards en grid 2 columnas, distribución par — sin card huérfana */
 
   .stat-card {
     padding: 6px 5px;

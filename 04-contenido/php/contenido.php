@@ -231,16 +231,13 @@ $puntosAcumulados = obtenerPuntosUsuario($conn, (int)$_SESSION['user_id']);
     <!-- Sección de reportes -->
     <section class="reportes">
 
-      <!-- Puntos por compras en la tienda (05-tienda, pago aprobado) -->
-      <div class="puntosUsuario">
-        <div class="stat-card stat-card--puntos">
+      <div class="balanceGeneral">
+
+        <!-- No clickeable — Puntos por compras aprobadas en la tienda (propias y de referidos nivel 1 y 2) -->
+        <div class="stat-card stat-card--puntos" title="+1 por cada compra tuya o de tus referidos (nivel 1 y 2)">
           <h3>⭐ Mis Puntos</h3>
           <p class="stat-value"><?php echo $puntosAcumulados; ?></p>
-          <p class="puntos-ayuda">+1 por cada compra tuya o de tus referidos (nivel 1 y 2)</p>
         </div>
-      </div>
-
-      <div class="balanceGeneral">
 
         <!-- No clickeable — Total del sistema -->
         <div class="stat-card">
