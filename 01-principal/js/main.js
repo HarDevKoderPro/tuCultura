@@ -89,38 +89,74 @@ if ("serviceWorker" in navigator) {
 }
 
 // --------------------------------------------------------------------------
-// CARRUSEL DE IMAGENES
+// CARRUSEL DE IMAGENES (bucle continuo)
 // --------------------------------------------------------------------------
-// Referenciar elementos del DOM
+// Se clona la ultima imagen al inicio y la primera al final. Al llegar a un
+// clon se salta sin animacion a la imagen real equivalente, asi el paso de la
+// ultima a la primera se ve como un desplazamiento mas, sin reinicio visible.
 const btnLeft = document.querySelector(".btn-left");
 const btnRight = document.querySelector(".btn-right");
 const carruseles = document.querySelector(".carruseles");
-let posicion = 0;
-let transitionTime;
+const contenedorCarrusel = document.querySelector(".container-carousel");
 
-// Efecto deslizante
-const transicion = (posicion, transitionTime) => {
-  carruseles.style.transform = `translate(-${posicion}%)`;
-  carruseles.style.transition = `all ease ${transitionTime}`;
-};
+if (carruseles && btnLeft && btnRight) {
+  const originales = Array.from(carruseles.children);
+  const total = originales.length;
+  const duracion = 1000;
+  const intervalo = 2500;
 
-// Desplazamiento hacia la derecha (>)
-const clicBotonDerecho = () => {
-  [posicion, transitionTime] =
-    posicion < 80 ? [(posicion += 20), "1s"] : [(posicion += -80), ".0s"];
-  transicion(posicion, transitionTime);
-};
+  carruseles.insertBefore(originales[total - 1].cloneNode(true), originales[0]);
+  carruseles.appendChild(originales[0].cloneNode(true));
+  carruseles.style.width = `${(total + 2) * 100}%`;
 
-// Desplazamiento hacia la izquierda (<)
-const clicBotonIzquierdo = () => {
-  [posicion, transitionTime] =
-    posicion === 0 ? [(posicion -= -80), "0s"] : [(posicion -= 20), "1s"];
-  transicion(posicion, transitionTime);
-};
+  let indice = 1;
+  let enMovimiento = false;
+  let temporizador = null;
 
-// ------------------------------------------------------------------------
-// PROGRAMA PRINCIPAL
-// ------------------------------------------------------------------------
-btnLeft.addEventListener("click", clicBotonIzquierdo);
-btnRight.addEventListener("click", clicBotonDerecho);
-setInterval(clicBotonDerecho, 2500);
+  const mover = (animar) => {
+    carruseles.style.transition = animar ? `transform ${duracion}ms ease` : "none";
+    carruseles.style.transform = `translateX(-${(indice * 100) / (total + 2)}%)`;
+  };
+
+  // Al terminar sobre un clon, saltar sin animacion a la imagen real
+  const corregirClon = () => {
+    enMovimiento = false;
+    if (indice === total + 1) indice = 1;
+    if (indice === 0) indice = total;
+    mover(false);
+  };
+
+  carruseles.addEventListener("transitionend", (e) => {
+    if (e.target === carruseles) corregirClon();
+  });
+
+  const avanzar = (direccion) => {
+    if (enMovimiento) return;
+    enMovimiento = true;
+    indice += direccion;
+    mover(true);
+    // Respaldo por si el navegador no emite transitionend (pestana oculta)
+    setTimeout(() => { if (enMovimiento) corregirClon(); }, duracion + 100);
+  };
+
+  const iniciarAuto = () => {
+    clearInterval(temporizador);
+    temporizador = setInterval(() => avanzar(1), intervalo);
+  };
+  const detenerAuto = () => clearInterval(temporizador);
+
+  btnRight.addEventListener("click", () => { avanzar(1); iniciarAuto(); });
+  btnLeft.addEventListener("click", () => { avanzar(-1); iniciarAuto(); });
+
+  // Pausa al pasar el mouse (solo equipos con mouse) y con la pestana oculta
+  if (contenedorCarrusel && window.matchMedia("(hover: hover)").matches) {
+    contenedorCarrusel.addEventListener("mouseenter", detenerAuto);
+    contenedorCarrusel.addEventListener("mouseleave", iniciarAuto);
+  }
+  document.addEventListener("visibilitychange", () => {
+    document.hidden ? detenerAuto() : iniciarAuto();
+  });
+
+  mover(false);
+  iniciarAuto();
+}
