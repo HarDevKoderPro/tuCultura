@@ -181,7 +181,16 @@ Pendientes:
 Verificado en sandbox (2026-10-11): pedido TCP-20261011-60304C aprobado; puntos gaby/mary/harold +1 cada uno; stock y carrito actualizados; webhooks repetidos (IPN + Webhook + reenvio manual) sin duplicar.
 Sandbox: el comprador debe ser la cuenta "Buyer Test User" (iniciar sesion en el checkout de MercadoPago, ventana de incognito); pagar como invitado con un email real da "Una de las partes ... es de prueba".
 
-## 14) Mantenimiento de este archivo
+## 14) Plan de trabajo acordado (2026-10-11)
+
+Se ejecuta en orden, paso a paso; cada punto se evalua y aprueba con el usuario antes de pasar al siguiente.
+
+1. [ ] Pruebas ficticias completas en sandbox con asociados ficticios (cadena de referidos de 3 niveles): contraentrega, transferencia, MercadoPago aprobado y rechazado; verificar puntos, correos (`admin/correos.html`), stock, carrito, pedidos y valor del punto en `04-contenido`. Avance: (sin iniciar)
+2. [ ] Revision del usuario al resumen para el dueno (doc "Tienda TuCultura: pagos, puntos y siguientes pasos"); agregar lo que pida.
+3. [ ] Explicacion detallada para el cliente de lo que debe hacer para poner a funcionar el sistema (cuenta MercadoPago, credenciales, dominio, valor del punto, canje, operacion diaria).
+4. [ ] Solo cuando el usuario lo indique: crear la cuenta MercadoPago real y hacer transacciones pequenas de prueba (ver pendiente 8 de la seccion 13).
+
+## 15) Mantenimiento de este archivo
 
 Actualizar al cerrar cada iteracion que cambie rutas/paginas, endpoints o contratos, tablas/campos, reglas de negocio, sesion/roles o integraciones. Registrar al final:
 
@@ -198,3 +207,4 @@ Actualizar al cerrar cada iteracion que cambie rutas/paginas, endpoints o contra
 - 2026-10-11: diagnostico de correos: no fallaba el SMTP, nunca se habia disparado (el unico pago aprobado fue antes del deploy). Historial de correos en el admin (`admin/correos.html`, tabla `correos_tienda`).
 - 2026-10-11: webhook configurado en el panel de MercadoPago con clave secreta (`MERCADOPAGO_WEBHOOK_SECRET`), firma validada con notificacion simulada.
 - 2026-10-11: valor del punto en COP configurable desde el dashboard admin (`valor_punto_cop`); la card "Mis Puntos" de `04-contenido` muestra el equivalente en pesos.
+- 2026-10-11: plan de trabajo acordado (seccion 14): pruebas ficticias, revision del resumen, guia para el cliente y luego cuenta MercadoPago real.
