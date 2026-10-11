@@ -31,6 +31,53 @@ function main() {
 }
 
 // --------------------------------------------------------------------------
+// DESPLAZAMIENTO SUAVE DEL MENU
+// --------------------------------------------------------------------------
+// Se anima por JS para que funcione igual en todos los navegadores y se
+// descuenta la altura de la cabecera fija. Al terminar se corrige la posicion
+// por si alguna imagen diferida cambio el alto de la pagina durante el recorrido.
+const cabecera = document.querySelector(".header");
+
+const posicionDestino = (destino) => {
+  const altoCabecera = cabecera ? cabecera.offsetHeight : 0;
+  const maximo = document.documentElement.scrollHeight - window.innerHeight;
+  const y = destino.getBoundingClientRect().top + window.scrollY - altoCabecera;
+  return Math.max(0, Math.min(y, maximo));
+};
+
+// "instant" evita que el scroll-behavior: smooth del CSS frene cada cuadro
+const irA = (y) => window.scrollTo({ top: y, left: 0, behavior: "instant" });
+
+const desplazarA = (destino, duracion = 700) => {
+  const inicio = window.scrollY;
+  const t0 = performance.now();
+  const suavizado = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
+  const paso = (ahora) => {
+    const t = Math.min((ahora - t0) / duracion, 1);
+    // El destino se recalcula en cada cuadro por si la pagina cambia de alto
+    irA(inicio + (posicionDestino(destino) - inicio) * suavizado(t));
+    if (t < 1) {
+      requestAnimationFrame(paso);
+    } else {
+      setTimeout(() => irA(posicionDestino(destino)), 150);
+    }
+  };
+  requestAnimationFrame(paso);
+};
+
+document.querySelectorAll('header nav a[href^="#"]').forEach((enlace) => {
+  enlace.addEventListener("click", (e) => {
+    const id = enlace.getAttribute("href");
+    const destino = id.length > 1 ? document.querySelector(id) : null;
+    if (!destino) return;
+    e.preventDefault();
+    history.pushState(null, "", id);
+    desplazarA(destino);
+  });
+});
+
+// --------------------------------------------------------------------------
 // SERVICE WORKER
 // --------------------------------------------------------------------------
 // Verificar Existencia de Service worker en el navegador
