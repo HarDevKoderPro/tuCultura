@@ -169,7 +169,12 @@ Pendientes:
 5. [x] Card de puntos acumulados en `04-contenido/php/contenido.php`.
 6. [x] Limpieza de pedidos `mercadopago` abandonados (vencimiento 48 h + cron).
 7. [x] Correo de confirmacion de pedido (comprador + aviso a la tienda).
-8. [ ] Paso a produccion: credenciales de produccion de la cuenta del negocio en `.env`, quitar `TIENDA_EMAIL_PRUEBAS`, webhook secreto, prueba real con monto pequeno y devolucion.
+8. [ ] Paso a produccion:
+   - [x] Webhook en el panel de MercadoPago (app "TuCultura Tienda", evento "Pagos (legacy)", URL `https://vps.girabienes.com/05-tienda/php/pagos.php?action=webhook_mercadopago` en modo prueba y productivo) + `MERCADOPAGO_WEBHOOK_SECRET` en `.env`; simulacion con firma valida respondio 200 (2026-10-11). Al cambiar de dominio, actualizar ambas URLs en el panel.
+   - [ ] Pruebas completas de correos (contraentrega y MercadoPago) revisando `admin/correos.html`.
+   - [ ] Credenciales de produccion de la cuenta del negocio en `.env` (y su clave secreta de webhook si cambia de app).
+   - [ ] Quitar `TIENDA_EMAIL_PRUEBAS`.
+   - [ ] Prueba real con monto pequeno y devolucion.
 9. [ ] Fase 2 (fuera del alcance de la pasarela, cotizar aparte): gestion de envios (guia/transportadora o integracion con agregador).
 
 Verificado en sandbox (2026-10-11): pedido TCP-20261011-60304C aprobado; puntos gaby/mary/harold +1 cada uno; stock y carrito actualizados; webhooks repetidos (IPN + Webhook + reenvio manual) sin duplicar.
@@ -190,3 +195,4 @@ Actualizar al cerrar cada iteracion que cambie rutas/paginas, endpoints o contra
 - 2026-10-11: MercadoPago completo en sandbox: pedido pendiente + preferencia, checkout con opcion MercadoPago, webhook idempotente con puntos (comprador + nivel 1 + nivel 2), `estado_pedido` para `confirmacion.html` y card "Mis Puntos" en `04-contenido`.
 - 2026-10-11: correo de confirmacion de pedidos (`correo-pedidos.php`, modo pruebas con `TIENDA_EMAIL_PRUEBAS`), vencimiento de preferencias a 48 h y cron de limpieza de pedidos abandonados.
 - 2026-10-11: diagnostico de correos: no fallaba el SMTP, nunca se habia disparado (el unico pago aprobado fue antes del deploy). Historial de correos en el admin (`admin/correos.html`, tabla `correos_tienda`).
+- 2026-10-11: webhook configurado en el panel de MercadoPago con clave secreta (`MERCADOPAGO_WEBHOOK_SECRET`), firma validada con notificacion simulada.
