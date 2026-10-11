@@ -31,22 +31,28 @@ if (isset(
   $email = trim($data['email']);
   $referente = trim($data['referente']);
 
-  // Sanitizo las variable para evitar inyección de código
-  $email = htmlspecialchars($email, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-  $referente = htmlspecialchars($referente, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+  // Consultas preparadas: los valores nunca se interpolan en el SQL.
+  // Se comparan tal cual, igual que los guarda registrarse.php
+  $stmt = $conn->prepare("SELECT 1 FROM registros WHERE email = ? LIMIT 1");
 
   // Consulto si el email ya existe en la tabla registros
-  $sqlEmail = "SELECT 1 FROM registros WHERE email = '$email' LIMIT 1";
-  $result = $conn->query($sqlEmail); // Resultado de la consulta
+  $stmt->bind_param("s", $email);
+  $stmt->execute();
+  $stmt->store_result();
+  $emailExists = $stmt->num_rows > 0;
 
   // Consulto si el referente existe en la tabla registros
-  $sqlReferente = "SELECT 1 FROM registros WHERE email = '$referente' LIMIT 1";
-  $result2 = $conn->query($sqlReferente);  // Resultado de la consulta
+  $stmt->bind_param("s", $referente);
+  $stmt->execute();
+  $stmt->store_result();
+  $referenteExists = $stmt->num_rows > 0;
+
+  $stmt->close();
 
   // Devolver ambos resultados en un solo JSON
   echo json_encode([
-    'emailExists' => $result && $result->num_rows > 0,
-    'referenteExists' => $result2 && $result2->num_rows > 0
+    'emailExists' => $emailExists,
+    'referenteExists' => $referenteExists
   ]);
 
   // Si el email consultado no existe...
