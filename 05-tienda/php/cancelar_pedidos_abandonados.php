@@ -32,7 +32,8 @@ $conn->set_charset('utf8mb4');
 
 $sql = "UPDATE pedidos p
         LEFT JOIN pagos_tienda pt ON pt.id = (
-          SELECT MAX(id) FROM pagos_tienda WHERE external_reference = p.numero_pedido
+          -- pagos_tienda y pedidos tienen collations distintas en la BD
+          SELECT MAX(id) FROM pagos_tienda WHERE external_reference = p.numero_pedido COLLATE utf8mb4_unicode_ci
         )
         SET p.estado = 'cancelado'
         WHERE p.estado = 'pendiente'
