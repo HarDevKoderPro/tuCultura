@@ -27,7 +27,7 @@ Contexto minimo para implementar nuevas funcionalidades sin romper lo existente,
 - `confirmacion.html`; `mis-pedidos.html` - `js/pedidos.js`; `js/sesion-ui.js` (boton cuenta/logout para cliente).
 
 ### Frontend admin
-- `admin/index.html` (dashboard, bajo stock, umbral), `admin/productos.html` + `admin/admin-productos.js` (CRUD, imagen, tarjetas), `admin/categorias.html`, `admin/pedidos.html`, `admin/correos.html` (historial de correos de pedidos enviados, con vista del contenido y error si fallo).
+- `admin/index.html` (dashboard, bajo stock, umbral, tarjeta "Puntos Asociados" con valor del punto en COP), `admin/productos.html` + `admin/admin-productos.js` (CRUD, imagen, tarjetas), `admin/categorias.html`, `admin/pedidos.html`, `admin/correos.html` (historial de correos de pedidos enviados, con vista del contenido y error si fallo).
 
 ### Backend API (`php/`)
 - `config.php`: conexion, helpers, sesion, roles, constantes de negocio.
@@ -69,7 +69,7 @@ Comportamiento heredado conocido: el carrito anonimo (por `session_id`) no se mi
 - `carrito` (id, usuario_id/session_id, producto_id, cantidad, fecha_agregado).
 - `pedidos` (id, numero_pedido, usuario_id, subtotal, costo_envio, impuestos, total, estado, metodo_pago, datos de envio, notas, fecha_creacion).
 - `detalle_pedido` (pedido_id, producto_id, nombre_producto, cantidad, precio_unitario, subtotal).
-- `configuracion_tienda` (clave, valor) para `umbral_bajo_stock`.
+- `configuracion_tienda` (clave, valor) para `umbral_bajo_stock` y `valor_punto_cop` (pesos por punto para el canje; 0 = sin definir).
 - `registros` (autenticacion; email -> id, datos de cliente, columna `referente` = email del patrocinador).
 - `correos_tienda` (id, pedido_id, tipo `cliente`/`tienda`, destinatario, asunto, cuerpo, enviado, error, fecha_envio): copia de cada correo de pedido; se crea sola (`asegurarTablaCorreos`).
 - Nuevas (pagos/puntos): `pagos_tienda` (unicos: payment_id, preference_id, idempotency_key), `puntos_saldo` (usuario_id PK), `puntos_movimientos` (unico: clave_idempotencia).
@@ -80,7 +80,7 @@ Comportamiento heredado conocido: el carrito anonimo (por `session_id`) no se mi
 - `carrito.php?action=ver`: `carrito.items`, `subtotal`, `costo_envio`, `total` y sus `*_formateado`.
 - `pedidos.php?action=verificar_checkout`: flags `requiere_login`, `es_admin`, `carrito_vacio`; `usuario{}` en exito.
 - `pedidos.php?action=crear`: `pedido.numero`, `pedido.id`, `pedido.total(_formateado)`.
-- `admin.php`: acciones por query string (`action=...`) usadas directamente por las vistas admin. Correos: `correos_listar` (filtros `pedido`, `tipo`; sin cuerpo) y `correo_detalle&id=` (con `cuerpo` HTML).
+- `admin.php`: acciones por query string (`action=...`) usadas directamente por las vistas admin. Valor del punto: `obtenerValorPunto` (`valor_punto`, `puntos_emitidos`, `equivalente_total(_formateado)`) y `actualizarValorPunto` (POST `valor`, entero 0-1.000.000); `dashboard` agrega `valor_punto(_formateado)`, `puntos_emitidos`, `puntos_equivalente_formateado`. Correos: `correos_listar` (filtros `pedido`, `tipo`; sin cuerpo) y `correo_detalle&id=` (con `cuerpo` HTML).
 - `pagos.php?action=crear_preferencia` (POST, JSON o form, mismos campos que `pedidos.php?action=crear`): crea el pedido `pendiente` (metodo `mercadopago`) y devuelve `pago{}`, `pedido{id, numero, estado}`, `preferencia{id, init_point, sandbox_init_point}`, `resumen{}`; errores con flags `requiere_login`, `es_admin`, `carrito_vacio`, `requiere_configuracion`.
 - `pagos.php?action=webhook_mercadopago`: notificaciones de MercadoPago (Webhooks `data.id`/`type` e IPN `id`/`topic`). Responde 5xx solo cuando conviene que MercadoPago reintente.
 - `pagos.php?action=estado_pedido&pedido=...&payment_id=...` (cliente dueno del pedido): `pedido{numero, estado, estado_texto, metodo_pago, total(_formateado)}`, `pago{estado, detalle}`. Lo usa `confirmacion.html?pedido=...&mp=1`.
@@ -151,7 +151,7 @@ Si se agrega informacion, hacerlo sin quitar campos existentes.
 
 ## 13) Estado de la feature activa: MercadoPago + puntos
 
-Regla de negocio: con pago APROBADO se suma +1 punto al comprador, +1 al referente nivel 1 y +1 al referente nivel 2. Cada usuario ve su acumulado en `04-contenido/php/contenido.php`. Idempotencia en BD contra reintentos/webhooks repetidos. Caso de prueba: `haroldvaldes@yahoo.com` -> `mary@gmail.com` -> `gaby@gmail.com` (compra `gaby@gmail.com`).
+Regla de negocio: con pago APROBADO se suma +1 punto al comprador, +1 al referente nivel 1 y +1 al referente nivel 2. Cada usuario ve su acumulado en `04-contenido/php/contenido.php`, con el equivalente en COP segun `valor_punto_cop` (definido por el admin en el dashboard; el canje por dinero al cierre se hace con ese valor). Idempotencia en BD contra reintentos/webhooks repetidos. Caso de prueba: `haroldvaldes@yahoo.com` -> `mary@gmail.com` -> `gaby@gmail.com` (compra `gaby@gmail.com`).
 
 Flujo implementado (decision: pedido pendiente antes de pagar):
 - Checkout con `mercadopago` -> `crear_preferencia` crea pedido `pendiente` + detalle (sin descontar stock ni vaciar carrito); `external_reference` = `numero_pedido`.
@@ -197,3 +197,4 @@ Actualizar al cerrar cada iteracion que cambie rutas/paginas, endpoints o contra
 - 2026-10-11: correo de confirmacion de pedidos (`correo-pedidos.php`, modo pruebas con `TIENDA_EMAIL_PRUEBAS`), vencimiento de preferencias a 48 h y cron de limpieza de pedidos abandonados.
 - 2026-10-11: diagnostico de correos: no fallaba el SMTP, nunca se habia disparado (el unico pago aprobado fue antes del deploy). Historial de correos en el admin (`admin/correos.html`, tabla `correos_tienda`).
 - 2026-10-11: webhook configurado en el panel de MercadoPago con clave secreta (`MERCADOPAGO_WEBHOOK_SECRET`), firma validada con notificacion simulada.
+- 2026-10-11: valor del punto en COP configurable desde el dashboard admin (`valor_punto_cop`); la card "Mis Puntos" de `04-contenido` muestra el equivalente en pesos.

@@ -112,6 +112,9 @@
             box-shadow: 0 6px 20px rgba(255, 193, 7, 0.35);
             transition: transform 0.2s, box-shadow 0.2s;
         }
+        .stat-card.puntos-card i {
+            color: #f59e0b;
+        }
         .umbral-info {
             font-size: 0.7rem;
             color: #999;
@@ -186,6 +189,16 @@
                     <i class="fas fa-cog"></i> Configurar
                 </button>
             </div>
+            <div class="stat-card puntos-card" id="card-puntos" title="Puntos acumulados por los asociados y su valor en pesos">
+                <i class="fas fa-star"></i>
+                <div class="stat-valor" id="stat-puntos">-</div>
+                <div class="stat-label">Puntos Asociados</div>
+                <div class="umbral-info">Valor del punto: <span id="valorPuntoActual">-</span></div>
+                <div class="umbral-info">Equivalente total: <span id="equivalentePuntos">-</span></div>
+                <button class="btn-configurar-umbral" onclick="configurarValorPunto();">
+                    <i class="fas fa-cog"></i> Valor del punto
+                </button>
+            </div>
         </div>
         
         <!-- Grid de contenido -->
@@ -237,6 +250,7 @@
     <script>
         const API_BASE = '../php/admin.php';
         let umbralGlobal = 10; // Variable global para el umbral actual
+        let valorPuntoGlobal = 0; // Valor en COP de cada punto (0 = sin definir)
         
         document.addEventListener('DOMContentLoaded', () => {
             cargarDashboard();
@@ -261,6 +275,14 @@
                     if (d.umbral_bajo_stock) {
                         umbralGlobal = d.umbral_bajo_stock;
                         document.getElementById('umbralActual').textContent = d.umbral_bajo_stock;
+                    }
+                    
+                    // Tarjeta de puntos de asociados
+                    if (d.puntos_emitidos !== undefined) {
+                        valorPuntoGlobal = d.valor_punto;
+                        document.getElementById('stat-puntos').textContent = d.puntos_emitidos;
+                        document.getElementById('valorPuntoActual').textContent = d.valor_punto > 0 ? d.valor_punto_formateado : 'Sin definir';
+                        document.getElementById('equivalentePuntos').textContent = d.valor_punto > 0 ? d.puntos_equivalente_formateado : '-';
                     }
                     
                     // Últimos pedidos
@@ -658,6 +680,73 @@
                     text: 'No se pudo conectar con el servidor',
                     confirmButtonColor: '#dc3545'
                 });
+            }
+        }
+        
+        // ==================== VALOR DEL PUNTO ====================
+        
+        async function configurarValorPunto() {
+            const { value: nuevoValor } = await Swal.fire({
+                title: '⭐ Valor del Punto',
+                html: `
+                    <p style="color:#555; margin-bottom:1rem;">
+                        Cuántos pesos (COP) vale cada punto al momento del canje.
+                        Los asociados verán sus puntos y el equivalente en pesos en su tarjeta.
+                    </p>
+                    <label for="swal-valor-punto" style="display:block; text-align:left; font-weight:600; margin-bottom:0.3rem; color:#333;">
+                        Valor por punto (COP):
+                    </label>
+                    <input type="number" id="swal-valor-punto" class="swal2-input"
+                           min="0" max="1000000" step="1" value="${valorPuntoGlobal}"
+                           style="width:100%; margin:0; box-sizing:border-box;">
+                    <p style="font-size:0.8rem; color:#888; margin-top:0.5rem;">
+                        Usa 0 para dejarlo sin definir. Rango: 0 - 1.000.000
+                    </p>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Guardar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#023859',
+                focusConfirm: false,
+                preConfirm: () => {
+                    const texto = document.getElementById('swal-valor-punto').value.trim();
+                    if (!/^\d{1,7}$/.test(texto) || parseInt(texto, 10) > 1000000) {
+                        Swal.showValidationMessage('Ingresa un número entero entre 0 y 1.000.000');
+                        return false;
+                    }
+                    return String(parseInt(texto, 10));
+                }
+            });
+            
+            if (nuevoValor === undefined) return;
+            
+            try {
+                const formData = new FormData();
+                formData.append('valor', nuevoValor);
+                const response = await fetch(`${API_BASE}?action=actualizarValorPunto`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Valor Actualizado!',
+                        html: data.valor_punto > 0
+                            ? `Cada punto vale ahora <strong>${data.valor_punto_formateado}</strong>.`
+                            : 'El valor del punto quedó <strong>sin definir</strong>.',
+                        confirmButtonColor: '#023859',
+                        timer: 2500,
+                        timerProgressBar: true
+                    });
+                    cargarDashboard();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Error', text: data.error || 'No se pudo actualizar el valor', confirmButtonColor: '#dc3545' });
+                }
+            } catch (error) {
+                console.error('Error al guardar valor del punto:', error);
+                Swal.fire({ icon: 'error', title: 'Error de conexión', text: 'No se pudo conectar con el servidor', confirmButtonColor: '#dc3545' });
             }
         }
     </script>

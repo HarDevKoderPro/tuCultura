@@ -61,6 +61,12 @@ switch ($action) {
     case 'actualizarUmbral':
         actualizarUmbralBajoStock($conn);
         break;
+    case 'obtenerValorPunto':
+        obtenerValorPunto($conn);
+        break;
+    case 'actualizarValorPunto':
+        actualizarValorPunto($conn);
+        break;
     
     // Bajo Stock
     case 'listarProductosBajoStock':
@@ -171,11 +177,70 @@ function actualizarUmbralBajoStock($conn) {
     }
 }
 
+/**
+ * Total de puntos acumulados por todos los asociados (tabla puntos_saldo).
+ */
+function totalPuntosEmitidos($conn) {
+    try {
+        $row = $conn->query("SELECT COALESCE(SUM(puntos_acumulados), 0) AS total FROM puntos_saldo")->fetch_assoc();
+        return intval($row['total']);
+    } catch (Throwable $e) {
+        // La tabla puede no existir sin la migracion de pagos/puntos
+        return 0;
+    }
+}
+
+/**
+ * Endpoint: Valor de cada punto en COP (0 = sin definir) y total de puntos emitidos.
+ */
+function obtenerValorPunto($conn) {
+    $valor = intval(obtenerConfiguracion($conn, 'valor_punto_cop', '0'));
+    $puntos = totalPuntosEmitidos($conn);
+    jsonResponse([
+        'success' => true,
+        'valor_punto' => $valor,
+        'valor_punto_formateado' => formatearPrecio($valor),
+        'puntos_emitidos' => $puntos,
+        'equivalente_total' => $puntos * $valor,
+        'equivalente_total_formateado' => formatearPrecio($puntos * $valor)
+    ]);
+}
+
+/**
+ * Endpoint: Actualizar el valor en COP de cada punto (0 deja el valor sin definir).
+ */
+function actualizarValorPunto($conn) {
+    $entrada = isset($_POST['valor']) ? trim((string)$_POST['valor']) : '';
+    
+    if (!preg_match('/^\d{1,7}$/', $entrada)) {
+        jsonResponse(['error' => 'El valor debe ser un número entero de pesos, entre 0 y 1.000.000'], 400);
+    }
+    $valor = intval($entrada);
+    if ($valor > 1000000) {
+        jsonResponse(['error' => 'El valor debe estar entre 0 y 1.000.000 pesos'], 400);
+    }
+    
+    if (actualizarConfiguracion($conn, 'valor_punto_cop', strval($valor))) {
+        jsonResponse([
+            'success' => true,
+            'mensaje' => 'Valor del punto actualizado a ' . formatearPrecio($valor),
+            'valor_punto' => $valor,
+            'valor_punto_formateado' => formatearPrecio($valor)
+        ]);
+    } else {
+        jsonResponse(['error' => 'Error al actualizar el valor del punto'], 500);
+    }
+}
+
 // ==================== DASHBOARD ====================
 
 function obtenerDashboard($conn) {
     // Obtener umbral de bajo stock dinámico
     $umbralBajoStock = intval(obtenerConfiguracion($conn, 'umbral_bajo_stock', '10'));
+    
+    // Puntos de asociados y su valor en COP (0 = sin definir)
+    $valorPunto = intval(obtenerConfiguracion($conn, 'valor_punto_cop', '0'));
+    $puntosEmitidos = totalPuntosEmitidos($conn);
     
     // Total productos
     $totalProductos = $conn->query("SELECT COUNT(*) as total FROM productos WHERE activo = 1")->fetch_assoc()['total'];
@@ -247,6 +312,10 @@ function obtenerDashboard($conn) {
             'ventas_mes_formateado' => formatearPrecio($ventasMes),
             'productos_bajo_stock' => intval($productosBajoStock),
             'umbral_bajo_stock' => $umbralBajoStock,
+            'valor_punto' => $valorPunto,
+            'valor_punto_formateado' => formatearPrecio($valorPunto),
+            'puntos_emitidos' => $puntosEmitidos,
+            'puntos_equivalente_formateado' => formatearPrecio($puntosEmitidos * $valorPunto),
             'ultimos_pedidos' => $ultimosPedidos,
             'productos_populares' => $productosPopulares
         ]

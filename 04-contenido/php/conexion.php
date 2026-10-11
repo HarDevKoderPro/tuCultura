@@ -207,6 +207,20 @@ function obtenerPuntosUsuario($conn, $usuarioId)
   }
 }
 
+// Valor en COP de cada punto, definido por el admin de la tienda (0 = sin definir)
+function obtenerValorPunto($conn)
+{
+  try {
+    $stmt = $conn->prepare("SELECT valor FROM configuracion_tienda WHERE clave = 'valor_punto_cop' LIMIT 1");
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row ? max(0, (int)$row['valor']) : 0;
+  } catch (Throwable $e) {
+    return 0;
+  }
+}
+
 function formatearFecha($fecha)
 {
   $meses = [

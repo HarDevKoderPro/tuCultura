@@ -18,6 +18,7 @@ $registrosIniciales = obtenerRegistrosNivel1($conn, $_SESSION['email']);
 
 // Puntos acumulados por compras aprobadas (propias y de referidos nivel 1 y 2)
 $puntosAcumulados = obtenerPuntosUsuario($conn, (int)$_SESSION['user_id']);
+$valorPunto       = obtenerValorPunto($conn);
 ?>
 
 <!DOCTYPE html>
@@ -237,6 +238,11 @@ $puntosAcumulados = obtenerPuntosUsuario($conn, (int)$_SESSION['user_id']);
         <div class="stat-card stat-card--puntos" title="+1 por cada compra tuya o de tus referidos (nivel 1 y 2)">
           <h3>⭐ Mis Puntos</h3>
           <p class="stat-value"><?php echo $puntosAcumulados; ?></p>
+          <p class="stat-equivalente">
+            <?php echo $valorPunto > 0
+              ? '≈ $ ' . number_format($puntosAcumulados * $valorPunto, 0, ',', '.') . ' COP'
+              : 'Valor por definir'; ?>
+          </p>
         </div>
 
         <!-- No clickeable — Total del sistema -->

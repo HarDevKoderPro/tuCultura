@@ -121,6 +121,10 @@
     font-size: 1.3rem;
   }
 
+  .stat-card--puntos .stat-equivalente {
+    font-size: 0.72rem;
+  }
+
   /* Card destacada usuario en mobile */
   .stat-card--usuario {
     border-width: 2px;
@@ -305,6 +309,10 @@
 
   .stat-value {
     font-size: 1.1rem;
+  }
+
+  .stat-card--puntos .stat-equivalente {
+    font-size: 0.68rem;
   }
 
   /* Card destacada usuario en landscape */
