@@ -7,6 +7,9 @@
  * - se crea un pedido contraentrega/transferencia (pedidos.php?action=crear)
  * - MercadoPago aprueba el pago de un pedido (pagos.php)
  *
+ * Cada envio (exitoso o fallido) queda en la tabla correos_tienda para consultarlo
+ * desde el panel admin (admin/correos.html).
+ *
  * Nunca interrumpe el flujo de compra: cualquier error se registra en el log.
  */
 
@@ -56,14 +59,15 @@ if (!function_exists('enviarCorreosPedido')) {
         $destinoCliente = $emailPruebas;
       }
 
-      $okCliente = enviarCorreoTienda($destinoCliente, $asuntoCliente, $cuerpo);
+      $error = null;
+      $okCliente = enviarCorreoTienda($destinoCliente, $asuntoCliente, $cuerpo, $error);
+      registrarCorreoTienda($conn, $pedidoId, 'cliente', $destinoCliente, $asuntoCliente, $cuerpo, $okCliente, $error);
 
       $avisoTienda = getenv('TIENDA_EMAIL_NOTIFICACIONES') ?: (getenv('SMTP_USER') ?: 'contacto@tuculturaesprogreso.com');
-      enviarCorreoTienda(
-        $avisoTienda,
-        "Nuevo pedido $numero (" . $pedido['metodo_pago'] . ") - " . formatearPrecio($pedido['total']),
-        $cuerpo
-      );
+      $asuntoTienda = "Nuevo pedido $numero (" . $pedido['metodo_pago'] . ") - " . formatearPrecio($pedido['total']);
+      $error = null;
+      $okTienda = enviarCorreoTienda($avisoTienda, $asuntoTienda, $cuerpo, $error);
+      registrarCorreoTienda($conn, $pedidoId, 'tienda', $avisoTienda, $asuntoTienda, $cuerpo, $okTienda, $error);
 
       return $okCliente;
     } catch (Throwable $e) {
@@ -74,9 +78,10 @@ if (!function_exists('enviarCorreosPedido')) {
 }
 
 if (!function_exists('enviarCorreoTienda')) {
-  function enviarCorreoTienda($destino, $asunto, $html)
+  function enviarCorreoTienda($destino, $asunto, $html, &$error = null)
   {
     if (!filter_var(html_entity_decode((string)$destino, ENT_QUOTES, 'UTF-8'), FILTER_VALIDATE_EMAIL)) {
+      $error = 'Destinatario invalido';
       return false;
     }
 
@@ -102,8 +107,55 @@ if (!function_exists('enviarCorreoTienda')) {
       $mail->send();
       return true;
     } catch (Throwable $e) {
-      error_log('correo-pedidos.php SMTP: ' . $mail->ErrorInfo);
+      $error = $mail->ErrorInfo ?: $e->getMessage();
+      error_log('correo-pedidos.php SMTP: ' . $error);
       return false;
+    }
+  }
+}
+
+if (!function_exists('asegurarTablaCorreos')) {
+  function asegurarTablaCorreos($conn)
+  {
+    static $verificada = false;
+    if ($verificada) return;
+
+    $conn->query("CREATE TABLE IF NOT EXISTS correos_tienda (
+      id INT PRIMARY KEY AUTO_INCREMENT,
+      pedido_id INT NULL,
+      tipo VARCHAR(20) NOT NULL,
+      destinatario VARCHAR(255) NOT NULL,
+      asunto VARCHAR(255) NOT NULL,
+      cuerpo MEDIUMTEXT NOT NULL,
+      enviado TINYINT(1) NOT NULL DEFAULT 0,
+      error VARCHAR(500) NULL,
+      fecha_envio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_correos_pedido (pedido_id),
+      INDEX idx_correos_fecha (fecha_envio)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $verificada = true;
+  }
+}
+
+if (!function_exists('registrarCorreoTienda')) {
+  // Guarda una copia del correo enviado para consultarla desde el panel admin
+  function registrarCorreoTienda($conn, $pedidoId, $tipo, $destino, $asunto, $html, $enviado, $error)
+  {
+    try {
+      asegurarTablaCorreos($conn);
+      $destino = html_entity_decode((string)$destino, ENT_QUOTES, 'UTF-8');
+      $enviado = $enviado ? 1 : 0;
+      $error = $error !== null ? mb_substr((string)$error, 0, 500) : null;
+      $stmt = $conn->prepare(
+        "INSERT INTO correos_tienda (pedido_id, tipo, destinatario, asunto, cuerpo, enviado, error)
+         VALUES (?, ?, ?, ?, ?, ?, ?)"
+      );
+      $stmt->bind_param('issssis', $pedidoId, $tipo, $destino, $asunto, $html, $enviado, $error);
+      $stmt->execute();
+      $stmt->close();
+    } catch (Throwable $e) {
+      error_log('correo-pedidos.php registro: ' . $e->getMessage());
     }
   }
 }

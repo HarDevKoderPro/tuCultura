@@ -81,6 +81,14 @@ switch ($action) {
         actualizarEstadoPedido($conn);
         break;
     
+    // Correos enviados por la tienda
+    case 'correos_listar':
+        listarCorreosAdmin($conn);
+        break;
+    case 'correo_detalle':
+        detalleCorreoAdmin($conn);
+        break;
+    
     default:
         jsonResponse(['error' => 'Acción no válida'], 400);
 }
@@ -750,4 +758,81 @@ function actualizarEstadoPedido($conn) {
     } else {
         jsonResponse(['error' => 'Error al actualizar el estado'], 500);
     }
+}
+
+// ==================== CORREOS ====================
+
+/**
+ * Endpoint: Lista los correos de pedidos enviados (sin el cuerpo).
+ * Filtros opcionales: pedido (numero de pedido, parcial), tipo (cliente|tienda).
+ */
+function listarCorreosAdmin($conn) {
+    require_once __DIR__ . '/correo-pedidos.php';
+    asegurarTablaCorreos($conn);
+    
+    $pedido = isset($_GET['pedido']) ? trim($_GET['pedido']) : '';
+    $tipo = isset($_GET['tipo']) ? trim($_GET['tipo']) : '';
+    
+    $sql = "SELECT c.id, c.pedido_id, p.numero_pedido, c.tipo, c.destinatario, c.asunto,
+                   c.enviado, c.error, c.fecha_envio
+            FROM correos_tienda c
+            LEFT JOIN pedidos p ON p.id = c.pedido_id
+            WHERE 1 = 1";
+    $tipos = '';
+    $params = [];
+    
+    if ($pedido !== '') {
+        $sql .= " AND p.numero_pedido LIKE ?";
+        $tipos .= 's';
+        $params[] = '%' . $pedido . '%';
+    }
+    if (in_array($tipo, ['cliente', 'tienda'], true)) {
+        $sql .= " AND c.tipo = ?";
+        $tipos .= 's';
+        $params[] = $tipo;
+    }
+    $sql .= " ORDER BY c.id DESC LIMIT 200";
+    
+    $stmt = $conn->prepare($sql);
+    if ($params) {
+        $stmt->bind_param($tipos, ...$params);
+    }
+    $stmt->execute();
+    $correos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    
+    foreach ($correos as &$c) {
+        $c['enviado'] = (bool)$c['enviado'];
+        $c['fecha_formateada'] = date('d/m/Y H:i', strtotime($c['fecha_envio']));
+    }
+    unset($c);
+    
+    jsonResponse(['success' => true, 'correos' => $correos]);
+}
+
+/**
+ * Endpoint: Detalle de un correo enviado (incluye el cuerpo HTML).
+ */
+function detalleCorreoAdmin($conn) {
+    require_once __DIR__ . '/correo-pedidos.php';
+    asegurarTablaCorreos($conn);
+    
+    $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+    $stmt = $conn->prepare(
+        "SELECT c.*, p.numero_pedido FROM correos_tienda c
+         LEFT JOIN pedidos p ON p.id = c.pedido_id
+         WHERE c.id = ? LIMIT 1"
+    );
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $correo = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    
+    if (!$correo) {
+        jsonResponse(['success' => false, 'error' => 'Correo no encontrado'], 404);
+    }
+    
+    $correo['enviado'] = (bool)$correo['enviado'];
+    $correo['fecha_formateada'] = date('d/m/Y H:i', strtotime($correo['fecha_envio']));
+    jsonResponse(['success' => true, 'correo' => $correo]);
 }
