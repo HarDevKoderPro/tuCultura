@@ -15,6 +15,9 @@ $totalReferidosNivel3   = contarReferidosNivel3($conn, $_SESSION['email']);
 
 // Carga inicial: Nivel 1
 $registrosIniciales = obtenerRegistrosNivel1($conn, $_SESSION['email']);
+
+// Puntos acumulados por compras aprobadas (propias y de referidos nivel 1 y 2)
+$puntosAcumulados = obtenerPuntosUsuario($conn, (int)$_SESSION['user_id']);
 ?>
 
 <!DOCTYPE html>
@@ -227,6 +230,15 @@ $registrosIniciales = obtenerRegistrosNivel1($conn, $_SESSION['email']);
 
     <!-- Sección de reportes -->
     <section class="reportes">
+
+      <!-- Puntos por compras en la tienda (05-tienda, pago aprobado) -->
+      <div class="puntosUsuario">
+        <div class="stat-card stat-card--puntos">
+          <h3>⭐ Mis Puntos</h3>
+          <p class="stat-value"><?php echo $puntosAcumulados; ?></p>
+          <p class="puntos-ayuda">+1 por cada compra tuya o de tus referidos (nivel 1 y 2)</p>
+        </div>
+      </div>
 
       <div class="balanceGeneral">
 

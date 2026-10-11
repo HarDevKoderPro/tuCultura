@@ -191,6 +191,22 @@ function obtenerRegistrosNivel3($conn, $emailUsuario)
 // ─────────────────────────────────────────────
 // HELPER: Formatear fecha a "04-Feb-2026"
 // ─────────────────────────────────────────────
+// Puntos acumulados del usuario (tabla puntos_saldo de la tienda)
+function obtenerPuntosUsuario($conn, $usuarioId)
+{
+  try {
+    $stmt = $conn->prepare("SELECT puntos_acumulados FROM puntos_saldo WHERE usuario_id = ? LIMIT 1");
+    $stmt->bind_param("i", $usuarioId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row ? (int)$row['puntos_acumulados'] : 0;
+  } catch (Throwable $e) {
+    // La tabla puede no existir en entornos sin la migracion de pagos/puntos
+    return 0;
+  }
+}
+
 function formatearFecha($fecha)
 {
   $meses = [

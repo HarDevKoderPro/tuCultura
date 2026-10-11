@@ -402,6 +402,31 @@ body {
   color: #1d4ed8;
 }
 
+/* ── Card de puntos por compras ── */
+.puntosUsuario {
+  margin: 5px auto 10px;
+  max-width: 900px;
+}
+
+.stat-card--puntos {
+  border: 2px solid #f59e0b;
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+}
+
+.stat-card--puntos h3 {
+  color: #92400e;
+}
+
+.stat-card--puntos .stat-value {
+  color: #b45309;
+}
+
+.puntos-ayuda {
+  font-size: 0.85rem;
+  color: #78350f;
+  margin-top: 2px;
+}
+
 /* Tarjetas clickeables */
 .stat-card--clickable {
   cursor: pointer;

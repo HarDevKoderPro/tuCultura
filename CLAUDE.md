@@ -78,14 +78,17 @@ Comportamiento heredado conocido: el carrito anonimo (por `session_id`) no se mi
 - `pedidos.php?action=verificar_checkout`: flags `requiere_login`, `es_admin`, `carrito_vacio`; `usuario{}` en exito.
 - `pedidos.php?action=crear`: `pedido.numero`, `pedido.id`, `pedido.total(_formateado)`.
 - `admin.php`: acciones por query string (`action=...`) usadas directamente por las vistas admin.
-- `pagos.php?action=crear_preferencia` (POST, JSON o form): `pago{}`, `preferencia{id, init_point, sandbox_init_point}`, `resumen{}`; errores con flags `requiere_login`, `es_admin`, `carrito_vacio`, `requiere_configuracion`.
+- `pagos.php?action=crear_preferencia` (POST, JSON o form, mismos campos que `pedidos.php?action=crear`): crea el pedido `pendiente` (metodo `mercadopago`) y devuelve `pago{}`, `pedido{id, numero, estado}`, `preferencia{id, init_point, sandbox_init_point}`, `resumen{}`; errores con flags `requiere_login`, `es_admin`, `carrito_vacio`, `requiere_configuracion`.
+- `pagos.php?action=webhook_mercadopago`: notificaciones de MercadoPago (Webhooks `data.id`/`type` e IPN `id`/`topic`). Responde 5xx solo cuando conviene que MercadoPago reintente.
+- `pagos.php?action=estado_pedido&pedido=...&payment_id=...` (cliente dueno del pedido): `pedido{numero, estado, estado_texto, metodo_pago, total(_formateado)}`, `pago{estado, detalle}`. Lo usa `confirmacion.html?pedido=...&mp=1`.
 
 Si se agrega informacion, hacerlo sin quitar campos existentes.
 
 ## 9) Configuracion y constantes (fuente de verdad: `05-tienda/php/config.php`)
 
 - Moneda `COP`; `TIENDA_COSTO_ENVIO_BASE`; `TIENDA_ENVIO_GRATIS_MINIMO`; `TIENDA_IVA`. No asumir valores del README si difieren del codigo.
-- MercadoPago: `pagos.php` lee `MERCADOPAGO_ACCESS_TOKEN` (o `MP_ACCESS_TOKEN`) desde constante o variable de entorno. Tokens `TEST-...` = sandbox.
+- MercadoPago: `pagos.php` lee `MERCADOPAGO_ACCESS_TOKEN` (o `MP_ACCESS_TOKEN`) desde constante o variable de entorno. Las credenciales de prueba actuales empiezan por `APP_USR-` (cuenta vendedora de prueba); el sandbox lo define la cuenta, no el prefijo. Opcional: `MERCADOPAGO_WEBHOOK_SECRET` para validar `x-signature`.
+- Puntos: `PUNTOS_POR_COMPRA` (1) y `PUNTOS_NIVELES_REFERIDOS` (2) en `pagos.php`.
 
 ## 10) Reglas para implementar
 
@@ -124,7 +127,7 @@ Si se agrega informacion, hacerlo sin quitar campos existentes.
 - Docker Compose: `tucultura-app-1` (PHP 8.3 Apache), `tucultura-db-1` (MariaDB 11.4, BD `tucultura_pruebas` importada del hosting). Caddy (contenedor compartido) es el unico expuesto en 80/443 y enruta `vps.girabienes.com` -> `tucultura-app-1:80` por la red Docker externa `proxy`. No publicar puertos nuevos.
 - Infraestructura versionada en el repo: `Dockerfile`, `compose.yml`, `docker/php/tucultura.ini` (zona horaria Bogota, errores solo a log, OPcache, sesiones), `docker/apache/tucultura.conf` (HTTPS detras de Caddy via `X-Forwarded-Proto`).
 - Persistencia (fuera de la imagen y de git): BD en volumen `tucultura_db_data`; sesiones PHP en volumen `tucultura_sessions`; bind mounts de `05-tienda/php/tarjetas-contenido.json` y `05-tienda/imagenes/productos/` (subidas del admin; propietario uid 33 = www-data).
-- Variables en `.env` del VPS: `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `SMTP_PASSWORD` (opcionales `SMTP_HOST`, `SMTP_USER`) y, para pagos, `MERCADOPAGO_ACCESS_TOKEN`.
+- Variables en `.env` del VPS: `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `SMTP_PASSWORD` (opcionales `SMTP_HOST`, `SMTP_USER`) y, para pagos, `MERCADOPAGO_ACCESS_TOKEN` (hoy credencial de prueba de la app "TuCultura Tienda"; opcional `MERCADOPAGO_WEBHOOK_SECRET`). Cambiar `.env` requiere `docker compose up -d`.
 
 ### Despliegue continuo (GitHub Actions -> VPS)
 - `/opt/apps/tucultura` es un clon git de `origin/main`. No editar codigo directamente en el VPS: todo cambio entra por commit + push.
@@ -146,14 +149,23 @@ Si se agrega informacion, hacerlo sin quitar campos existentes.
 
 Regla de negocio: con pago APROBADO se suma +1 punto al comprador, +1 al referente nivel 1 y +1 al referente nivel 2. Cada usuario ve su acumulado en `04-contenido/php/contenido.php`. Idempotencia en BD contra reintentos/webhooks repetidos. Caso de prueba: `haroldvaldes@yahoo.com` -> `mary@gmail.com` -> `gaby@gmail.com` (compra `gaby@gmail.com`).
 
+Flujo implementado (decision: pedido pendiente antes de pagar):
+- Checkout con `mercadopago` -> `crear_preferencia` crea pedido `pendiente` + detalle (sin descontar stock ni vaciar carrito); `external_reference` = `numero_pedido`.
+- Pago aprobado (webhook o retorno a `confirmacion.html`, ambos verifican el pago en la API `/v1/payments/{id}`): en una transaccion con `FOR UPDATE` el pedido pasa a `confirmado`, se descuenta stock, se quitan del carrito los productos comprados y se suman puntos. Valida monto y moneda; si no coinciden, el pedido queda pendiente para revision.
+- Idempotencia: solo se confirma un pedido `pendiente`; `puntos_movimientos.clave_idempotencia` evita sumar dos veces.
+- Pago rechazado: el pedido sigue `pendiente` y los productos siguen en el carrito.
+
 Pendientes:
 1. [x] Modelo de datos pagos/puntos (saldo + movimientos + idempotencia).
 2. [x] `pagos.php?action=crear_preferencia` (sandbox).
-3. [ ] Integrar `mercadopago` en `js/checkout.js` sin romper `contraentrega`/`transferencia`.
-4. [ ] Webhook de pago aprobado con idempotencia + asignacion de puntos (comprador + nivel 1 + nivel 2).
-5. [ ] Card de puntos acumulados en `04-contenido/php/contenido.php`.
+3. [x] Integrar `mercadopago` en `js/checkout.js` sin romper `contraentrega`/`transferencia`.
+4. [x] Webhook de pago aprobado con idempotencia + asignacion de puntos (comprador + nivel 1 + nivel 2).
+5. [x] Card de puntos acumulados en `04-contenido/php/contenido.php`.
+6. [ ] Pedidos `mercadopago` abandonados quedan `pendiente`: definir limpieza (cancelar tras N horas) o filtrarlos en el admin.
+7. [ ] Paso a produccion: credenciales de produccion de la cuenta del negocio en `.env`, webhook secreto, prueba real con monto pequeno y devolucion.
 
-Verificacion pendiente: flujo cliente completo (carrito -> checkout -> pago aprobado -> confirmacion), reparto de puntos, no duplicidad ante webhooks repetidos, no-regresion de tienda y contenido.
+Verificado en sandbox (2026-10-11): pedido TCP-20261011-60304C aprobado; puntos gaby/mary/harold +1 cada uno; stock y carrito actualizados; webhooks repetidos (IPN + Webhook + reenvio manual) sin duplicar.
+Sandbox: el comprador debe ser la cuenta "Buyer Test User" (iniciar sesion en el checkout de MercadoPago, ventana de incognito); pagar como invitado con un email real da "Una de las partes ... es de prueba".
 
 ## 14) Mantenimiento de este archivo
 
@@ -167,3 +179,4 @@ Actualizar al cerrar cada iteracion que cambie rutas/paginas, endpoints o contra
 - 2026-10-10: AGENTS.md migrado a CLAUDE.md.
 - 2026-10-10: repo y VPS unificados. Conexiones activas (tienda, login, recuperacion, registro, contenido) y SMTP leen variables de entorno; infraestructura Docker versionada; deploy FTP al hosting reemplazado por deploy SSH al VPS (`scripts/deploy.sh`).
 - 2026-10-10: respaldo diario (`scripts/backup.sh`, cron 08:45 hora del VPS) con copia cifrada en `tucultura-crypt:` (gdrive:TuCultura-respaldos); claves de cifrado solo en el gestor del usuario. `validarEmails.php` pasa a consultas preparadas.
+- 2026-10-11: MercadoPago completo en sandbox: pedido pendiente + preferencia, checkout con opcion MercadoPago, webhook idempotente con puntos (comprador + nivel 1 + nivel 2), `estado_pedido` para `confirmacion.html` y card "Mis Puntos" en `04-contenido`.
