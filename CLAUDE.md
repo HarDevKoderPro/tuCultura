@@ -185,7 +185,7 @@ Sandbox: el comprador debe ser la cuenta "Buyer Test User" (iniciar sesion en el
 
 Se ejecuta en orden, paso a paso; cada punto se evalua y aprueba con el usuario antes de pasar al siguiente.
 
-1. [ ] Pruebas ficticias completas en sandbox con asociados ficticios (cadena de referidos de 3 niveles): contraentrega, transferencia, MercadoPago aprobado y rechazado; verificar puntos, correos (`admin/correos.html`), stock, carrito, pedidos y valor del punto en `04-contenido`. Avance: (sin iniciar)
+1. [ ] Pruebas ficticias completas en sandbox con asociados ficticios (cadena de referidos de 3 niveles): contraentrega, transferencia, MercadoPago aprobado y rechazado; verificar puntos, correos (`admin/correos.html`), stock, carrito, pedidos y valor del punto en `04-contenido`. Modo: el usuario elige cada comprador y metodo; se analizan beneficiados, detalle y flujo admin, y se espera su indicacion antes de cada paso. Avance: ventas de prueba reiniciadas en BD el 2026-10-11 (pedidos, pagos, puntos, correos y carritos en cero; stock devuelto; respaldo en `~/backups/tucultura/antes-reset-ventas-*.sql.gz`).
 2. [ ] Revision del usuario al resumen para el dueno (doc "Tienda TuCultura: pagos, puntos y siguientes pasos"); agregar lo que pida.
 3. [ ] Explicacion detallada para el cliente de lo que debe hacer para poner a funcionar el sistema (cuenta MercadoPago, credenciales, dominio, valor del punto, canje, operacion diaria).
 4. [ ] Solo cuando el usuario lo indique: crear la cuenta MercadoPago real y hacer transacciones pequenas de prueba (ver pendiente 8 de la seccion 13).
