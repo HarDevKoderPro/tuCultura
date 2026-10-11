@@ -32,7 +32,9 @@ Contexto minimo para implementar nuevas funcionalidades sin romper lo existente,
 ### Backend API (`php/`)
 - `config.php`: conexion, helpers, sesion, roles, constantes de negocio.
 - `productos.php`, `categorias.php`, `carrito.php`, `pedidos.php`, `admin.php`, `admin-tarjetas.php`, `sesion.php`, `logout.php`, `logout_admin.php`.
-- Pagos/puntos (feature en curso): `pagos.php`, `puntos-pagos-helpers.php`, `migrar_pagos_puntos.php`.
+- Pagos/puntos: `pagos.php`, `puntos-pagos-helpers.php`, `migrar_pagos_puntos.php`.
+- `correo-pedidos.php`: correo al comprador + aviso a la tienda (reusa PHPMailer de `02-iniciarSesion/php/PHPMailer`).
+- `cancelar_pedidos_abandonados.php`: solo CLI (por web responde 404), lo ejecuta el cron.
 
 ### Archivos legacy (no tocar salvo migracion explicita)
 Variantes `*Org*`, `*Org2*`, `* copy*` en `05-tienda/`, `php/`, `js/`, `02-iniciarSesion/php/` y `04-contenido/php/`. No usarlos como base, no borrarlos en cambios funcionales.
@@ -127,7 +129,8 @@ Si se agrega informacion, hacerlo sin quitar campos existentes.
 - Docker Compose: `tucultura-app-1` (PHP 8.3 Apache), `tucultura-db-1` (MariaDB 11.4, BD `tucultura_pruebas` importada del hosting). Caddy (contenedor compartido) es el unico expuesto en 80/443 y enruta `vps.girabienes.com` -> `tucultura-app-1:80` por la red Docker externa `proxy`. No publicar puertos nuevos.
 - Infraestructura versionada en el repo: `Dockerfile`, `compose.yml`, `docker/php/tucultura.ini` (zona horaria Bogota, errores solo a log, OPcache, sesiones), `docker/apache/tucultura.conf` (HTTPS detras de Caddy via `X-Forwarded-Proto`).
 - Persistencia (fuera de la imagen y de git): BD en volumen `tucultura_db_data`; sesiones PHP en volumen `tucultura_sessions`; bind mounts de `05-tienda/php/tarjetas-contenido.json` y `05-tienda/imagenes/productos/` (subidas del admin; propietario uid 33 = www-data).
-- Variables en `.env` del VPS: `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `SMTP_PASSWORD` (opcionales `SMTP_HOST`, `SMTP_USER`) y, para pagos, `MERCADOPAGO_ACCESS_TOKEN` (hoy credencial de prueba de la app "TuCultura Tienda"; opcional `MERCADOPAGO_WEBHOOK_SECRET`). Cambiar `.env` requiere `docker compose up -d`.
+- Variables en `.env` del VPS: `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `SMTP_PASSWORD` (opcionales `SMTP_HOST`, `SMTP_USER`) y, para pagos, `MERCADOPAGO_ACCESS_TOKEN` (hoy credencial de prueba de la app "TuCultura Tienda"; opcional `MERCADOPAGO_WEBHOOK_SECRET`). Correos: `TIENDA_EMAIL_PRUEBAS` (mientras exista, el correo del comprador se redirige ahi; hoy activo porque los clientes de prueba usan emails de personas reales; QUITARLO al pasar a produccion) y opcional `TIENDA_EMAIL_NOTIFICACIONES` (aviso de pedidos nuevos; por defecto `SMTP_USER`). Cambiar `.env` requiere `docker compose up -d`.
+- Cron de `deploy`: `scripts/backup.sh` diario 08:45 y `cancelar_pedidos_abandonados.php` cada hora (minuto 10, log `~/logs/tucultura-pedidos.log`).
 
 ### Despliegue continuo (GitHub Actions -> VPS)
 - `/opt/apps/tucultura` es un clon git de `origin/main`. No editar codigo directamente en el VPS: todo cambio entra por commit + push.
@@ -154,6 +157,8 @@ Flujo implementado (decision: pedido pendiente antes de pagar):
 - Pago aprobado (webhook o retorno a `confirmacion.html`, ambos verifican el pago en la API `/v1/payments/{id}`): en una transaccion con `FOR UPDATE` el pedido pasa a `confirmado`, se descuenta stock, se quitan del carrito los productos comprados y se suman puntos. Valida monto y moneda; si no coinciden, el pedido queda pendiente para revision.
 - Idempotencia: solo se confirma un pedido `pendiente`; `puntos_movimientos.clave_idempotencia` evita sumar dos veces.
 - Pago rechazado: el pedido sigue `pendiente` y los productos siguen en el carrito.
+- La preferencia y los pagos en efectivo vencen a las 48 h (`MP_HORAS_EXPIRACION`). El cron cancela pedidos `mercadopago` pendientes de mas de 72 h sin pago aprobado/en proceso, o de mas de 10 dias sin pago aprobado. Si llega un pago aprobado para un pedido cancelado, se registra y se deja alerta en el log (revision manual).
+- Correo de confirmacion: contraentrega/transferencia al crear el pedido; MercadoPago una sola vez al aprobarse.
 
 Pendientes:
 1. [x] Modelo de datos pagos/puntos (saldo + movimientos + idempotencia).
@@ -161,8 +166,10 @@ Pendientes:
 3. [x] Integrar `mercadopago` en `js/checkout.js` sin romper `contraentrega`/`transferencia`.
 4. [x] Webhook de pago aprobado con idempotencia + asignacion de puntos (comprador + nivel 1 + nivel 2).
 5. [x] Card de puntos acumulados en `04-contenido/php/contenido.php`.
-6. [ ] Pedidos `mercadopago` abandonados quedan `pendiente`: definir limpieza (cancelar tras N horas) o filtrarlos en el admin.
-7. [ ] Paso a produccion: credenciales de produccion de la cuenta del negocio en `.env`, webhook secreto, prueba real con monto pequeno y devolucion.
+6. [x] Limpieza de pedidos `mercadopago` abandonados (vencimiento 48 h + cron).
+7. [x] Correo de confirmacion de pedido (comprador + aviso a la tienda).
+8. [ ] Paso a produccion: credenciales de produccion de la cuenta del negocio en `.env`, quitar `TIENDA_EMAIL_PRUEBAS`, webhook secreto, prueba real con monto pequeno y devolucion.
+9. [ ] Fase 2 (fuera del alcance de la pasarela, cotizar aparte): gestion de envios (guia/transportadora o integracion con agregador).
 
 Verificado en sandbox (2026-10-11): pedido TCP-20261011-60304C aprobado; puntos gaby/mary/harold +1 cada uno; stock y carrito actualizados; webhooks repetidos (IPN + Webhook + reenvio manual) sin duplicar.
 Sandbox: el comprador debe ser la cuenta "Buyer Test User" (iniciar sesion en el checkout de MercadoPago, ventana de incognito); pagar como invitado con un email real da "Una de las partes ... es de prueba".
@@ -180,3 +187,4 @@ Actualizar al cerrar cada iteracion que cambie rutas/paginas, endpoints o contra
 - 2026-10-10: repo y VPS unificados. Conexiones activas (tienda, login, recuperacion, registro, contenido) y SMTP leen variables de entorno; infraestructura Docker versionada; deploy FTP al hosting reemplazado por deploy SSH al VPS (`scripts/deploy.sh`).
 - 2026-10-10: respaldo diario (`scripts/backup.sh`, cron 08:45 hora del VPS) con copia cifrada en `tucultura-crypt:` (gdrive:TuCultura-respaldos); claves de cifrado solo en el gestor del usuario. `validarEmails.php` pasa a consultas preparadas.
 - 2026-10-11: MercadoPago completo en sandbox: pedido pendiente + preferencia, checkout con opcion MercadoPago, webhook idempotente con puntos (comprador + nivel 1 + nivel 2), `estado_pedido` para `confirmacion.html` y card "Mis Puntos" en `04-contenido`.
+- 2026-10-11: correo de confirmacion de pedidos (`correo-pedidos.php`, modo pruebas con `TIENDA_EMAIL_PRUEBAS`), vencimiento de preferencias a 48 h y cron de limpieza de pedidos abandonados.
