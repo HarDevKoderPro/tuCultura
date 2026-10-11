@@ -13,6 +13,7 @@
 
 require_once 'config.php';
 require_once 'puntos-pagos-helpers.php';
+require_once 'correo-pedidos.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -27,6 +28,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // Puntos por compra aprobada: comprador (nivel 0) y ascendientes (nivel 1 y 2)
 define('PUNTOS_POR_COMPRA', 1);
 define('PUNTOS_NIVELES_REFERIDOS', 2);
+
+// La preferencia (y los pagos en efectivo) vencen a las N horas; despues
+// cancelar_pedidos_abandonados.php cancela los pedidos que nunca se pagaron
+define('MP_HORAS_EXPIRACION', 48);
 
 $action = isset($_GET['action']) ? sanitizar($_GET['action']) : '';
 
@@ -112,6 +117,7 @@ function crearPreferenciaSandbox($conn)
   $externalReference = $numeroPedido;
   $idempotencyKey = construirIdempotencyKey($usuarioId, $carrito['total']);
   $urls = construirUrlsRetorno($numeroPedido);
+  $vencimiento = date('Y-m-d\TH:i:s.vP', time() + MP_HORAS_EXPIRACION * 3600);
 
   $payloadPreferencia = [
     'items' => array_values($carrito['items_mp']),
@@ -132,6 +138,9 @@ function crearPreferenciaSandbox($conn)
     ],
     'auto_return' => 'approved',
     'notification_url' => $urls['webhook'],
+    'expires' => true,
+    'expiration_date_to' => $vencimiento,
+    'date_of_expiration' => $vencimiento,
     'metadata' => [
       'modulo' => '05-tienda',
       'usuario_id' => (int)$usuarioId,
@@ -782,6 +791,12 @@ function procesarPagoMercadoPago($conn, $paymentId, $numeroEsperado = null)
       'estado_pedido' => $pedido['estado']
     ];
 
+    if ($estadoMP === 'approved' && $pedido['estado'] === 'cancelado') {
+      // Pago aprobado de un pedido ya cancelado (p. ej. por abandono): revision manual
+      error_log("pagos.php: pago $paymentId aprobado para el pedido CANCELADO $numeroPedido; requiere revision");
+      $resultado['alerta'] = 'Pago aprobado para un pedido cancelado; requiere revision manual';
+    }
+
     if ($estadoMP === 'approved' && $pedido['estado'] === 'pendiente') {
       $monto = (float)($pago['transaction_amount'] ?? 0);
       $moneda = (string)($pago['currency_id'] ?? '');
@@ -800,6 +815,12 @@ function procesarPagoMercadoPago($conn, $paymentId, $numeroEsperado = null)
     }
 
     $conn->commit();
+
+    // Solo la llamada que confirmo el pedido envia el correo (una vez por pedido)
+    if (isset($resultado['puntos'])) {
+      enviarCorreosPedido($conn, (int)$pedido['id']);
+    }
+
     return $resultado;
   } catch (Exception $e) {
     $conn->rollback();

@@ -200,6 +200,10 @@ function crearPedido($conn) {
         
         // Confirmar transacción
         $conn->commit();
+
+        // Correo al comprador y aviso a la tienda (si falla, el pedido ya quedó creado)
+        require_once 'correo-pedidos.php';
+        enviarCorreosPedido($conn, $pedido_id);
         
         jsonResponse([
             'success' => true,
