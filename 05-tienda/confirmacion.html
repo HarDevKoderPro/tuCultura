@@ -69,6 +69,66 @@
         if (numeroPedido) {
             document.getElementById('numero-pedido').textContent = numeroPedido;
         }
+
+        // Retorno desde MercadoPago: mostrar el estado real del pago
+        if (numeroPedido && params.get('mp') === '1') {
+            mostrarEstadoPagoMP(numeroPedido, params.get('payment_id') || '');
+        }
+
+        function pintarConfirmacion(icono, color, titulo, mensajes) {
+            const contenedor = document.getElementById('confirmacion');
+            const i = contenedor.querySelector('.confirmacion-icono i');
+            i.className = 'fas ' + icono;
+            i.style.color = color;
+            contenedor.querySelector('h1').textContent = titulo;
+            const msg = contenedor.querySelector('.confirmacion-mensaje');
+            msg.innerHTML = '';
+            mensajes.forEach((texto) => {
+                const p = document.createElement('p');
+                p.textContent = texto;
+                msg.appendChild(p);
+            });
+        }
+
+        async function mostrarEstadoPagoMP(numero, paymentId, intento = 1) {
+            if (intento === 1) {
+                pintarConfirmacion('fa-spinner fa-spin', '#009ee3', 'Verificando tu pago...', ['Estamos confirmando el pago con MercadoPago.']);
+            }
+            try {
+                const url = `php/pagos.php?action=estado_pedido&pedido=${encodeURIComponent(numero)}&payment_id=${encodeURIComponent(paymentId)}`;
+                const data = await (await fetch(url)).json();
+                if (!data.success) throw new Error(data.error || 'Sin respuesta');
+
+                const estadoPedido = data.pedido.estado;
+                const estadoPago = data.pago.estado;
+
+                if (estadoPedido === 'confirmado' || estadoPago === 'approved') {
+                    pintarConfirmacion('fa-check-circle', '', '¡Pago aprobado!', [
+                        `Tu pago de ${data.pedido.total_formateado} fue aprobado y tu pedido está confirmado.`,
+                        'Puedes revisar el estado de tu pedido en "Mis Pedidos".'
+                    ]);
+                } else if (estadoPago === 'rejected' || estadoPago === 'cancelled') {
+                    pintarConfirmacion('fa-times-circle', '#dc2626', 'Pago no aprobado', [
+                        'MercadoPago no aprobó el pago. No se realizó ningún cobro.',
+                        'Tus productos siguen en el carrito: puedes intentarlo de nuevo con otro medio de pago.'
+                    ]);
+                } else if (intento < 4 && estadoPago !== 'in_process' && estadoPago !== 'pending') {
+                    // La notificación puede tardar unos segundos
+                    setTimeout(() => mostrarEstadoPagoMP(numero, paymentId, intento + 1), 3000);
+                } else {
+                    pintarConfirmacion('fa-clock', '#f59e0b', 'Pago en proceso', [
+                        'Tu pedido quedó registrado y está pendiente de la confirmación del pago.',
+                        'Cuando MercadoPago lo apruebe, verás el pedido como "Confirmado" en "Mis Pedidos".'
+                    ]);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                pintarConfirmacion('fa-clock', '#f59e0b', 'Pedido registrado', [
+                    'No pudimos verificar el pago en este momento.',
+                    'Revisa el estado de tu pedido en "Mis Pedidos" en unos minutos.'
+                ]);
+            }
+        }
     </script>
 </body>
 </html>

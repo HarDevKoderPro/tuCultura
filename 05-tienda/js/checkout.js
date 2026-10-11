@@ -185,6 +185,17 @@ function renderizarCheckout(usuario, carrito) {
                     </label>
                 </div>
                 
+                <div class="form-grupo">
+                    <label style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--color-fondo); border-radius: var(--radio-borde); cursor: pointer;">
+                        <input type="radio" name="metodo_pago" value="mercadopago">
+                        <i class="fas fa-credit-card" style="font-size: 1.5rem; color: #009ee3;"></i>
+                        <div>
+                            <strong>MercadoPago</strong>
+                            <p style="font-size: 0.85rem; color: var(--color-texto-claro);">Tarjeta, PSE o efectivo. Pagas de forma segura en MercadoPago</p>
+                        </div>
+                    </label>
+                </div>
+                
                 <div class="checkout-acciones">
                     <button type="submit" class="btn-checkout" id="btn-confirmar">
                         <i class="fas fa-check"></i> Confirmar Pedido
@@ -235,6 +246,11 @@ async function procesarPedido(event) {
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
 
+  if (formData.get("metodo_pago") === "mercadopago") {
+    await pagarConMercadoPago(formData, btn);
+    return;
+  }
+
   try {
     const response = await fetch(`${API_BASE}pedidos.php?action=crear`, {
       method: "POST",
@@ -277,6 +293,58 @@ async function procesarPedido(event) {
 }
 
 
+/**
+ * MercadoPago: crea el pedido pendiente y la preferencia, y redirige al pago.
+ * El pedido se confirma cuando MercadoPago aprueba el pago (webhook).
+ */
+async function pagarConMercadoPago(formData, btn) {
+  const restaurarBoton = () => {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-check"></i> Confirmar Pedido';
+  };
+
+  try {
+    const response = await fetch(`${API_BASE}pagos.php?action=crear_preferencia`, {
+      method: "POST",
+      body: formData,
+    });
+    const data = await response.json();
+    const urlPago = data.success
+      ? data.preferencia.init_point || data.preferencia.sandbox_init_point
+      : null;
+
+    if (urlPago) {
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Redirigiendo a MercadoPago...';
+      window.location.href = urlPago;
+      return;
+    }
+
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: data.error || "No se pudo iniciar el pago con MercadoPago",
+      customClass: {
+        popup: "swal-tcp-popup",
+        confirmButton: "btn-swal-confirm",
+      },
+      buttonsStyling: false,
+    });
+    restaurarBoton();
+  } catch (error) {
+    console.error("Error:", error);
+    Swal.fire({
+      icon: "error",
+      title: "Error de conexión",
+      text: "No se pudo iniciar el pago. Intente nuevamente.",
+      customClass: {
+        popup: "swal-tcp-popup",
+        confirmButton: "btn-swal-confirm",
+      },
+      buttonsStyling: false,
+    });
+    restaurarBoton();
+  }
+}
 
 /**
  * Cancelar checkout y volver a la tienda.
