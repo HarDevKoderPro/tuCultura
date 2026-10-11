@@ -172,7 +172,8 @@ Pendientes:
 8. [ ] Paso a produccion:
    - [x] Webhook en el panel de MercadoPago (app "TuCultura Tienda", evento "Pagos (legacy)", URL `https://vps.girabienes.com/05-tienda/php/pagos.php?action=webhook_mercadopago` en modo prueba y productivo) + `MERCADOPAGO_WEBHOOK_SECRET` en `.env`; simulacion con firma valida respondio 200 (2026-10-11). Al cambiar de dominio, actualizar ambas URLs en el panel.
    - [ ] Pruebas completas de correos (contraentrega y MercadoPago) revisando `admin/correos.html`.
-   - [ ] Credenciales de produccion de la cuenta del negocio en `.env` (y su clave secreta de webhook si cambia de app).
+   - [ ] Credenciales de produccion: NO activarlas en la cuenta del desarrollador ("Harold David", donde vive la app de prueba). El dinero llega a la cuenta donde se activan; el titular (otra persona o empresa) aun no esta decidido. Cuando se decida: el titular crea su app, activa credenciales con el dominio definitivo, se configura su webhook + clave secreta y se cargan en `.env` con `read -rsp` (nunca por chat).
+   - [ ] Dominio definitivo: propuesta de quedarse en el VPS; al elegirlo, agregarlo en Caddy y actualizar las URLs del webhook.
    - [ ] Quitar `TIENDA_EMAIL_PRUEBAS`.
    - [ ] Prueba real con monto pequeno y devolucion.
 9. [ ] Fase 2 (fuera del alcance de la pasarela, cotizar aparte): gestion de envios (guia/transportadora o integracion con agregador).
