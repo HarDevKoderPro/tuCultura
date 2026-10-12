@@ -145,7 +145,16 @@ body {
   color: var(--home-amarillo);
 }
 
-/* Imagenes de seccion */
+/* Imagenes de seccion: mismo formato, velo de marca y etiqueta */
+.container-contenido .imagenContenido {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 3 / 2;
+  margin: 0 auto 2.4rem;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(25, 50, 87, 0.15);
+}
+
 .container-contenido .imagenContenido img,
 .mision img,
 .vision img,
@@ -153,9 +162,48 @@ body {
   float: none;
   display: block;
   width: 100%;
-  height: auto;
-  margin: 0 auto 2.4rem;
-  border-radius: 12px;
+  height: 100%;
+  margin: 0;
+  border-radius: 0;
+  object-fit: cover;
+  transition: transform 0.8s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.container-contenido .imagenContenido::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(25, 50, 87, 0) 45%, rgba(25, 50, 87, 0.55) 100%),
+    linear-gradient(135deg, rgba(25, 50, 87, 0.22) 0%, rgba(245, 179, 1, 0.12) 100%);
+  pointer-events: none;
+}
+
+.container-contenido .imagenContenido::before {
+  content: attr(data-etiqueta);
+  position: absolute;
+  left: 1.6rem;
+  bottom: 1.6rem;
+  z-index: 1;
+  padding: 0.6rem 1.4rem 0.6rem 2.6rem;
+  border-radius: 999px;
+  font-family: "Poppins", miFuente, sans-serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  color: var(--home-azul);
+  background:
+    radial-gradient(circle at 1.4rem 50%, var(--home-amarillo) 0.4rem, transparent 0.45rem),
+    rgba(255, 255, 255, 0.94);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .container-contenido .imagenContenido:hover img {
+    transform: scale(1.05);
+  }
 }
 
 /* Escritorio */
@@ -199,8 +247,8 @@ body {
     grid-column: 1 / -1;
   }
 
-  .mision .imagenContenido img,
-  .vision .imagenContenido img {
+  .mision .imagenContenido,
+  .vision .imagenContenido {
     margin: 0;
   }
 
@@ -212,8 +260,9 @@ body {
 
   /* Terminos: imagen de cabecera moderada sobre el texto */
   .terminos .imagenContenido {
-    max-width: 64rem;
-    margin: 0 auto;
+    max-width: 72rem;
+    aspect-ratio: 16 / 9;
+    margin: 0 auto 3.2rem;
   }
 }
 
