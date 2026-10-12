@@ -153,6 +153,10 @@ body {
   margin: 0 auto 2.4rem;
   border-radius: 14px;
   box-shadow: 0 8px 24px rgba(25, 50, 87, 0.15);
+  /* Vista previa borrosa (miniatura en linea en el HTML) mientras baja la foto */
+  background-color: var(--home-borde);
+  background-size: cover;
+  background-position: center;
 }
 
 .container-contenido .imagenContenido img,
