@@ -1,6 +1,11 @@
 FROM php:8.3-apache
 
-RUN docker-php-ext-install mysqli pdo_mysql
+# GD con JPEG, PNG y WebP: optimizacion de fotos de productos (05-tienda/php/imagenes-productos.php)
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends libjpeg62-turbo-dev libpng-dev libwebp-dev \
+  && docker-php-ext-configure gd --with-jpeg --with-webp \
+  && docker-php-ext-install -j"$(nproc)" mysqli pdo_mysql gd \
+  && rm -rf /var/lib/apt/lists/*
 
 COPY docker/php/tucultura.ini /usr/local/etc/php/conf.d/zz-tucultura.ini
 COPY docker/apache/tucultura.conf /etc/apache2/conf-available/tucultura.conf

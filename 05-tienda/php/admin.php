@@ -5,6 +5,7 @@
  */
 
 require_once 'config.php';
+require_once 'imagenes-productos.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -730,8 +731,9 @@ function detallePedidoAdmin($conn) {
 /**
  * Procesa la imagen subida desde el formulario de producto.
  * Valida tipo MIME, extensión real, tamaño y que sea una imagen válida.
- * Guarda en ../imagenes/productos/ con nombre único.
- * @return string Nombre del archivo guardado, o cadena vacía si no hay imagen.
+ * Guarda en ../imagenes/productos/ con nombre único y genera una versión WebP
+ * optimizada (imagenes-productos.php); el original se conserva en disco.
+ * @return string Nombre del archivo a usar (el WebP si se generó), o cadena vacía si no hay imagen.
  */
 function procesarImagenSubida() {
     if (!isset($_FILES['imagen_file']) || $_FILES['imagen_file']['error'] === UPLOAD_ERR_NO_FILE) {
@@ -806,7 +808,8 @@ function procesarImagenSubida() {
         jsonResponse(['error' => 'Error al guardar la imagen en el servidor.'], 500);
     }
     
-    return $nombreUnico;
+    $optimizada = optimizarImagenProducto($carpetaDestino, $nombreUnico);
+    return $optimizada !== '' ? $optimizada : $nombreUnico;
 }
 
 function actualizarEstadoPedido($conn) {

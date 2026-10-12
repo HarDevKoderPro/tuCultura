@@ -35,6 +35,7 @@ Contexto minimo para implementar nuevas funcionalidades sin romper lo existente,
 - Pagos/puntos: `pagos.php`, `puntos-pagos-helpers.php`, `migrar_pagos_puntos.php`.
 - `correo-pedidos.php`: correo al comprador + aviso a la tienda (reusa PHPMailer de `02-iniciarSesion/php/PHPMailer`); cada envio queda en `correos_tienda`.
 - `cancelar_pedidos_abandonados.php`: solo CLI (por web responde 404), lo ejecuta el cron.
+- `imagenes-productos.php`: `optimizarImagenProducto()` genera un WebP optimizado (lado mayor 1200 px, calidad 82, conserva transparencia) de cada foto subida en el admin; el producto usa el WebP y el original queda en disco. Requiere GD con WebP (Dockerfile). `optimizar_imagenes_productos.php`: solo CLI, aplica lo mismo a las fotos existentes (`--simular` para ver sin cambiar).
 
 ### Archivos legacy (no tocar salvo migracion explicita)
 Variantes `*Org*`, `*Org2*`, `* copy*` en `05-tienda/`, `php/`, `js/`, `02-iniciarSesion/php/` y `04-contenido/php/`. No usarlos como base, no borrarlos en cambios funcionales.
@@ -204,7 +205,7 @@ Extra aprobado (2026-10-11): rendimiento de carga del home (medido con 4G simula
 - [x] 3. Fuentes: `font-display: swap` + preload de `fonts/OpenSans.woff2` (latino, 19 KB; TTF de respaldo), iconos del menu en `css/iconosHome.css` con subconjunto `fonts/iconos-home.woff2` (1 KB; `fonts.css` completo sigue para 04-contenido), boxicons reemplazado por SVG en linea (clase `.icono`).
 - [x] 4. jQuery eliminado (82 KB): menu movil en JS simple con transicion CSS de `left` (0,4 s) en estilosLectura.css.
 - [x] 5. Cache del navegador en `docker/apache/tucultura.conf` (mod_headers activado en el Dockerfile): imagenes y fuentes 7 dias; HTML/CSS/JS `no-cache` (revalidan con 304). Al reemplazar una imagen con el mismo nombre puede verse la anterior hasta 7 dias: usar nombre nuevo o `?v=N`. Se quito el registro del service worker inexistente (`sw.js`, daba 404).
-- [ ] 6. (Aparte) Miniaturas WebP automaticas al subir fotos de productos en el admin.
+- [x] 6. Fotos de productos en WebP: automatico al subir en el admin (`imagenes-productos.php`) y migracion de las existentes con `optimizar_imagenes_productos.php` (respaldo previo de la tabla `productos`).
 
 ## 15) Mantenimiento de este archivo
 
