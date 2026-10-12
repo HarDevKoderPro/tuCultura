@@ -198,6 +198,14 @@ Extra aprobado (2026-10-11): mejora de aspecto y legibilidad del texto del home 
 - [ ] Fase 2 - estructura de Terminos sin cambiar su redaccion: indice, apartados plegables, tabla de montos de afiliacion y tarjetas de beneficios.
 - [ ] Fase 3 - contenido: ortografia y tipeo, fechas actualizadas a 2026 en la Vision, pie de pagina con iconos planos conservando el icono de WhatsApp y el correo actual del propietario (por ahora). Mision y Vision reescritas y compactadas (Vision cabe junto a su foto en escritorio, meta 2026) (2026-10-11). Pie de pagina adelantado y publicado (2026-10-11): icono plano de Facebook, correo como enlace, WhatsApp conservado y "© 2026".
 
+Extra aprobado (2026-10-11): rendimiento de carga del home (medido con 4G simulada; antes: cabecera visible a 5,3 s en escritorio y 3,1 s en movil, 3,4 MB):
+- [x] 1. Cabeceras en WebP (1.264 KB -> 81 KB y 590 KB -> 39 KB) con `preload` + `fetchpriority="high"` por media query. Despues: ~1,9 s escritorio y movil.
+- [ ] 2. Carrusel: descargar fotos de destacados despues del evento load y de forma progresiva.
+- [ ] 3. Fuentes: `font-display: swap`, Open Sans en WOFF2, iconos de boxicons por SVG en linea.
+- [ ] 4. Quitar jQuery (menu movil en JS simple).
+- [ ] 5. Cache del navegador para imagenes y fuentes en `docker/apache/tucultura.conf`.
+- [ ] 6. (Aparte) Miniaturas WebP automaticas al subir fotos de productos en el admin.
+
 ## 15) Mantenimiento de este archivo
 
 Actualizar al cerrar cada iteracion que cambie rutas/paginas, endpoints o contratos, tablas/campos, reglas de negocio, sesion/roles o integraciones. Registrar al final:
