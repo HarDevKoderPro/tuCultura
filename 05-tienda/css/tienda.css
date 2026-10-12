@@ -1944,12 +1944,16 @@ body {
 .menu-cuenta-salir i { color: var(--color-error); }
 
 /* =========================================================================
-   CELULAR: CATEGORIAS EN DESPLEGABLE (en lugar de la fila deslizable)
+   CATEGORIAS: COLUMNA LATERAL EN ESCRITORIO Y DESPLEGABLE EN CELULAR
    ========================================================================= */
 .categorias-movil { display: none; }
 
+/* La fila de categorias no se muestra en ningun tamano (escritorio usa la columna
+   lateral y celular el desplegable), pero se conserva en la pagina porque
+   tienda.js la arma y el desplegable de celular se construye a partir de ella. */
+.nav-categorias { display: none; }
+
 @media (max-width: 767.98px) {
-    .nav-categorias { display: none; }
     .categorias-movil {
         display: flex;
         align-items: center;

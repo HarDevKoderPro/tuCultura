@@ -22,7 +22,7 @@ Contexto minimo para implementar nuevas funcionalidades sin romper lo existente,
 ## 3) Modulo de tienda (`05-tienda/`)
 
 ### Frontend cliente
-- `index.html` (catalogo, filtros, destacados, modal detalle) - `js/tienda.js`; `js/tienda-filtros.js` (en celular <768px la barra de filtros es un panel inferior con el precio; categorias y orden quedan en la fila superior y el selector; resalta la categoria activa de la fila superior). En celular los productos van en dos columnas.
+- `index.html` (catalogo, filtros, destacados, modal detalle) - `js/tienda.js`; `js/tienda-filtros.js` (en celular <768px la barra de filtros es un panel inferior con precio y "Solo destacados", y las categorias van en el desplegable `#select-categoria`). La fila `#nav-categorias` ya no se muestra en ningun tamano (escritorio usa la columna lateral) pero sigue en la pagina porque tienda.js la arma y el desplegable de celular se construye con ella. El grupo de radios "Ordenar por" de la columna esta oculto (`hidden`) pero se conserva: tienda.js lee el orden de esos radios y `#select-orden` (con marcador "Ordenar por") los sincroniza. En celular los productos van en dos columnas.
 - `producto.html` - `js/producto.js`; `carrito.html` - `js/carrito.js`; `checkout.html` - `js/checkout.js`.
 - `confirmacion.html`; `mis-pedidos.html` - `js/pedidos.js`; `js/sesion-ui.js` (menu "Mi cuenta" del icono de usuario).
 
@@ -220,6 +220,7 @@ Ajustes pedidos (2026-10-12), tienda en celular:
 - [x] 3. Categorias en un desplegable en la parte superior en celular (`#select-categoria`, replica la fila `#nav-categorias` y al elegir toca su enlace).
 - [x] 4. Menu "Mi cuenta" en el icono de usuario (todas las paginas y tamanos): Mis pedidos, Mi carrito, Iniciar/Cerrar sesion.
 - [x] 5. Pie de pagina sin las secciones "Categorias" (enlaces fijos que no filtraban) y "Mi cuenta" (esta en el menu del icono de usuario), ni "Ayuda" en producto (mismos enlaces), ni el enlace "Ir al sitio principal" (esta la casita en la cabecera), en celular y escritorio; la grilla del pie se adapta a las secciones que quedan.
+- [x] 6. Escritorio: sin la fila superior de categorias (quedan en la columna lateral) ni el grupo "Ordenar por" de la columna; el desplegable de orden muestra "Ordenar por" como marcador. Pie con año 2026.
 
 ## 15) Mantenimiento de este archivo
 

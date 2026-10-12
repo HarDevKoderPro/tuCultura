@@ -102,7 +102,9 @@
           </label>
         </div>
 
-        <div class="filtro-grupo filtro-solo-escritorio">
+        <!-- Oculto: el orden se elige en el desplegable #select-orden. Las opciones se
+             conservan porque tienda.js lee el orden de ellas (el desplegable las sincroniza). -->
+        <div class="filtro-grupo" hidden>
           <h3>Ordenar por</h3>
           <label>
             <input type="radio" name="orden" value="relevancia" checked> Relevancia
@@ -138,6 +140,7 @@
               <i class="fas fa-sliders-h"></i> Filtrar <span class="filtros-activos" id="filtros-activos" hidden></span>
             </button>
             <select id="select-orden" aria-label="Ordenar productos">
+              <option value="" disabled selected hidden>Ordenar por</option>
               <option value="relevancia">Relevancia</option>
               <option value="precio_asc">Precio: Menor a Mayor</option>
               <option value="precio_desc">Precio: Mayor a Menor</option>
