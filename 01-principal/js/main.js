@@ -97,6 +97,9 @@ const carruseles = document.querySelector(".carruseles");
 const btnLeft = document.querySelector(".btn-left");
 const btnRight = document.querySelector(".btn-right");
 
+// Flecha del boton "Ver producto" (SVG en linea, igual a la del libro en index.html)
+const ICONO_FLECHA = '<svg class="icono" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
 const crearElemento = (etiqueta, clase, texto) => {
   const elemento = document.createElement(etiqueta);
   if (clase) elemento.className = clase;
@@ -138,7 +141,7 @@ const crearDiapositivaProducto = (p) => {
 
   const boton = crearElemento("a", "slide-boton", "Ver producto ");
   boton.href = url;
-  boton.appendChild(crearElemento("i", "bx bx-right-arrow-alt"));
+  boton.insertAdjacentHTML("beforeend", ICONO_FLECHA);
 
   const info = crearElemento("div", "slide-info");
   info.append(etiqueta, crearElemento("h3", "slide-titulo", nombre), precio, boton);

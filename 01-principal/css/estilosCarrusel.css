@@ -171,7 +171,7 @@
   transition: background 0.25s ease, color 0.25s ease, transform 0.25s ease;
 }
 
-.container-carousel .slide-boton i {
+.container-carousel .slide-boton svg {
   font-size: 2rem;
   transition: transform 0.25s ease;
 }
@@ -183,7 +183,7 @@
   transform: translateY(-2px);
 }
 
-.container-carousel .slide-boton:hover i {
+.container-carousel .slide-boton:hover svg {
   transform: translateX(3px);
 }
 

@@ -1,0 +1,33 @@
+/* Iconos del menu del home (IcoMoon-Free). Subconjunto de 8 iconos de      */
+/* css/iconos.ttf en fonts/iconos-home.woff2 (1 KB en lugar de 127 KB).      */
+/* fonts.css completo se mantiene para las demas paginas (04-contenido).     */
+@font-face {
+  font-family: "IcoMoon-Free";
+  src: url("../fonts/iconos-home.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+[class^="icon-"],
+[class*=" icon-"] {
+  font-family: "IcoMoon-Free" !important;
+  speak: none;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-home:before { content: "\e900"; }
+.icon-file-text2:before { content: "\e926"; }
+.icon-cart:before { content: "\e93a"; }
+.icon-user-plus:before { content: "\e973"; }
+.icon-stats-dots:before { content: "\e99b"; }
+.icon-menu:before { content: "\e9bd"; }
+.icon-eye:before { content: "\e9ce"; }
+.icon-share2:before { content: "\ea82"; }

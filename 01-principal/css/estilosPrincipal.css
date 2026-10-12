@@ -3,7 +3,9 @@
 /* Fuente personalizada */
 @font-face {
   font-family: "miFuente";
-  src: url("../fonts/OpenSans.ttf");
+  /* WOFF2 con caracteres latinos (19 KB); el TTF queda de respaldo */
+  src: url("../fonts/OpenSans.woff2") format("woff2"), url("../fonts/OpenSans.ttf") format("truetype");
+  font-display: swap;
 }
 
 /* Reset General */

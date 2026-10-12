@@ -20,6 +20,15 @@ body {
   background: var(--home-fondo);
 }
 
+/* Iconos SVG en linea: toman el tamano y el color del texto */
+.icono {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+  vertical-align: -0.125em;
+}
+
 /* Secciones como tarjetas blancas */
 .container-contenido {
   gap: 1.6rem;
@@ -301,7 +310,7 @@ body {
   color: #e8eff5;
 }
 
-.contenido-pie .email i {
+.contenido-pie .email svg {
   vertical-align: -0.15em;
   font-size: 1.9rem;
   color: var(--home-amarillo);

@@ -201,7 +201,7 @@ Extra aprobado (2026-10-11): mejora de aspecto y legibilidad del texto del home 
 Extra aprobado (2026-10-11): rendimiento de carga del home (medido con 4G simulada; antes: cabecera visible a 5,3 s en escritorio y 3,1 s en movil, 3,4 MB):
 - [x] 1. Cabeceras en WebP (1.264 KB -> 81 KB y 590 KB -> 39 KB) con `preload` + `fetchpriority="high"` por media query. Despues: ~1,9 s escritorio y movil.
 - [x] 2. Carrusel: fotos de destacados con data-src; se descargan despues del evento load, de una en una (o al instante si se navega a esa diapositiva).
-- [ ] 3. Fuentes: `font-display: swap`, Open Sans en WOFF2, iconos de boxicons por SVG en linea.
+- [x] 3. Fuentes: `font-display: swap` + preload de `fonts/OpenSans.woff2` (latino, 19 KB; TTF de respaldo), iconos del menu en `css/iconosHome.css` con subconjunto `fonts/iconos-home.woff2` (1 KB; `fonts.css` completo sigue para 04-contenido), boxicons reemplazado por SVG en linea (clase `.icono`).
 - [ ] 4. Quitar jQuery (menu movil en JS simple).
 - [ ] 5. Cache del navegador para imagenes y fuentes en `docker/apache/tucultura.conf`.
 - [ ] 6. (Aparte) Miniaturas WebP automaticas al subir fotos de productos en el admin.
