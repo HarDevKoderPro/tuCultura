@@ -190,6 +190,8 @@ Se ejecuta en orden, paso a paso; cada punto se evalua y aprueba con el usuario 
 3. [ ] Explicacion detallada para el cliente de lo que debe hacer para poner a funcionar el sistema (cuenta MercadoPago, credenciales, dominio, valor del punto, canje, operacion diaria).
 4. [ ] Solo cuando el usuario lo indique: crear la cuenta MercadoPago real y hacer transacciones pequenas de prueba (ver pendiente 8 de la seccion 13).
 
+Extra aprobado (2026-10-11): rediseno del carrusel de inicio (`index.html`, `01-principal/js/main.js`, `01-principal/css/estilosCarrusel.css`): libro + productos destacados de la tienda (`productos.php?action=destacados`, cada uno abre `producto.html?id=`), tarjeta con imagen y texto en dos columnas (apiladas en celular), etiqueta de descuento, boton de accion, puntos indicadores, barra de tiempo, flechas en circulo, deslizamiento tactil, avance cada 4,5 s con transicion de 0,7 s y entrada escalonada del contenido; sin avance automatico si el equipo pide reducir movimiento. Pendiente: aprobacion visual del usuario.
+
 ## 15) Mantenimiento de este archivo
 
 Actualizar al cerrar cada iteracion que cambie rutas/paginas, endpoints o contratos, tablas/campos, reglas de negocio, sesion/roles o integraciones. Registrar al final:
@@ -208,3 +210,4 @@ Actualizar al cerrar cada iteracion que cambie rutas/paginas, endpoints o contra
 - 2026-10-11: webhook configurado en el panel de MercadoPago con clave secreta (`MERCADOPAGO_WEBHOOK_SECRET`), firma validada con notificacion simulada.
 - 2026-10-11: valor del punto en COP configurable desde el dashboard admin (`valor_punto_cop`); la card "Mis Puntos" de `04-contenido` muestra el equivalente en pesos.
 - 2026-10-11: plan de trabajo acordado (seccion 14): pruebas ficticias, revision del resumen, guia para el cliente y luego cuenta MercadoPago real.
+- 2026-10-11: carrusel de inicio redisenado con el libro y los productos destacados de la tienda (seccion 14, extra).

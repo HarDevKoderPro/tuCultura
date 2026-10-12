@@ -1,158 +1,361 @@
+/* ------------------------------------------------------------------------- */
+/* CARRUSEL DE INICIO: libro + productos destacados de la tienda             */
+/* ------------------------------------------------------------------------- */
+/* Base 1rem = 10px (ver html en estilosPrincipal.css). Los selectores van    */
+/* dentro de .container-carousel para no heredar los estilos generales de     */
+/* .container-contenido (img flotante, enlaces subrayados, span amarillo).   */
+
 .container-carousel {
+  --carrusel-azul: #193257;
+  --carrusel-azul-claro: #2b5c9e;
+  --carrusel-amarillo: #f5b301;
+  --carrusel-rojo: #e53935;
+  --carrusel-texto: #3d4a5c;
+  --carrusel-curva: cubic-bezier(0.22, 0.61, 0.36, 1);
+
   position: relative;
-  background-color: rgb(215, 250, 250);
-  border: none;
-  width: 31rem;
-  height: 23rem;
+  width: 100%;
+  /* Su ancho no depende de las diapositivas (si no, ensanchan la pagina) */
+  contain: inline-size;
+  margin: 0 auto 2rem;
+  overflow: hidden;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #e6efff 0%, #f4f7ff 50%, #fff4d6 100%);
+  box-shadow: 0 12px 32px rgba(25, 50, 87, 0.18);
+  text-shadow: none;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.container-carousel .carruseles {
+  display: flex;
+  width: 100%;
+  will-change: transform;
+}
+
+.container-carousel .slider-section {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Diapositiva: imagen arriba y texto abajo (celular) */
+.container-carousel .slide {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  border: 1px solid silver;
-  margin: 0 auto;
-  margin-bottom: 10px;
-  box-shadow: 0px 3px 3px rgba(0, 0, 0, 0.3), 3px 0px 3px rgba(0, 0, 0, 0.3);
-  border-radius: 5px;
+  gap: 1.6rem;
+  height: 100%;
+  padding: 1.6rem 1.6rem 4.4rem;
 }
 
-.carruseles {
-  width: 500%;
-  height: 100%;
+.container-carousel .slide-media {
   display: flex;
-  justify-content: center;
-  justify-content: center;
   align-items: center;
-}
-
-.slider-section {
-  flex: 1;
-  height: 100%;
-}
-
-.slider-section img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: fill;
-}
-
-.slider-section .libro {
-  padding-top: 10px;
-  display: grid;
-  place-items: center;
-  background-color: rgb(215, 250, 250);
-}
-
-.slider-section .libro img {
-  width: 70%;
-  height: 90%;
-  object-fit: fill;
-}
-
-/* Productos destacados de la tienda (se agregan desde main.js) */
-.slider-section .destacado {
-  position: relative;
-  display: block;
-  width: 100%;
-  height: 100%;
-  background-color: #fff;
+  justify-content: center;
+  height: 24rem;
+  padding: 1.2rem;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(25, 50, 87, 0.1);
+  overflow: hidden;
   text-decoration: none;
 }
 
-.slider-section .destacado img {
+.container-carousel .slide-media img {
+  float: none;
+  width: 100%;
+  height: 100%;
+  margin: 0;
   object-fit: contain;
-  padding: 1rem 1rem 3rem;
-  box-sizing: border-box;
+  pointer-events: none;
 }
 
-.slider-section .destacado-nombre {
+.container-carousel .slide-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  text-align: center;
+  color: var(--carrusel-texto);
+  font-family: "Poppins", miFuente, sans-serif;
+}
+
+.container-carousel .slide-etiqueta {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  color: var(--carrusel-azul-claro);
+}
+
+.container-carousel .slide-insignia {
+  display: inline-block;
+  margin-left: 0.6rem;
+  padding: 0.2rem 0.8rem;
+  border-radius: 999px;
+  font-size: 1.2rem;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: var(--carrusel-rojo);
+}
+
+.container-carousel .slide-titulo {
+  margin: 0;
+  padding: 0;
+  font-size: 2.2rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--carrusel-azul);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.container-carousel .slide-texto {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.container-carousel .slide-precio {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.2rem 1rem;
+  line-height: 1.3;
+}
+
+.container-carousel .slide-precio del {
+  font-size: 1.5rem;
+  color: #8a94a3;
+}
+
+.container-carousel .slide-precio strong {
+  font-size: 2.4rem;
+  font-weight: 600;
+  color: var(--carrusel-azul);
+}
+
+.container-carousel .slide-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+  padding: 1rem 2.2rem;
+  border-radius: 999px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #fff;
+  background: var(--carrusel-azul);
+  text-decoration: none;
+  box-shadow: 0 6px 16px rgba(25, 50, 87, 0.25);
+  transition: background 0.25s ease, color 0.25s ease, transform 0.25s ease;
+}
+
+.container-carousel .slide-boton i {
+  font-size: 2rem;
+  transition: transform 0.25s ease;
+}
+
+.container-carousel .slide-boton:hover,
+.container-carousel .slide-boton:focus-visible {
+  color: var(--carrusel-azul);
+  background: var(--carrusel-amarillo);
+  transform: translateY(-2px);
+}
+
+.container-carousel .slide-boton:hover i {
+  transform: translateX(3px);
+}
+
+/* Entrada del contenido al llegar cada diapositiva */
+@keyframes carruselSubir {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes carruselZoom {
+  from { transform: scale(1.05); }
+  to { transform: scale(1); }
+}
+
+.container-carousel.animado .slide-info > * {
+  opacity: 0;
+}
+
+.container-carousel .activa .slide-info > * {
+  animation: carruselSubir 0.55s var(--carrusel-curva) both;
+}
+
+.container-carousel .activa .slide-info > :nth-child(1) { animation-delay: 0.25s; }
+.container-carousel .activa .slide-info > :nth-child(2) { animation-delay: 0.35s; }
+.container-carousel .activa .slide-info > :nth-child(3) { animation-delay: 0.45s; }
+.container-carousel .activa .slide-info > :nth-child(4) { animation-delay: 0.55s; }
+
+.container-carousel .activa .slide-media img {
+  animation: carruselZoom 1.2s var(--carrusel-curva) both;
+}
+
+/* Diapositiva real que reemplaza a su clon: ya se ve completa, sin repetir */
+.container-carousel .sin-animacion .slide-info > *,
+.container-carousel .sin-animacion .slide-media img {
+  animation: none;
+  opacity: 1;
+}
+
+/* Flechas */
+.container-carousel .btn {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 4.4rem;
+  height: 4.4rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  font-size: 3rem;
+  color: var(--carrusel-azul);
+  background: rgba(255, 255, 255, 0.85);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 14px rgba(25, 50, 87, 0.2);
+  transform: translateY(-50%);
+  cursor: pointer;
+  transition: background 0.25s ease, transform 0.25s ease;
+}
+
+.container-carousel .btn:hover,
+.container-carousel .btn:focus-visible {
+  background: #fff;
+  transform: translateY(-50%) scale(1.08);
+}
+
+.container-carousel .btn-left { left: 1.2rem; }
+.container-carousel .btn-right { right: 1.2rem; }
+
+/* Puntos indicadores */
+.container-carousel .carrusel-puntos {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 1.6rem;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  gap: 0.8rem;
+}
+
+.container-carousel .carrusel-puntos button {
+  width: 1rem;
+  height: 1rem;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: rgba(25, 50, 87, 0.25);
+  cursor: pointer;
+  transition: width 0.35s var(--carrusel-curva), background 0.35s ease;
+}
+
+.container-carousel .carrusel-puntos button.activo {
+  width: 2.8rem;
+  background: var(--carrusel-amarillo);
+}
+
+/* Barra de tiempo hasta el siguiente cambio */
+.container-carousel .carrusel-progreso {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 0.6rem 1rem;
-  background: rgba(0, 0, 0, 0.6);
-  color: #fff;
-  font-size: 1rem;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  height: 3px;
+  background: rgba(25, 50, 87, 0.08);
 }
 
-.btn {
-  position: absolute;
-  width: 3rem;
-  height: 3rem;
-  font-size: 3rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  top: 50%;
-  transform: translateY(-1.2rem);
-  border: 2px solid silver;
-  color: silver;
-  font-weight: 100;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: 0.5s ease;
-  user-select: none;
+.container-carousel .carrusel-progreso span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--carrusel-amarillo);
+  transform: scaleX(0);
+  transform-origin: left;
 }
 
-.btn:hover {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.btn-left {
-  left: 0.4rem; /* Ajustado a una posición relativa al contenedor */
-}
-
-.btn-right {
-  right: 0.4rem; /* Ajustado a una posición relativa al contenedor */
-}
-
-/* Celulares */
-@media (max-width: 600px) {
-  .container-carousel {
-    width: 100%;
-  }
-}
-
-/* MOBILE FIRST */
-
-/* Celulares Landscape */
-@media only screen and (orientation: landscape) {
-}
-
-/* Tablets */
-@media (min-width: 600px) {
-}
-
-/* Laptops */
+/* Tablets y escritorio: imagen y texto en dos columnas */
 @media (min-width: 768px) {
+  .container-carousel {
+    max-width: 92rem;
+  }
+
+  .container-carousel .slide {
+    flex-direction: row;
+    align-items: center;
+    gap: 3.2rem;
+    padding: 3rem 7.2rem 5rem;
+  }
+
+  .container-carousel .slide-media {
+    flex: 0 0 52%;
+    height: 30rem;
+  }
+
+  .container-carousel .slide-info {
+    flex: 1;
+    align-items: flex-start;
+    text-align: left;
+    gap: 1rem;
+  }
+
+  .container-carousel .slide-titulo {
+    font-size: 2.8rem;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
+
+  .container-carousel .slide-precio {
+    justify-content: flex-start;
+  }
+
+  .container-carousel .slide-precio strong {
+    font-size: 3rem;
+  }
+
+  .container-carousel .slide-boton {
+    font-size: 1.6rem;
+    padding: 1.2rem 2.6rem;
+  }
+
+  .container-carousel .btn {
+    display: flex;
+  }
 }
 
-/* --------------------------------------------------------------------------------------- */
-/* ESTILOS DESKTOP */
-/* --------------------------------------------------------------------------------------- */
 @media (min-width: 992px) {
-  .container-carousel {
-    width: 44rem;
-    height: 32rem;
-    margin: 0 auto;
-    margin-bottom: 15px;
-    border-radius: 5px;
+  .container-carousel .slide-media {
+    height: 34rem;
+  }
+}
+
+/* Sin animaciones para quien pidio reducir movimiento en su equipo */
+@media (prefers-reduced-motion: reduce) {
+  .container-carousel .slide-info > *,
+  .container-carousel .activa .slide-info > *,
+  .container-carousel .activa .slide-media img {
+    animation: none;
+    opacity: 1;
   }
 
-  .slider-section .libro {
-    padding-top: 40px;
-    display: grid;
-    place-items: center;
-    padding-right: 25px;
-  }
-
-  .slider-section .libro img {
-    width: 70%;
-    height: 90%;
-    object-fit: fill;
+  .container-carousel .carrusel-progreso {
+    display: none;
   }
 }

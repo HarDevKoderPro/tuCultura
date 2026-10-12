@@ -59,20 +59,31 @@
         <section class="inicio" id="uno">
 
           <!-- Carrusel de productos (slideShow) -->
-          <div class="container-carousel">
+          <div class="container-carousel" aria-roledescription="carrusel" aria-label="Libro y productos destacados">
 
             <div class="carruseles">
 
               <section class="slider-section">
-                <a href="./05-tienda/" class="libro"><img
-                    src="./01-principal/imagenes/Libro.png" alt="Libro Girabienes" /></a>
+                <div class="slide">
+                  <a href="./05-tienda/" class="slide-media libro" tabindex="-1"><img
+                      src="./01-principal/imagenes/Libro.png" alt="Libro Creatividad Motivacional en Girabienes"
+                      draggable="false" /></a>
+                  <div class="slide-info">
+                    <p class="slide-etiqueta">Nuestro libro</p>
+                    <h3 class="slide-titulo">Creatividad Motivacional en Girabienes</h3>
+                    <p class="slide-texto">Filosofía y motivación para tu proyecto de vida.</p>
+                    <a href="./05-tienda/" class="slide-boton">Conocer la tienda <i class="bx bx-right-arrow-alt"></i></a>
+                  </div>
+                </div>
               </section>
 
               <!-- Los productos destacados de la tienda se agregan desde main.js -->
 
             </div>
-            <div class="btn btn-left"><i class="bx bxs-chevron-left"></i></div>
-            <div class="btn btn-right"><i class="bx bxs-chevron-right"></i></div>
+            <button type="button" class="btn btn-left" aria-label="Anterior"><i class="bx bx-chevron-left"></i></button>
+            <button type="button" class="btn btn-right" aria-label="Siguiente"><i class="bx bx-chevron-right"></i></button>
+            <div class="carrusel-puntos"></div>
+            <div class="carrusel-progreso"><span></span></div>
           </div>
 
           <div class="textoContenido">
