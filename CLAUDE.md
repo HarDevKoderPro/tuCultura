@@ -24,7 +24,7 @@ Contexto minimo para implementar nuevas funcionalidades sin romper lo existente,
 ### Frontend cliente
 - `index.html` (catalogo, filtros, destacados, modal detalle) - `js/tienda.js`; `js/tienda-filtros.js` (en celular <768px la barra de filtros es un panel inferior con el precio; categorias y orden quedan en la fila superior y el selector; resalta la categoria activa de la fila superior). En celular los productos van en dos columnas.
 - `producto.html` - `js/producto.js`; `carrito.html` - `js/carrito.js`; `checkout.html` - `js/checkout.js`.
-- `confirmacion.html`; `mis-pedidos.html` - `js/pedidos.js`; `js/sesion-ui.js` (boton cuenta/logout para cliente).
+- `confirmacion.html`; `mis-pedidos.html` - `js/pedidos.js`; `js/sesion-ui.js` (menu "Mi cuenta" del icono de usuario).
 
 ### Frontend admin
 - `admin/index.html` (dashboard, bajo stock, umbral, tarjeta "Puntos Asociados" con valor del punto en COP), `admin/productos.html` + `admin/admin-productos.js` (CRUD, imagen, tarjetas), `admin/categorias.html`, `admin/pedidos.html`, `admin/correos.html` (historial de correos de pedidos enviados, con vista del contenido y error si fallo).
@@ -55,7 +55,7 @@ Comportamiento heredado conocido: el carrito anonimo (por `session_id`) no se mi
 
 - Login en `02-iniciarSesion/php/iniciarSesion.php`: guarda `$_SESSION['email']`, `nombres`, `apellidos`, `rol` (y `user_id`, que usa `04-contenido`).
 - `esAdmin()`: lista de emails en `config.php`. `esClienteLogueado()`: bloquea compras con sesion admin.
-- `js/sesion-ui.js` reemplaza el boton "Cuenta" por info + logout solo para cliente logueado.
+- `js/sesion-ui.js` convierte el icono de usuario de la cabecera en el menu "Mi cuenta" (todas las paginas de la tienda): sin sesion Mis pedidos / Mi carrito / Iniciar sesion; cliente logueado: saludo, Mis pedidos, Mi carrito y Cerrar sesion (con confirmacion). Si la pagina no tiene `#icono-usuario` (checkout, mis pedidos) lo agrega.
 
 ## 6) Integracion `05-tienda` <-> `04-contenido`
 
@@ -217,8 +217,9 @@ Extra aprobado (2026-10-12): tienda en celular (antes: filtros de 827 px y prime
 Ajustes pedidos (2026-10-12), tienda en celular:
 - [x] 1. Sin bloque aparte de destacados en celular (el catalogo ya empieza por ellos); filtro "Solo destacados" en la barra/panel de filtros (`productos.php?action=listar&destacados=1`). Corregida la flecha "siguiente" de la paginacion.
 - [x] 2. Pie de pagina compacto en celular (sin la seccion de categorias, cuyos enlaces estaban fijos y no filtraban).
-- [ ] 3. Categorias en un desplegable en la parte superior (celular).
-- [ ] 4. Menu "Mi cuenta" en el icono de usuario: Mis pedidos, Mi carrito, Iniciar/Cerrar sesion.
+- [x] 3. Categorias en un desplegable en la parte superior en celular (`#select-categoria`, replica la fila `#nav-categorias` y al elegir toca su enlace).
+- [x] 4. Menu "Mi cuenta" en el icono de usuario (todas las paginas y tamanos): Mis pedidos, Mi carrito, Iniciar/Cerrar sesion.
+- [x] 5. Pie de pagina en celular sin la seccion "Mi cuenta" (esta en el menu del icono de usuario).
 
 ## 15) Mantenimiento de este archivo
 

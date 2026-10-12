@@ -2,9 +2,10 @@
 // FILTROS DE LA TIENDA EN CELULAR
 // =========================================================================
 // En celular (<768px) la barra lateral de filtros se muestra como un panel
-// que sube desde abajo, con el precio y "solo destacados" (categorias y orden ya estan
-// en la fila superior y en el selector). En escritorio la barra lateral se ve
-// como siempre. Usa aplicarFiltros() y timeoutPrecio de tienda.js.
+// que sube desde abajo, con el precio y "solo destacados"; las categorias van en
+// un desplegable arriba y el orden en su selector. En escritorio la barra
+// lateral y la fila de categorias se ven como siempre. Usa aplicarFiltros() y
+// timeoutPrecio de tienda.js.
 
 (() => {
   const panel = document.getElementById("filtros-sidebar");
@@ -19,12 +20,38 @@
   const soloDestacados = document.getElementById("filtro-destacados");
   const navCategorias = document.getElementById("nav-categorias");
 
+  const selectCategoria = document.getElementById("select-categoria");
+
   // Resalta la categoria tocada en la fila superior (antes quedaba "Todos")
+  // y la refleja en el desplegable de celular
   if (navCategorias) {
     navCategorias.addEventListener("click", (e) => {
       const enlace = e.target.closest("a[data-categoria]");
       if (!enlace) return;
       navCategorias.querySelectorAll("a").forEach((a) => a.classList.toggle("activo", a === enlace));
+      if (selectCategoria) selectCategoria.value = enlace.dataset.categoria;
+    });
+  }
+
+  // Desplegable de categorias (celular): se arma con los mismos enlaces que
+  // tienda.js pinta en la fila superior y, al elegir, "toca" el enlace
+  // correspondiente, asi el filtro funciona exactamente igual.
+  if (navCategorias && selectCategoria) {
+    const llenarDesplegable = () => {
+      const actual = navCategorias.querySelector("a.activo");
+      selectCategoria.replaceChildren(...[...navCategorias.querySelectorAll("a[data-categoria]")].map((a) => {
+        const opcion = document.createElement("option");
+        opcion.value = a.dataset.categoria;
+        opcion.textContent = a.textContent.trim();
+        return opcion;
+      }));
+      if (actual) selectCategoria.value = actual.dataset.categoria;
+    };
+    llenarDesplegable();
+    new MutationObserver(llenarDesplegable).observe(navCategorias, { childList: true });
+    selectCategoria.addEventListener("change", () => {
+      const enlace = navCategorias.querySelector(`a[data-categoria="${CSS.escape(selectCategoria.value)}"]`);
+      if (enlace) enlace.click();
     });
   }
 

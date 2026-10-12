@@ -1882,6 +1882,99 @@ body {
     .footer-seccion h3 { font-size: 1rem; margin-bottom: 0.35rem; }
     .footer-seccion p,
     .footer-seccion a { padding: 0.2rem 0; font-size: 0.85rem; }
-    .footer-seccion:last-child a { display: inline-block; margin: 0 0.5rem; }
+    /* "Mi cuenta" ya esta en el menu del icono de usuario */
+    .footer-seccion:has(a[href="mis-pedidos.html"]) { display: none; }
     .footer-copy { padding-top: 0.75rem; font-size: 0.75rem; }
+}
+
+/* =========================================================================
+   MENU "MI CUENTA" (icono de usuario de la cabecera, js/sesion-ui.js)
+   ========================================================================= */
+.cuenta-menu-envoltura { position: relative; }
+
+.tienda-header-icono.cuenta-logueada i { color: #4ade80; }
+.tienda-header-icono.cuenta-logueada .texto-icono {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.menu-cuenta {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 1200;
+    min-width: 220px;
+    max-width: calc(100vw - 1.5rem);
+    padding: 0.4rem;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.menu-cuenta-saludo {
+    display: flex;
+    flex-direction: column;
+    padding: 0.6rem 0.75rem 0.7rem;
+    margin-bottom: 0.3rem;
+    border-bottom: 1px solid var(--color-borde);
+    color: var(--color-texto);
+    font-size: 0.85rem;
+}
+.menu-cuenta-saludo strong { font-size: 1rem; color: var(--color-primario); }
+.menu-cuenta-saludo small {
+    color: var(--color-texto-claro);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.menu-cuenta-opcion {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.7rem 0.75rem;
+    border-radius: 8px;
+    color: var(--color-texto);
+    text-decoration: none;
+    font-size: 0.95rem;
+}
+.menu-cuenta-opcion i { width: 1.1rem; text-align: center; color: var(--color-primario); }
+.menu-cuenta-opcion:hover,
+.menu-cuenta-opcion:focus-visible { background: var(--color-fondo); }
+.menu-cuenta-salir,
+.menu-cuenta-salir i { color: var(--color-error); }
+
+/* =========================================================================
+   CELULAR: CATEGORIAS EN DESPLEGABLE (en lugar de la fila deslizable)
+   ========================================================================= */
+.categorias-movil { display: none; }
+
+@media (max-width: 767.98px) {
+    .nav-categorias { display: none; }
+    .categorias-movil {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.6rem 0.75rem;
+        background: var(--color-fondo-claro);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+    .categorias-movil label {
+        color: var(--color-primario);
+        font-size: 0.9rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .categorias-movil select {
+        flex: 1;
+        min-width: 0;
+        padding: 0.6rem 0.75rem;
+        border: 1px solid var(--color-borde);
+        border-radius: var(--radio-borde);
+        background: #fff;
+        font-size: 16px;
+        color: var(--color-texto);
+    }
 }
