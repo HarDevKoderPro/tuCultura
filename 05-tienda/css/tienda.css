@@ -1184,7 +1184,7 @@ body {
     .checkout-grid { grid-template-columns: 1fr 400px; }
     .producto-detalle { grid-template-columns: 1fr 1fr; }
     .carrito-item { grid-template-columns: 120px 1fr auto auto; }
-    .footer-contenido { grid-template-columns: repeat(3, 1fr); }
+    .footer-contenido { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
 }
 
 /* ==== RESPONSIVE DESKTOP ==== */
@@ -1875,15 +1875,12 @@ body {
        filtro "Solo destacados" */
     #productos-destacados { display: none !important; }
 
-    /* Pie de pagina compacto (las categorias ya estan arriba) */
+    /* Pie de pagina compacto */
     .tienda-footer { margin-top: 1.5rem; padding: 1.5rem 1rem 1rem; }
     .footer-contenido { gap: 1rem; }
-    .footer-seccion:has(a[data-categoria]) { display: none; }
     .footer-seccion h3 { font-size: 1rem; margin-bottom: 0.35rem; }
     .footer-seccion p,
     .footer-seccion a { padding: 0.2rem 0; font-size: 0.85rem; }
-    /* "Mi cuenta" ya esta en el menu del icono de usuario */
-    .footer-seccion:has(a[href="mis-pedidos.html"]) { display: none; }
     .footer-copy { padding-top: 0.75rem; font-size: 0.75rem; }
 }
 

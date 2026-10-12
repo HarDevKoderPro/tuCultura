@@ -219,7 +219,7 @@ Ajustes pedidos (2026-10-12), tienda en celular:
 - [x] 2. Pie de pagina compacto en celular (sin la seccion de categorias, cuyos enlaces estaban fijos y no filtraban).
 - [x] 3. Categorias en un desplegable en la parte superior en celular (`#select-categoria`, replica la fila `#nav-categorias` y al elegir toca su enlace).
 - [x] 4. Menu "Mi cuenta" en el icono de usuario (todas las paginas y tamanos): Mis pedidos, Mi carrito, Iniciar/Cerrar sesion.
-- [x] 5. Pie de pagina en celular sin la seccion "Mi cuenta" (esta en el menu del icono de usuario).
+- [x] 5. Pie de pagina sin las secciones "Categorias" (enlaces fijos que no filtraban) y "Mi cuenta" (esta en el menu del icono de usuario), en celular y escritorio; la grilla del pie se adapta a las secciones que quedan.
 
 ## 15) Mantenimiento de este archivo
 
