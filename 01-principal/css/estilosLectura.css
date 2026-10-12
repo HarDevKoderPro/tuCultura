@@ -216,7 +216,7 @@ body {
   .container-contenido > * {
     max-width: 120rem;
     font-size: 1.8rem;
-    padding: 4rem 5.6rem;
+    padding: 2.4rem 5.6rem 4rem;
     border-radius: 20px;
   }
 
@@ -226,7 +226,17 @@ body {
   }
 
   .container-contenido h2 {
-    font-size: 3.2rem;
+    font-size: 3rem;
+    margin-bottom: 1.6rem;
+  }
+
+  .container-contenido h2::after {
+    margin-top: 0.8rem;
+  }
+
+  /* En escritorio el titulo ya nombra la seccion: sin etiqueta sobre la foto */
+  .container-contenido .imagenContenido::before {
+    display: none;
   }
 
   .container-contenido h5 {
@@ -239,7 +249,7 @@ body {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     column-gap: 4.8rem;
-    align-items: center;
+    align-items: start;
   }
 
   .mision .tituloContenido,
@@ -247,8 +257,12 @@ body {
     grid-column: 1 / -1;
   }
 
+  /* La foto cabe completa bajo la cabecera fija (31rem) al llegar desde el menu */
   .mision .imagenContenido,
   .vision .imagenContenido {
+    width: 100%;
+    max-width: max(36rem, calc((100vh - 42rem) * 1.5));
+    justify-self: center;
     margin: 0;
   }
 
@@ -260,7 +274,7 @@ body {
 
   /* Terminos: imagen de cabecera moderada sobre el texto */
   .terminos .imagenContenido {
-    max-width: 72rem;
+    max-width: min(72rem, max(42rem, calc((100vh - 42rem) * 16 / 9)));
     aspect-ratio: 16 / 9;
     margin: 0 auto 3.2rem;
   }
