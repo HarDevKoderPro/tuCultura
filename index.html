@@ -20,6 +20,9 @@
 
   <!-- Enlaces de archivos para configuracion del sitio y PWA -->
   <link rel="shortcut icon" href="./01-principal/imagenes/LogoGirabienesCircle.png" type="image/x-icon">
+  <!-- Cabecera (lo primero visible): se pide de inmediato y con prioridad alta, sin esperar al CSS -->
+  <link rel="preload" as="image" href="./01-principal/imagenes/CabeceraDesktop.webp" media="(min-width: 900px)" fetchpriority="high">
+  <link rel="preload" as="image" href="./01-principal/imagenes/cabeceraMobile2.webp" media="(max-width: 899.98px)" fetchpriority="high">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Poppins:wght@300;400;600&display=swap">
   <link rel="stylesheet" href="./01-principal/css/fonts.css">
   <link rel="stylesheet" href="./01-principal/css/normalize.css">
