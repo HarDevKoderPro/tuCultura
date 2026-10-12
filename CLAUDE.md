@@ -206,6 +206,7 @@ Extra aprobado (2026-10-11): rendimiento de carga del home (medido con 4G simula
 - [x] 4. jQuery eliminado (82 KB): menu movil en JS simple con transicion CSS de `left` (0,4 s) en estilosLectura.css.
 - [x] 5. Cache del navegador en `docker/apache/tucultura.conf` (mod_headers activado en el Dockerfile): imagenes y fuentes 7 dias; HTML/CSS/JS `no-cache` (revalidan con 304). Al reemplazar una imagen con el mismo nombre puede verse la anterior hasta 7 dias: usar nombre nuevo o `?v=N`. Se quito el registro del service worker inexistente (`sw.js`, daba 404).
 - [x] 6. Fotos de productos en WebP: automatico al subir en el admin (`imagenes-productos.php`) y migracion de las existentes con `optimizar_imagenes_productos.php` (respaldo previo de la tabla `productos`).
+- [x] 7. Logos con el mismo nombre (sin tocar las 18 paginas que los usan): `LogoTCPCircle.png` 892 KB -> 8 KB (256 px) y `LogoGirabienesCircle.png` 32 KB -> 7 KB; originales en `*-original.png`. La tienda paso de 2,2 MB a 478 KB.
 
 ## 15) Mantenimiento de este archivo
 
