@@ -119,10 +119,14 @@ const crearDiapositivaProducto = (p) => {
   const media = crearElemento("a", "slide-media");
   media.href = url;
   media.tabIndex = -1;
+  // La foto no se descarga aqui: data-src se pasa a src cuando hace falta
+  // (cargarFotoDiapositiva), para no competir con la carga inicial de la pagina
   const img = crearElemento("img");
-  img.src = `./05-tienda/imagenes/productos/${encodeURIComponent(p.imagen)}`;
+  img.dataset.src = `./05-tienda/imagenes/productos/${encodeURIComponent(p.imagen)}`;
   img.alt = nombre;
   img.draggable = false;
+  img.decoding = "async";
+  img.setAttribute("fetchpriority", "low");
   media.appendChild(img);
 
   const etiqueta = crearElemento("p", "slide-etiqueta", decodificarHtml(p.categoria_nombre) || "Destacado");
@@ -160,6 +164,27 @@ const cargarDestacados = async () => {
   }
 };
 
+// Descarga la foto de una diapositiva (si aun no la tiene); resuelve al terminar
+const cargarFotoDiapositiva = (diapositiva) => {
+  const img = diapositiva && diapositiva.querySelector("img[data-src]");
+  if (!img) return Promise.resolve();
+  return new Promise((resolver) => {
+    img.addEventListener("load", resolver, { once: true });
+    img.addEventListener("error", resolver, { once: true });
+    img.src = img.dataset.src;
+    img.removeAttribute("data-src");
+  });
+};
+
+// Cuando la pagina termino de cargar, baja las fotos de una en una, en orden
+const precargarFotosCarrusel = (diapositivas) => {
+  const empezar = async () => {
+    for (const diapositiva of diapositivas) await cargarFotoDiapositiva(diapositiva);
+  };
+  if (document.readyState === "complete") empezar();
+  else window.addEventListener("load", empezar, { once: true });
+};
+
 const iniciarCarrusel = () => {
   const diapositivas = Array.from(carruseles.children);
   const total = diapositivas.length;
@@ -180,6 +205,10 @@ const iniciarCarrusel = () => {
   // La diapositiva activa se funde sobre la anterior y anima su contenido (CSS)
   const mostrar = (destino) => {
     indice = (destino + total) % total;
+    // Si se llega antes de la precarga (flecha, punto), se pide de inmediato
+    // la foto actual y la siguiente
+    cargarFotoDiapositiva(diapositivas[indice]);
+    if (document.readyState === "complete") cargarFotoDiapositiva(diapositivas[(indice + 1) % total]);
     diapositivas.forEach((d, i) => {
       d.classList.toggle("activa", i === indice);
       d.setAttribute("aria-hidden", i === indice ? "false" : "true");
@@ -281,6 +310,7 @@ const iniciarCarrusel = () => {
   contenedorCarrusel.classList.add("animado");
   mostrar(0);
   requestAnimationFrame(ciclo);
+  precargarFotosCarrusel(diapositivas);
 };
 
 if (contenedorCarrusel && carruseles && btnLeft && btnRight) {
