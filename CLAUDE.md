@@ -192,6 +192,11 @@ Se ejecuta en orden, paso a paso; cada punto se evalua y aprueba con el usuario 
 
 Extra aprobado (2026-10-11): rediseno del carrusel de inicio (`index.html`, `01-principal/js/main.js`, `01-principal/css/estilosCarrusel.css`): libro + productos destacados de la tienda (`productos.php?action=destacados`, cada uno abre `producto.html?id=`), tarjeta con imagen y texto en dos columnas (apiladas en celular), etiqueta de descuento, boton de accion, puntos indicadores, barra de tiempo, flechas en circulo, deslizamiento tactil (cambia de diapositiva), avance cada 5,5 s con desvanecimiento cruzado de 1,5 s (ease-in-out) (pedido del usuario en vez de desplazamiento) y entrada escalonada del contenido; con "reducir movimiento" sigue avanzando y desvaneciendo, solo sin zoom ni subida del texto. Pendiente: aprobacion visual del usuario.
 
+Extra aprobado (2026-10-11): mejora de aspecto y legibilidad del texto del home (`index.html`), por fases con aprobacion de cada una:
+- [ ] Fase 1 (publicada, pendiente aprobacion) - tipografia y color (solo CSS, en `01-principal/css/estilosLectura.css`, cargada despues de las hojas existentes): fondo claro, tarjetas blancas, texto sin sombra y con buen contraste, ancho de linea legible, titulos Poppins azul marca con acento amarillo, enlaces y destacados legibles, Mision/Vision en dos columnas.
+- [ ] Fase 2 - estructura de Terminos sin cambiar su redaccion: indice, apartados plegables, tabla de montos de afiliacion y tarjetas de beneficios.
+- [ ] Fase 3 - contenido: ortografia y tipeo, fechas actualizadas a 2026 en la Vision, pie de pagina con iconos planos conservando el icono de WhatsApp y el correo actual del propietario (por ahora).
+
 ## 15) Mantenimiento de este archivo
 
 Actualizar al cerrar cada iteracion que cambie rutas/paginas, endpoints o contratos, tablas/campos, reglas de negocio, sesion/roles o integraciones. Registrar al final:

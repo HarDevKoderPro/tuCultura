@@ -1,0 +1,218 @@
+/* ------------------------------------------------------------------------- */
+/* LECTURA DEL HOME: tipografia, color y espaciado                           */
+/* ------------------------------------------------------------------------- */
+/* Se carga despues de estilosPrincipal.css y estilosPrincipalDesktop.css y   */
+/* solo sobrescribe lo necesario. Base 1rem = 10px.                           */
+
+:root {
+  --home-fondo: #eef2f7;
+  --home-tarjeta: #ffffff;
+  --home-texto: #2b2f36;
+  --home-texto-suave: #5a6270;
+  --home-azul: #193257;
+  --home-azul-enlace: #1d5fbf;
+  --home-amarillo: #f5b301;
+  --home-resaltado: #fff3c4;
+  --home-borde: #e3e8ef;
+}
+
+body {
+  background: var(--home-fondo);
+}
+
+/* Secciones como tarjetas blancas */
+.container-contenido {
+  gap: 1.6rem;
+  padding: 0 1.2rem 1.6rem;
+}
+
+.container-contenido > * {
+  color: var(--home-texto);
+  background: var(--home-tarjeta);
+  font-size: 1.7rem;
+  font-weight: 400;
+  line-height: 1.7;
+  letter-spacing: normal;
+  text-shadow: none;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(25, 50, 87, 0.08);
+  padding: 2.4rem 2rem;
+}
+
+.container-contenido > .inicio {
+  padding-top: 19rem;
+  border-radius: 0 0 16px 16px;
+}
+
+/* Titulos de seccion */
+.container-contenido h2 {
+  font-family: "Poppins", miFuente, sans-serif;
+  font-size: 2.6rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--home-azul);
+  text-shadow: none;
+  text-align: center;
+  padding: 0;
+  margin: 0 0 2.4rem;
+}
+
+.container-contenido h2::after {
+  content: "";
+  display: block;
+  width: 5.6rem;
+  height: 4px;
+  margin: 1.2rem auto 0;
+  border-radius: 2px;
+  background: var(--home-amarillo);
+}
+
+/* Subtitulos de Terminos */
+.container-contenido h5 {
+  font-family: "Poppins", miFuente, sans-serif;
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  text-align: left;
+  color: var(--home-azul);
+  margin: 3.2rem 0 1.2rem;
+  padding-left: 1.2rem;
+  border-left: 4px solid var(--home-amarillo);
+}
+
+/* Texto corrido: ancho de linea comodo y espacio entre parrafos */
+.textoContenido {
+  max-width: 72ch;
+  margin: 0 auto;
+}
+
+.textoContenido p {
+  margin: 0 0 1.2em;
+}
+
+.textoContenido > br {
+  display: none;
+}
+
+.textoContenido > p:last-child {
+  margin-bottom: 0;
+}
+
+/* Enlaces legibles tambien al pasar el mouse */
+.container-contenido .textoContenido a,
+.container-contenido .terminos .linksTerminos {
+  color: var(--home-azul-enlace);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.container-contenido .textoContenido a:hover,
+.container-contenido .textoContenido a:focus-visible {
+  color: var(--home-azul);
+  text-decoration-thickness: 2px;
+}
+
+/* Texto destacado: fondo amarillo suave con texto oscuro */
+.container-contenido .textoContenido span {
+  color: var(--home-texto);
+  font-weight: 600;
+  background: var(--home-resaltado);
+  padding: 0.1em 0.3em;
+  border-radius: 4px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+/* Listas */
+.textoContenido ul,
+.responsabilidadesLista {
+  width: auto;
+  margin: 0 0 1.6rem;
+  padding-left: 2.4rem;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+
+.textoContenido li {
+  margin-bottom: 0.6rem;
+}
+
+.textoContenido li::marker {
+  color: var(--home-amarillo);
+}
+
+/* Imagenes de seccion */
+.container-contenido .imagenContenido img,
+.mision img,
+.vision img,
+.terminos img {
+  float: none;
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0 auto 2.4rem;
+  border-radius: 12px;
+}
+
+/* Escritorio */
+@media (min-width: 900px) {
+  .container-contenido {
+    gap: 2.4rem;
+    padding: 2rem 4rem 3.2rem;
+  }
+
+  .container-contenido > * {
+    max-width: 120rem;
+    font-size: 1.8rem;
+    padding: 4rem 5.6rem;
+    border-radius: 20px;
+  }
+
+  .container-contenido > .inicio {
+    padding-top: 33rem;
+    border-radius: 0 0 20px 20px;
+  }
+
+  .container-contenido h2 {
+    font-size: 3.2rem;
+  }
+
+  .container-contenido h5 {
+    font-size: 1.7rem;
+  }
+
+  /* Mision y Vision: imagen y texto en dos columnas */
+  .mision,
+  .vision {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 4.8rem;
+    align-items: center;
+  }
+
+  .mision .tituloContenido,
+  .vision .tituloContenido {
+    grid-column: 1 / -1;
+  }
+
+  .mision .imagenContenido img,
+  .vision .imagenContenido img {
+    margin: 0;
+  }
+
+  .mision .textoContenido,
+  .vision .textoContenido {
+    max-width: none;
+    margin: 0;
+  }
+
+  /* Terminos: imagen de cabecera moderada sobre el texto */
+  .terminos .imagenContenido {
+    max-width: 64rem;
+    margin: 0 auto;
+  }
+}
