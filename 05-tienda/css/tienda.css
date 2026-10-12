@@ -1693,3 +1693,143 @@ body {
     padding: 6px 10px;
   }
 }
+
+
+/* =========================================================================
+   CELULAR: FILTROS EN PANEL INFERIOR Y PRODUCTOS EN DOS COLUMNAS
+   (js/tienda-filtros.js). En escritorio solo aplica el ajuste del badge.
+   ========================================================================= */
+
+/* Badge de oferta a la derecha para que no tape al de "Destacado" */
+.producto-badge.oferta { left: auto; right: 10px; }
+
+.filtros-movil-cabecera,
+.filtros-movil-acciones,
+.btn-abrir-filtros { display: none; }
+
+@media (max-width: 767.98px) {
+    .tienda-container { padding: 0.75rem; }
+
+    /* Barra compacta: titulo y, debajo, "Filtrar" + "Ordenar" */
+    .productos-header { margin-bottom: 0.75rem; gap: 0.5rem; }
+    .productos-titulo { font-size: 1.2rem; width: 100%; }
+    .productos-ordenar { display: flex; gap: 0.5rem; width: 100%; }
+    .productos-ordenar select { flex: 1; min-width: 0; padding: 0.6rem 0.75rem; background: #fff; }
+
+    .btn-abrir-filtros {
+        display: inline-flex;
+        flex: 1;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.6rem 1rem;
+        background: #fff;
+        border: 1px solid var(--color-borde);
+        border-radius: var(--radio-borde);
+        color: var(--color-primario);
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .filtros-activos {
+        display: inline-grid;
+        place-items: center;
+        min-width: 1.25rem;
+        height: 1.25rem;
+        padding: 0 0.3rem;
+        border-radius: 999px;
+        background: var(--color-acento);
+        color: #fff;
+        font-size: 0.7rem;
+    }
+    .filtros-activos[hidden] { display: none; }
+
+    /* Panel que sube desde abajo */
+    .tienda-filtros {
+        position: fixed;
+        top: auto;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1100;
+        max-height: 85vh;
+        overflow-y: auto;
+        padding: 1rem 1.25rem calc(1rem + env(safe-area-inset-bottom, 0px));
+        border-radius: 16px 16px 0 0;
+        box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.2);
+        transform: translateY(100%);
+        visibility: hidden;
+        transition: transform 0.3s ease, visibility 0s linear 0.3s;
+    }
+    .tienda-filtros.abierto {
+        transform: none;
+        visibility: visible;
+        transition: transform 0.3s ease, visibility 0s;
+    }
+
+    .filtro-solo-escritorio { display: none; }
+
+    .filtros-movil-cabecera {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+    .filtros-movil-cabecera h2 { font-size: 1.1rem; color: var(--color-primario); }
+    .filtros-movil-cerrar {
+        width: 2.5rem;
+        height: 2.5rem;
+        border: none;
+        border-radius: 50%;
+        background: var(--color-fondo);
+        color: var(--color-texto);
+        font-size: 1.1rem;
+        cursor: pointer;
+    }
+
+    .filtro-precio input { font-size: 1rem; padding: 0.7rem; }
+
+    .filtros-movil-acciones {
+        display: flex;
+        gap: 0.75rem;
+        padding-top: 0.5rem;
+    }
+    .btn-limpiar-filtros,
+    .btn-ver-productos {
+        flex: 1;
+        padding: 0.8rem;
+        border-radius: var(--radio-borde);
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .btn-limpiar-filtros { background: #fff; border: 1px solid var(--color-borde); color: var(--color-texto); }
+    .btn-ver-productos { background: var(--color-primario); border: none; color: #fff; }
+
+    .filtros-fondo {
+        position: fixed;
+        inset: 0;
+        z-index: 1090;
+        background: rgba(0, 0, 0, 0.45);
+    }
+
+    /* Productos en dos columnas con tarjetas compactas */
+    .productos-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+    .productos-grid > :not(.producto-card) { grid-column: 1 / -1; }
+    .producto-card:hover { transform: none; }
+    .producto-card:hover .producto-imagen img { transform: none; }
+    .producto-imagen img { padding: 0.5rem; }
+    .producto-badge { top: 6px; left: 6px; padding: 0.15rem 0.4rem; font-size: 0.65rem; }
+    .producto-badge.oferta { left: auto; right: 6px; }
+    .producto-info { padding: 0.6rem 0.65rem 0.7rem; }
+    .producto-categoria { font-size: 0.62rem; }
+    .producto-nombre { font-size: 0.85rem; margin: 0.3rem 0; }
+    .producto-precios { gap: 0.1rem 0.4rem; }
+    .producto-precio { font-size: 1rem; }
+    .producto-precio-original { font-size: 0.72rem; }
+    .producto-acciones { margin-top: 0.6rem; }
+    .btn-agregar-carrito { padding: 0.5rem 0.4rem; font-size: 0.8rem; gap: 0.35rem; }
+    .producto-card .badge-bajo-stock,
+    .producto-card .badge-agotado { font-size: 10px; padding: 3px 6px; margin-top: 0.4rem; }
+}

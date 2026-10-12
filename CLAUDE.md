@@ -22,7 +22,7 @@ Contexto minimo para implementar nuevas funcionalidades sin romper lo existente,
 ## 3) Modulo de tienda (`05-tienda/`)
 
 ### Frontend cliente
-- `index.html` (catalogo, filtros, destacados, modal detalle) - `js/tienda.js`.
+- `index.html` (catalogo, filtros, destacados, modal detalle) - `js/tienda.js`; `js/tienda-filtros.js` (en celular <768px la barra de filtros es un panel inferior con el precio; categorias y orden quedan en la fila superior y el selector; resalta la categoria activa de la fila superior). En celular los productos van en dos columnas.
 - `producto.html` - `js/producto.js`; `carrito.html` - `js/carrito.js`; `checkout.html` - `js/checkout.js`.
 - `confirmacion.html`; `mis-pedidos.html` - `js/pedidos.js`; `js/sesion-ui.js` (boton cuenta/logout para cliente).
 
@@ -207,6 +207,12 @@ Extra aprobado (2026-10-11): rendimiento de carga del home (medido con 4G simula
 - [x] 5. Cache del navegador en `docker/apache/tucultura.conf` (mod_headers activado en el Dockerfile): imagenes y fuentes 7 dias; HTML/CSS/JS `no-cache` (revalidan con 304). Al reemplazar una imagen con el mismo nombre puede verse la anterior hasta 7 dias: usar nombre nuevo o `?v=N`. Se quito el registro del service worker inexistente (`sw.js`, daba 404).
 - [x] 6. Fotos de productos en WebP: automatico al subir en el admin (`imagenes-productos.php`) y migracion de las existentes con `optimizar_imagenes_productos.php` (respaldo previo de la tabla `productos`).
 - [x] 7. Logos con el mismo nombre (sin tocar las 18 paginas que los usan): `LogoTCPCircle.png` 892 KB -> 8 KB (256 px) y `LogoGirabienesCircle.png` 32 KB -> 7 KB; originales en `*-original.png`. La tienda paso de 2,2 MB a 478 KB.
+
+Extra aprobado (2026-10-12): tienda en celular (antes: filtros de 827 px y primer producto a 1.300 px; pagina de 11.381 px):
+- [x] 1. Filtros en panel inferior ("Filtrar" + "Ordenar" en una linea; contador de filtros activos). Primer producto a ~420 px.
+- [x] 2. Productos en dos columnas con tarjetas compactas (pagina de ~4.100 px). Badge de oferta a la derecha (antes tapaba al de "Destacado", tambien en escritorio).
+- [ ] 3. Destacados en una fila horizontal deslizable.
+- [ ] 4. Cabecera mas baja (de 188 a ~120 px).
 
 ## 15) Mantenimiento de este archivo
 
