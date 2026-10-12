@@ -198,6 +198,13 @@ body {
   }
 }
 
+/* Menu movil: el panel entra y sale deslizandose (lo abre main.js) */
+@media (max-width: 899.98px) {
+  header nav {
+    transition: left 0.4s ease;
+  }
+}
+
 /* Escritorio */
 @media (min-width: 900px) {
   .container-contenido {

@@ -202,7 +202,7 @@ Extra aprobado (2026-10-11): rendimiento de carga del home (medido con 4G simula
 - [x] 1. Cabeceras en WebP (1.264 KB -> 81 KB y 590 KB -> 39 KB) con `preload` + `fetchpriority="high"` por media query. Despues: ~1,9 s escritorio y movil.
 - [x] 2. Carrusel: fotos de destacados con data-src; se descargan despues del evento load, de una en una (o al instante si se navega a esa diapositiva).
 - [x] 3. Fuentes: `font-display: swap` + preload de `fonts/OpenSans.woff2` (latino, 19 KB; TTF de respaldo), iconos del menu en `css/iconosHome.css` con subconjunto `fonts/iconos-home.woff2` (1 KB; `fonts.css` completo sigue para 04-contenido), boxicons reemplazado por SVG en linea (clase `.icono`).
-- [ ] 4. Quitar jQuery (menu movil en JS simple).
+- [x] 4. jQuery eliminado (82 KB): menu movil en JS simple con transicion CSS de `left` (0,4 s) en estilosLectura.css.
 - [ ] 5. Cache del navegador para imagenes y fuentes en `docker/apache/tucultura.conf`.
 - [ ] 6. (Aparte) Miniaturas WebP automaticas al subir fotos de productos en el admin.
 

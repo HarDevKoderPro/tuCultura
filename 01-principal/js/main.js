@@ -2,33 +2,28 @@
 // ---------------------------------------------------------------------
 // MENU PRINCIPAL
 // ---------------------------------------------------------------------
-// Efecto toggle para mostrar-ocultar el menu movil
-$(document).ready(main);
-var contador = 1;
-function main() {
-  $(".menu_bar span").click(function (e) {
-    e.preventDefault(); //Se evita que regrese al inicio al presionar hamburguesa
-    if (contador == 1) {
-      $("nav").animate({
-        left: "0",
-      });
-      contador = 0;
-    } else {
-      contador = 1;
-      $("nav").animate({
-        left: "-100%",
-      });
-    }
-  });
+// Efecto toggle para mostrar-ocultar el menu movil. El panel se desliza con
+// la transicion de "left" definida en estilosLectura.css (solo en movil).
+const panelMenu = document.querySelector("header nav");
+const botonMenu = document.querySelector(".menu_bar span");
+let menuAbierto = false;
 
-  // Ocultar el panel de navegación al hacer clic sobre los enlaces del menu
-  $("header nav ul li a").click(function () {
-    contador = 1;
-    $("nav").animate({
-      left: "-100%",
-    });
+const moverMenu = (abrir) => {
+  menuAbierto = abrir;
+  if (panelMenu) panelMenu.style.left = abrir ? "0" : "-100%";
+};
+
+if (botonMenu) {
+  botonMenu.addEventListener("click", (e) => {
+    e.preventDefault(); // Se evita que regrese al inicio al presionar hamburguesa
+    moverMenu(!menuAbierto);
   });
 }
+
+// Ocultar el panel de navegacion al hacer clic sobre los enlaces del menu
+document.querySelectorAll("header nav ul li a").forEach((enlace) => {
+  enlace.addEventListener("click", () => moverMenu(false));
+});
 
 // --------------------------------------------------------------------------
 // DESPLAZAMIENTO SUAVE DEL MENU
