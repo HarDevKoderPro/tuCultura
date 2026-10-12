@@ -211,8 +211,8 @@ Extra aprobado (2026-10-11): rendimiento de carga del home (medido con 4G simula
 Extra aprobado (2026-10-12): tienda en celular (antes: filtros de 827 px y primer producto a 1.300 px; pagina de 11.381 px):
 - [x] 1. Filtros en panel inferior ("Filtrar" + "Ordenar" en una linea; contador de filtros activos). Primer producto a ~420 px.
 - [x] 2. Productos en dos columnas con tarjetas compactas (pagina de ~4.100 px). Badge de oferta a la derecha (antes tapaba al de "Destacado", tambien en escritorio).
-- [ ] 3. Destacados en una fila horizontal deslizable.
-- [ ] 4. Cabecera mas baja (de 188 a ~120 px).
+- [x] 3. Destacados en una fila horizontal deslizable con ajuste por tarjeta (`#grid-destacados`); la columna de productos se limita al ancho de pantalla (`minmax(0, 1fr)`) para que la fila no ensanche la pagina.
+- [x] 4. Cabecera compacta en todas las paginas de la tienda: logo e iconos en una linea y buscador debajo (188 -> 102 px; 54 px en paginas sin buscador). Los textos de los iconos quedan solo para lectores de pantalla. Primer producto a ~330 px; catalogo de ~3.600 px.
 
 ## 15) Mantenimiento de este archivo
 
