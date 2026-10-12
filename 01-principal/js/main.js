@@ -99,9 +99,45 @@ const btnRight = document.querySelector(".btn-right");
 const carruseles = document.querySelector(".carruseles");
 const contenedorCarrusel = document.querySelector(".container-carousel");
 
-if (carruseles && btnLeft && btnRight) {
+// Agrega al carrusel (despues del libro) los productos destacados de la
+// tienda; cada imagen abre el detalle de su producto.
+const cargarDestacados = async () => {
+  try {
+    const respuesta = await fetch("./05-tienda/php/productos.php?action=destacados&limite=20");
+    const datos = await respuesta.json();
+    if (!datos.success) return;
+    datos.productos.forEach((p) => {
+      if (!p.imagen) return;
+      const seccion = document.createElement("section");
+      seccion.className = "slider-section";
+      const enlace = document.createElement("a");
+      enlace.href = `./05-tienda/producto.html?id=${encodeURIComponent(p.id)}`;
+      enlace.className = "destacado";
+      const img = document.createElement("img");
+      img.src = `./05-tienda/imagenes/productos/${encodeURIComponent(p.imagen)}`;
+      img.alt = p.nombre;
+      const nombre = document.createElement("span");
+      nombre.className = "destacado-nombre";
+      nombre.textContent = `${p.nombre} - ${p.descuento_porcentaje > 0 ? p.precio_oferta_formateado : p.precio_formateado}`;
+      enlace.append(img, nombre);
+      seccion.appendChild(enlace);
+      carruseles.appendChild(seccion);
+    });
+  } catch (error) {
+    console.error("No se pudieron cargar los destacados:", error);
+  }
+};
+
+const iniciarCarrusel = () => {
   const originales = Array.from(carruseles.children);
   const total = originales.length;
+
+  // Con una sola imagen no hay nada que desplazar
+  if (total < 2) {
+    btnLeft.style.display = "none";
+    btnRight.style.display = "none";
+    return;
+  }
   const duracion = 1000;
   const intervalo = 2500;
 
@@ -159,4 +195,8 @@ if (carruseles && btnLeft && btnRight) {
 
   mover(false);
   iniciarAuto();
+};
+
+if (carruseles && btnLeft && btnRight) {
+  cargarDestacados().then(iniciarCarrusel);
 }

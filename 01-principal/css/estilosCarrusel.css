@@ -48,6 +48,37 @@
   object-fit: fill;
 }
 
+/* Productos destacados de la tienda (se agregan desde main.js) */
+.slider-section .destacado {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-color: #fff;
+  text-decoration: none;
+}
+
+.slider-section .destacado img {
+  object-fit: contain;
+  padding: 1rem 1rem 3rem;
+  box-sizing: border-box;
+}
+
+.slider-section .destacado-nombre {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0.6rem 1rem;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 1rem;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .btn {
   position: absolute;
   width: 3rem;
