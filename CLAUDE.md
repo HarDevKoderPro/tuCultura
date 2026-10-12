@@ -186,18 +186,25 @@ Sandbox: el comprador debe ser la cuenta "Buyer Test User" (iniciar sesion en el
 
 Se ejecuta en orden, paso a paso; cada punto se evalua y aprueba con el usuario antes de pasar al siguiente.
 
+**Para retomar (sesion cerrada el 2026-10-12, todo lo de abajo aprobado por el usuario):**
+- Siguiente paso: punto 1 del plan (pruebas ficticias de compra en sandbox). Preguntar al usuario con que asociado y metodo empezar; ventas ya en cero.
+- Pendiente del usuario: probar desde el admin la subida de una foto de producto (debe quedar en WebP automaticamente).
+- Decisiones del usuario: la seccion "Terminos, Ofertas y Condiciones" del home queda como esta (sin fase 2 ni correcciones). En escritorio se conserva el bloque "Productos Destacados" de la tienda (el usuario aprobo escritorio "todo ok").
+- Ideas no pedidas aun: las paginas de login y registro siguen usando `OpenSans.ttf` (se podria pasar a WOFF2 como en el home).
+- Pruebas de interfaz: se hacen con Edge headless controlado por CDP desde Node (scripts en el scratchpad de la sesion, no versionados) y un servidor local en Python que sirve el repo y reenvia `/05-tienda/php/` e `/05-tienda/imagenes/` al VPS.
+
 1. [ ] Pruebas ficticias completas en sandbox con asociados ficticios (cadena de referidos de 3 niveles): contraentrega, transferencia, MercadoPago aprobado y rechazado; verificar puntos, correos (`admin/correos.html`), stock, carrito, pedidos y valor del punto en `04-contenido`. Modo: el usuario elige cada comprador y metodo; se analizan beneficiados, detalle y flujo admin, y se espera su indicacion antes de cada paso. Avance: ventas de prueba reiniciadas en BD el 2026-10-11 (pedidos, pagos, puntos, correos y carritos en cero; stock devuelto; respaldo en `~/backups/tucultura/antes-reset-ventas-*.sql.gz`).
 2. [ ] Revision del usuario al resumen para el dueno (doc "Tienda TuCultura: pagos, puntos y siguientes pasos"); agregar lo que pida.
 3. [ ] Explicacion detallada para el cliente de lo que debe hacer para poner a funcionar el sistema (cuenta MercadoPago, credenciales, dominio, valor del punto, canje, operacion diaria).
 4. [ ] Solo cuando el usuario lo indique: crear la cuenta MercadoPago real y hacer transacciones pequenas de prueba (ver pendiente 8 de la seccion 13).
 
-Extra aprobado (2026-10-11): rediseno del carrusel de inicio (`index.html`, `01-principal/js/main.js`, `01-principal/css/estilosCarrusel.css`): libro + productos destacados de la tienda (`productos.php?action=destacados`, cada uno abre `producto.html?id=`), tarjeta con imagen y texto en dos columnas (apiladas en celular), etiqueta de descuento, boton de accion, puntos indicadores, barra de tiempo, flechas en circulo, deslizamiento tactil (cambia de diapositiva), avance cada 5,5 s con desvanecimiento cruzado de 1,5 s (ease-in-out) (pedido del usuario en vez de desplazamiento) y entrada escalonada del contenido; con "reducir movimiento" sigue avanzando y desvaneciendo, solo sin zoom ni subida del texto. Pendiente: aprobacion visual del usuario.
+Extra aprobado (2026-10-11): rediseno del carrusel de inicio (`index.html`, `01-principal/js/main.js`, `01-principal/css/estilosCarrusel.css`): libro + productos destacados de la tienda (`productos.php?action=destacados`, cada uno abre `producto.html?id=`), tarjeta con imagen y texto en dos columnas (apiladas en celular), etiqueta de descuento, boton de accion, puntos indicadores, barra de tiempo, flechas en circulo, deslizamiento tactil (cambia de diapositiva), avance cada 5,5 s con desvanecimiento cruzado de 1,5 s (ease-in-out) (pedido del usuario en vez de desplazamiento) y entrada escalonada del contenido; con "reducir movimiento" sigue avanzando y desvaneciendo, solo sin zoom ni subida del texto. Aprobado.
 
 Extra aprobado (2026-10-11): mejora de aspecto y legibilidad del texto del home (`index.html`), por fases con aprobacion de cada una:
-- [ ] Fase 1 (publicada, pendiente aprobacion) - tipografia y color (solo CSS, en `01-principal/css/estilosLectura.css`, cargada despues de las hojas existentes): fondo claro, tarjetas blancas, texto sin sombra y con buen contraste, ancho de linea legible, titulos Poppins azul marca con acento amarillo, enlaces y destacados legibles, Mision/Vision en dos columnas.
+- [x] Fase 1 (aprobada) - tipografia y color (solo CSS, en `01-principal/css/estilosLectura.css`, cargada despues de las hojas existentes): fondo claro, tarjetas blancas, texto sin sombra y con buen contraste, ancho de linea legible, titulos Poppins azul marca con acento amarillo, enlaces y destacados legibles, Mision/Vision en dos columnas.
 - [x] Imagenes de seccion (2026-10-11): estilo unificado (3:2, velo de marca, sin etiqueta) y fotos `mision.webp`, `vision.webp` y `terminos.webp` aportadas por el usuario (1376x768, reemplazan a las candidatas de Unsplash/Pexels). `Libro` y `whatsapp` pasaron a WebP. Los PNG originales se conservan.
-- [ ] Fase 2 - estructura de Terminos sin cambiar su redaccion: indice, apartados plegables, tabla de montos de afiliacion y tarjetas de beneficios.
-- [ ] Fase 3 - contenido: ortografia y tipeo, fechas actualizadas a 2026 en la Vision, pie de pagina con iconos planos conservando el icono de WhatsApp y el correo actual del propietario (por ahora). Mision y Vision reescritas y compactadas (Vision cabe junto a su foto en escritorio, meta 2026) (2026-10-11). Pie de pagina adelantado y publicado (2026-10-11): icono plano de Facebook, correo como enlace, WhatsApp conservado y "© 2026".
+- [-] Fase 2 - estructura de Terminos: DESCARTADA por el usuario (2026-10-12), la seccion queda como esta. Nota para el dueno si se retoma: el texto tiene cifras que parecen contradecirse (autor $110.000 que reserva $40.000 vs. bonificacion de $40.000 = $20.000 + $20.000).
+- [x] Fase 3 - contenido (aplicada salvo Terminos, que queda como esta): fechas actualizadas a 2026 en la Vision, pie de pagina con iconos planos conservando el icono de WhatsApp y el correo actual del propietario (por ahora). Mision y Vision reescritas y compactadas (Vision cabe junto a su foto en escritorio, meta 2026) (2026-10-11). Pie de pagina adelantado y publicado (2026-10-11): icono plano de Facebook, correo como enlace, WhatsApp conservado y "© 2026".
 
 Extra aprobado (2026-10-11): rendimiento de carga del home (medido con 4G simulada; antes: cabecera visible a 5,3 s en escritorio y 3,1 s en movil, 3,4 MB):
 - [x] 1. Cabeceras en WebP (1.264 KB -> 81 KB y 590 KB -> 39 KB) con `preload` + `fetchpriority="high"` por media query. Despues: ~1,9 s escritorio y movil.
@@ -211,7 +218,7 @@ Extra aprobado (2026-10-11): rendimiento de carga del home (medido con 4G simula
 Extra aprobado (2026-10-12): tienda en celular (antes: filtros de 827 px y primer producto a 1.300 px; pagina de 11.381 px):
 - [x] 1. Filtros en panel inferior ("Filtrar" + "Ordenar" en una linea; contador de filtros activos). Primer producto a ~420 px.
 - [x] 2. Productos en dos columnas con tarjetas compactas (pagina de ~4.100 px). Badge de oferta a la derecha (antes tapaba al de "Destacado", tambien en escritorio).
-- [x] 3. Destacados en una fila horizontal deslizable con ajuste por tarjeta (`#grid-destacados`); la columna de productos se limita al ancho de pantalla (`minmax(0, 1fr)`) para que la fila no ensanche la pagina.
+- [x] 3. (Reemplazado por el ajuste 1 de abajo: en celular ya no hay bloque de destacados.) Se conserva el limite de la columna de productos al ancho de pantalla (`minmax(0, 1fr)`).
 - [x] 4. Cabecera compacta en todas las paginas de la tienda: logo e iconos en una linea y buscador debajo (188 -> 102 px; 54 px en paginas sin buscador). Los textos de los iconos quedan solo para lectores de pantalla. Primer producto a ~330 px; catalogo de ~3.600 px.
 
 Ajustes pedidos (2026-10-12), tienda en celular:
@@ -242,3 +249,6 @@ Actualizar al cerrar cada iteracion que cambie rutas/paginas, endpoints o contra
 - 2026-10-11: valor del punto en COP configurable desde el dashboard admin (`valor_punto_cop`); la card "Mis Puntos" de `04-contenido` muestra el equivalente en pesos.
 - 2026-10-11: plan de trabajo acordado (seccion 14): pruebas ficticias, revision del resumen, guia para el cliente y luego cuenta MercadoPago real.
 - 2026-10-11: carrusel de inicio redisenado con el libro y los productos destacados de la tienda (seccion 14, extra).
+- 2026-10-11: home: tipografia y color (`estilosLectura.css`), fotos de seccion del usuario en WebP, Mision y Vision reescritas, pie con iconos planos; carrusel con desvanecimiento.
+- 2026-10-11: rendimiento del home: cabeceras WebP con preload, fuentes WOFF2, sin jQuery ni boxicons, cache del navegador en Apache (mod_headers, `DeflateAlterETag Remove`), fotos de productos WebP automaticas (GD en el Dockerfile, `imagenes-productos.php`) y logos optimizados.
+- 2026-10-12: tienda: filtros en panel inferior y dos columnas en celular, desplegable de categorias, filtro "Solo destacados" (`destacados=1`), menu "Mi cuenta" en el icono de usuario (`sesion-ui.js`), pie simplificado (2026), detalle de producto compacto en celular; en escritorio sin fila de categorias ni "Ordenar por" en la columna.
