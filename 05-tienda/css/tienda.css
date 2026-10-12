@@ -1979,3 +1979,76 @@ body {
         color: var(--color-texto);
     }
 }
+
+/* =========================================================================
+   CELULAR: DETALLE DE PRODUCTO (modal) COMO TARJETA COMPACTA
+   ========================================================================= */
+@media (max-width: 767.98px) {
+    .modal { padding: 1rem; }
+    .modal-contenido.modal-detalle {
+        width: 100%;
+        max-width: 420px;
+        max-height: min(86vh, 720px);
+        border-radius: 18px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+        overscroll-behavior: contain;
+    }
+    .modal-detalle .modal-header { gap: 0.75rem; padding: 0.85rem 1rem 0.85rem 1.1rem; border-bottom-color: #f0f2f5; }
+    .modal-detalle .modal-header h2 {
+        padding-right: 0;
+        font-size: 1.05rem;
+        line-height: 1.3;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .modal-detalle .modal-cerrar {
+        display: grid;
+        place-items: center;
+        width: 2.25rem;
+        height: 2.25rem;
+        padding: 0;
+        border-radius: 50%;
+        background: var(--color-fondo);
+        font-size: 1.3rem;
+    }
+
+    .modal-cuerpo-detalle { grid-template-columns: 1fr; gap: 0.9rem; padding: 0.9rem 1.1rem 0; }
+    .detalle-imagen {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 190px;
+        padding: 0.75rem;
+        background: #f6f7f9;
+        border-radius: 14px;
+    }
+    .detalle-imagen img { width: 100%; height: 100%; object-fit: contain; border-radius: 0; }
+
+    .detalle-info { gap: 0.65rem; }
+    .detalle-precios { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.6rem; font-size: inherit; }
+    .detalle-precios .producto-precio { font-size: 1.45rem; }
+    .detalle-precios .producto-precio-original { font-size: 0.9rem; }
+    .detalle-descripcion h3 { margin-bottom: 0.35rem; font-size: 0.95rem; }
+    .detalle-descripcion p,
+    .detalle-descripcion ul { font-size: 0.9rem; line-height: 1.5; }
+    .detalle-descripcion ul li { margin-bottom: 0.15rem; }
+
+    /* Botones siempre visibles al pie de la tarjeta */
+    .detalle-acciones {
+        position: sticky;
+        bottom: 0;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 0.6rem;
+        margin: 0.25rem -1.1rem 0;
+        padding: 0.8rem 1.1rem;
+        background: #fff;
+        border-top: 1px solid #eef0f3;
+    }
+    .detalle-acciones .btn-primario,
+    .detalle-acciones .btn-secundario { padding: 0.75rem 1rem; font-size: 0.95rem; }
+    .detalle-acciones .btn-primario { display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+}

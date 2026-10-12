@@ -221,6 +221,7 @@ Ajustes pedidos (2026-10-12), tienda en celular:
 - [x] 4. Menu "Mi cuenta" en el icono de usuario (todas las paginas y tamanos): Mis pedidos, Mi carrito, Iniciar/Cerrar sesion.
 - [x] 5. Pie de pagina sin las secciones "Categorias" (enlaces fijos que no filtraban) y "Mi cuenta" (esta en el menu del icono de usuario), ni "Ayuda" en producto (mismos enlaces), ni el enlace "Ir al sitio principal" (esta la casita en la cabecera), en celular y escritorio; la grilla del pie se adapta a las secciones que quedan.
 - [x] 6. Escritorio: sin la fila superior de categorias (quedan en la columna lateral) ni el grupo "Ordenar por" de la columna; el desplegable de orden muestra "Ordenar por" como marcador. Pie con año 2026.
+- [x] 7. Celular: detalle de producto (modal) como tarjeta compacta: margenes de 16 px, imagen de ~170 px sobre fondo gris, titulo en 2 lineas, botones "Agregar al carrito" / "Cancelar" fijos al pie de la tarjeta.
 
 ## 15) Mantenimiento de este archivo
 
