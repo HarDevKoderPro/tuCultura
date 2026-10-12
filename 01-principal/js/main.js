@@ -173,7 +173,7 @@ const iniciarCarrusel = () => {
     return;
   }
 
-  const intervalo = 4500;
+  const intervalo = 5500;
   let indice = 0;
   let transcurrido = 0;
 
