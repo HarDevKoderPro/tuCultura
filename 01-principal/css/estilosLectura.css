@@ -145,7 +145,7 @@ body {
   color: var(--home-amarillo);
 }
 
-/* Imagenes de seccion: mismo formato, velo de marca y etiqueta */
+/* Imagenes de seccion: mismo formato y velo de marca */
 .container-contenido .imagenContenido {
   position: relative;
   overflow: hidden;
@@ -177,27 +177,6 @@ body {
     linear-gradient(180deg, rgba(25, 50, 87, 0) 45%, rgba(25, 50, 87, 0.55) 100%),
     linear-gradient(135deg, rgba(25, 50, 87, 0.22) 0%, rgba(245, 179, 1, 0.12) 100%);
   pointer-events: none;
-}
-
-.container-contenido .imagenContenido::before {
-  content: attr(data-etiqueta);
-  position: absolute;
-  left: 1.6rem;
-  bottom: 1.6rem;
-  z-index: 1;
-  padding: 0.6rem 1.4rem 0.6rem 2.6rem;
-  border-radius: 999px;
-  font-family: "Poppins", miFuente, sans-serif;
-  font-size: 1.2rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  line-height: 1.4;
-  text-transform: uppercase;
-  color: var(--home-azul);
-  background:
-    radial-gradient(circle at 1.4rem 50%, var(--home-amarillo) 0.4rem, transparent 0.45rem),
-    rgba(255, 255, 255, 0.94);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
@@ -232,11 +211,6 @@ body {
 
   .container-contenido h2::after {
     margin-top: 0.8rem;
-  }
-
-  /* En escritorio el titulo ya nombra la seccion: sin etiqueta sobre la foto */
-  .container-contenido .imagenContenido::before {
-    display: none;
   }
 
   .container-contenido h5 {
