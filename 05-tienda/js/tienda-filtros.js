@@ -2,7 +2,7 @@
 // FILTROS DE LA TIENDA EN CELULAR
 // =========================================================================
 // En celular (<768px) la barra lateral de filtros se muestra como un panel
-// que sube desde abajo, con el rango de precio (categorias y orden ya estan
+// que sube desde abajo, con el precio y "solo destacados" (categorias y orden ya estan
 // en la fila superior y en el selector). En escritorio la barra lateral se ve
 // como siempre. Usa aplicarFiltros() y timeoutPrecio de tienda.js.
 
@@ -16,6 +16,7 @@
   const contador = document.getElementById("filtros-activos");
   const precioMinimo = document.getElementById("precio-min");
   const precioMaximo = document.getElementById("precio-max");
+  const soloDestacados = document.getElementById("filtro-destacados");
   const navCategorias = document.getElementById("nav-categorias");
 
   // Resalta la categoria tocada en la fila superior (antes quedaba "Todos")
@@ -30,7 +31,8 @@
   if (!panel || !fondo || !botonAbrir) return;
 
   const actualizarContador = () => {
-    const activos = [precioMinimo, precioMaximo].filter((campo) => campo && campo.value !== "").length;
+    const activos = [precioMinimo, precioMaximo].filter((campo) => campo && campo.value !== "").length +
+      (soloDestacados && soloDestacados.checked ? 1 : 0);
     contador.hidden = activos === 0;
     contador.textContent = activos;
   };
@@ -67,6 +69,7 @@
   botonLimpiar.addEventListener("click", () => {
     if (precioMinimo) precioMinimo.value = "";
     if (precioMaximo) precioMaximo.value = "";
+    if (soloDestacados) soloDestacados.checked = false;
     aplicarYCerrar();
   });
   [precioMinimo, precioMaximo].forEach((campo) => {

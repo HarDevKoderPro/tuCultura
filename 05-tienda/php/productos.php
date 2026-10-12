@@ -44,6 +44,11 @@ try {
         $params[] = $categoria;
       }
 
+      // Filtro opcional: solo productos destacados (destacados=1)
+      if (!empty($_GET['destacados'])) {
+        $where[] = "p.destacado = 1";
+      }
+
       // LÓGICA DE PRECIO CORREGIDA: 
       // Filtramos por el precio final (considerando oferta si existe)
       if ($precio_min !== null) {

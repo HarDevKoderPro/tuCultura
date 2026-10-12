@@ -73,6 +73,9 @@ function initEventListeners() {
     });
   });
 
+  const filtroDestacados = document.getElementById("filtro-destacados");
+  if (filtroDestacados) filtroDestacados.addEventListener("change", aplicarFiltros);
+
   const minInput = document.getElementById("precio-min");
   const maxInput = document.getElementById("precio-max");
   [minInput, maxInput].forEach((inp) => {
@@ -177,12 +180,14 @@ function aplicarFiltros() {
     : "Todos";
   actualizarTituloCategoria(catLabel);
 
+  const soloDestacados = document.getElementById("filtro-destacados");
   const destacados = document.getElementById("productos-destacados");
   if (destacados) {
     const hayFiltros =
       categoriaActual !== 0 ||
       precioMin !== null ||
       precioMax !== null ||
+      (soloDestacados && soloDestacados.checked) ||
       ordenActual !== "relevancia";
     destacados.classList.toggle("oculto", hayFiltros);
   }
@@ -214,6 +219,9 @@ async function cargarProductos() {
     const pMax = maxInp && maxInp.value !== "" ? maxInp.value : null;
     if (pMin !== null) params.append("precio_min", pMin);
     if (pMax !== null) params.append("precio_max", pMax);
+
+    const soloDestacados = document.getElementById("filtro-destacados");
+    if (soloDestacados && soloDestacados.checked) params.append("destacados", "1");
 
     const url = `${API_BASE}productos.php?${params.toString()}`;
     console.log("[PRODUCTOS URL]", url);
@@ -568,7 +576,7 @@ function renderizarPaginacion(paginacion) {
   }
 
   html += `<button ${paginacion.pagina === paginacion.total_paginas ? "disabled" : ""} onclick="cambiarPagina(${paginacion.pagina + 1})">
-    <i class="fas fa-chevron-left"></i>
+    <i class="fas fa-chevron-right"></i>
   </button>`;
 
   container.innerHTML = html;

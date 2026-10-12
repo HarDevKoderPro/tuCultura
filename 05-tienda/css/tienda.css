@@ -1835,7 +1835,7 @@ body {
 }
 
 /* =========================================================================
-   CELULAR: DESTACADOS EN FILA DESLIZABLE Y CABECERA COMPACTA
+   CELULAR: CABECERA COMPACTA, SIN BLOQUE DE DESTACADOS Y PIE COMPACTO
    (la cabecera es la misma en todas las paginas de la tienda)
    ========================================================================= */
 @media (max-width: 767.98px) {
@@ -1871,21 +1871,17 @@ body {
     .tienda-grid { grid-template-columns: minmax(0, 1fr); }
     .productos-contenido { min-width: 0; }
 
-    /* Destacados en una fila que se desliza de lado (se ven 2 y parte de la 3.a) */
-    .productos-destacados { margin-bottom: 1.25rem; }
-    .productos-destacados h2 { font-size: 1.1rem; margin-bottom: 0.6rem; }
-    #grid-destacados {
-        display: flex;
-        gap: 0.75rem;
-        margin: 0 -0.75rem;
-        padding: 0.25rem 0.75rem 0.75rem;
-        overflow-x: auto;
-        overscroll-behavior-x: contain;
-        scroll-snap-type: x mandatory;
-        scroll-padding-inline: 0.75rem;
-        scrollbar-width: none;
-    }
-    #grid-destacados::-webkit-scrollbar { display: none; }
-    #grid-destacados > .producto-card { flex: 0 0 42%; scroll-snap-align: start; }
-    #grid-destacados > :not(.producto-card) { flex: 1 0 100%; }
+    /* Sin bloque aparte de destacados: el catalogo ya empieza por ellos y hay
+       filtro "Solo destacados" */
+    #productos-destacados { display: none !important; }
+
+    /* Pie de pagina compacto (las categorias ya estan arriba) */
+    .tienda-footer { margin-top: 1.5rem; padding: 1.5rem 1rem 1rem; }
+    .footer-contenido { gap: 1rem; }
+    .footer-seccion:has(a[data-categoria]) { display: none; }
+    .footer-seccion h3 { font-size: 1rem; margin-bottom: 0.35rem; }
+    .footer-seccion p,
+    .footer-seccion a { padding: 0.2rem 0; font-size: 0.85rem; }
+    .footer-seccion:last-child a { display: inline-block; margin: 0 0.5rem; }
+    .footer-copy { padding-top: 0.75rem; font-size: 0.75rem; }
 }

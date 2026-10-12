@@ -77,7 +77,7 @@ Comportamiento heredado conocido: el carrito anonimo (por `session_id`) no se mi
 
 ## 8) Contratos API que el frontend ya espera
 
-- `productos.php`: `success`, `productos[]`, `umbral_bajo_stock`, `paginacion`.
+- `productos.php`: `success`, `productos[]`, `umbral_bajo_stock`, `paginacion`. `action=listar` acepta el filtro opcional `destacados=1` (casilla "Solo destacados").
 - `carrito.php?action=ver`: `carrito.items`, `subtotal`, `costo_envio`, `total` y sus `*_formateado`.
 - `pedidos.php?action=verificar_checkout`: flags `requiere_login`, `es_admin`, `carrito_vacio`; `usuario{}` en exito.
 - `pedidos.php?action=crear`: `pedido.numero`, `pedido.id`, `pedido.total(_formateado)`.
@@ -213,6 +213,12 @@ Extra aprobado (2026-10-12): tienda en celular (antes: filtros de 827 px y prime
 - [x] 2. Productos en dos columnas con tarjetas compactas (pagina de ~4.100 px). Badge de oferta a la derecha (antes tapaba al de "Destacado", tambien en escritorio).
 - [x] 3. Destacados en una fila horizontal deslizable con ajuste por tarjeta (`#grid-destacados`); la columna de productos se limita al ancho de pantalla (`minmax(0, 1fr)`) para que la fila no ensanche la pagina.
 - [x] 4. Cabecera compacta en todas las paginas de la tienda: logo e iconos en una linea y buscador debajo (188 -> 102 px; 54 px en paginas sin buscador). Los textos de los iconos quedan solo para lectores de pantalla. Primer producto a ~330 px; catalogo de ~3.600 px.
+
+Ajustes pedidos (2026-10-12), tienda en celular:
+- [x] 1. Sin bloque aparte de destacados en celular (el catalogo ya empieza por ellos); filtro "Solo destacados" en la barra/panel de filtros (`productos.php?action=listar&destacados=1`). Corregida la flecha "siguiente" de la paginacion.
+- [x] 2. Pie de pagina compacto en celular (sin la seccion de categorias, cuyos enlaces estaban fijos y no filtraban).
+- [ ] 3. Categorias en un desplegable en la parte superior (celular).
+- [ ] 4. Menu "Mi cuenta" en el icono de usuario: Mis pedidos, Mi carrito, Iniciar/Cerrar sesion.
 
 ## 15) Mantenimiento de este archivo
 
