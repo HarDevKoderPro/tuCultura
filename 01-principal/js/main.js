@@ -73,17 +73,6 @@ document.querySelectorAll('header nav a[href^="#"]').forEach((enlace) => {
 });
 
 // --------------------------------------------------------------------------
-// SERVICE WORKER
-// --------------------------------------------------------------------------
-// Verificar Existencia de Service worker en el navegador
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker
-  .register("../sw.js")
-  .then((reg) => console.log("Registro de SW exitoso", reg))
-  .catch((err) => console.warn("Error al tratar de registrar el sw", err));
-}
-
-// --------------------------------------------------------------------------
 // CARRUSEL DE INICIO (libro + productos destacados)
 // --------------------------------------------------------------------------
 // Las diapositivas estan apiladas y cambian con un desvanecimiento cruzado.

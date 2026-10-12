@@ -4,7 +4,7 @@ RUN docker-php-ext-install mysqli pdo_mysql
 
 COPY docker/php/tucultura.ini /usr/local/etc/php/conf.d/zz-tucultura.ini
 COPY docker/apache/tucultura.conf /etc/apache2/conf-available/tucultura.conf
-RUN a2enmod remoteip && a2enconf tucultura
+RUN a2enmod remoteip headers && a2enconf tucultura
 
 # Sesiones PHP en un volumen (sobreviven a reconstrucciones del contenedor)
 RUN mkdir -p /var/lib/php/sessions \
