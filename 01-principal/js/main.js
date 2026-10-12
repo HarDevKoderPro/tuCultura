@@ -89,11 +89,9 @@ if ("serviceWorker" in navigator) {
 }
 
 // --------------------------------------------------------------------------
-// CARRUSEL DE INICIO (libro + productos destacados, bucle continuo)
+// CARRUSEL DE INICIO (libro + productos destacados)
 // --------------------------------------------------------------------------
-// Se clona la ultima diapositiva al inicio y la primera al final. Al llegar a
-// un clon se salta sin animacion a la diapositiva real equivalente, asi el
-// paso de la ultima a la primera se ve como un desplazamiento mas.
+// Las diapositivas estan apiladas y cambian con un desvanecimiento cruzado.
 const contenedorCarrusel = document.querySelector(".container-carousel");
 const carruseles = document.querySelector(".carruseles");
 const btnLeft = document.querySelector(".btn-left");
@@ -163,114 +161,64 @@ const cargarDestacados = async () => {
 };
 
 const iniciarCarrusel = () => {
-  const originales = Array.from(carruseles.children);
-  const total = originales.length;
+  const diapositivas = Array.from(carruseles.children);
+  const total = diapositivas.length;
   const puntos = contenedorCarrusel.querySelector(".carrusel-puntos");
   const barra = contenedorCarrusel.querySelector(".carrusel-progreso span");
 
-  // Con una sola diapositiva no hay nada que desplazar
+  // Con una sola diapositiva no hay nada que cambiar
   if (total < 2) {
     btnLeft.style.display = "none";
     btnRight.style.display = "none";
     return;
   }
 
-  const reducirMovimiento = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const duracion = reducirMovimiento ? 0 : 700;
   const intervalo = 4500;
-  const curva = "cubic-bezier(0.22, 0.61, 0.36, 1)";
-
-  carruseles.insertBefore(originales[total - 1].cloneNode(true), originales[0]);
-  carruseles.appendChild(originales[0].cloneNode(true));
-  // Los clones no se leen ni reciben foco
-  [carruseles.firstElementChild, carruseles.lastElementChild].forEach((clon) => {
-    clon.setAttribute("aria-hidden", "true");
-    clon.querySelectorAll("a").forEach((a) => (a.tabIndex = -1));
-  });
-  const diapositivas = Array.from(carruseles.children);
-  carruseles.style.width = `${(total + 2) * 100}%`;
-  contenedorCarrusel.classList.add("animado");
-
-  let indice = 1;
-  let enMovimiento = false;
-  let respaldo = null;
+  let indice = 0;
   let transcurrido = 0;
 
-  const mover = (animar, desplazamiento = 0) => {
-    carruseles.style.transition = animar && duracion ? `transform ${duracion}ms ${curva}` : "none";
-    carruseles.style.transform = `translateX(calc(-${(indice * 100) / (total + 2)}% + ${desplazamiento}px))`;
-  };
-
-  // La diapositiva activa anima su contenido; la real que reemplaza a un clon
-  // se muestra completa de una vez (sin-animacion) para que no parpadee
-  const marcarActiva = (sinAnimacion) => {
-    const actual = diapositivas[indice];
-    actual.classList.toggle("sin-animacion", sinAnimacion);
-    actual.classList.add("activa");
-    const real = (indice - 1 + total) % total;
-    Array.from(puntos.children).forEach((punto, i) => {
-      punto.classList.toggle("activo", i === real);
-      punto.setAttribute("aria-current", i === real ? "true" : "false");
-    });
-  };
-
-  const alTerminar = () => {
-    if (!enMovimiento) return;
-    enMovimiento = false;
-    clearTimeout(respaldo);
-    if (indice === total + 1 || indice === 0) {
-      indice = indice === 0 ? total : 1;
-      mover(false);
-      marcarActiva(true);
-    }
+  // La diapositiva activa se funde sobre la anterior y anima su contenido (CSS)
+  const mostrar = (destino) => {
+    indice = (destino + total) % total;
     diapositivas.forEach((d, i) => {
-      if (i !== indice) d.classList.remove("activa", "sin-animacion");
+      d.classList.toggle("activa", i === indice);
+      d.setAttribute("aria-hidden", i === indice ? "false" : "true");
     });
-  };
-
-  carruseles.addEventListener("transitionend", (e) => {
-    if (e.target === carruseles) alTerminar();
-  });
-
-  const irA = (destino) => {
-    if (enMovimiento || destino === indice) return;
-    enMovimiento = true;
-    indice = destino;
-    mover(true);
-    marcarActiva(false);
+    Array.from(puntos.children).forEach((punto, i) => {
+      punto.classList.toggle("activo", i === indice);
+      punto.setAttribute("aria-current", i === indice ? "true" : "false");
+    });
     transcurrido = 0;
-    // Respaldo por si el navegador no emite transitionend
-    respaldo = setTimeout(alTerminar, duracion + 100);
   };
 
   for (let i = 0; i < total; i++) {
     const punto = crearElemento("button");
     punto.type = "button";
     punto.setAttribute("aria-label", `Ir a la diapositiva ${i + 1}`);
-    punto.addEventListener("click", () => irA(i + 1));
+    punto.addEventListener("click", () => mostrar(i));
     puntos.appendChild(punto);
   }
 
-  btnRight.addEventListener("click", () => irA(indice + 1));
-  btnLeft.addEventListener("click", () => irA(indice - 1));
+  btnRight.addEventListener("click", () => mostrar(indice + 1));
+  btnLeft.addEventListener("click", () => mostrar(indice - 1));
   contenedorCarrusel.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowRight") irA(indice + 1);
-    if (e.key === "ArrowLeft") irA(indice - 1);
+    if (e.key === "ArrowRight") mostrar(indice + 1);
+    if (e.key === "ArrowLeft") mostrar(indice - 1);
   });
 
   // Avance automatico con barra de progreso. Se pausa con el mouse encima
   // (solo equipos con mouse), con el foco dentro, al arrastrar o con la
-  // pestana oculta. No avanza solo si el equipo pide reducir movimiento.
+  // pestana oculta.
   let pausaMouse = false;
   let pausaFoco = false;
   let arrastrando = false;
   let ultimo = null;
 
   const ciclo = (ahora) => {
-    const activo = !pausaMouse && !pausaFoco && !arrastrando && !enMovimiento && !document.hidden;
+    const activo = !pausaMouse && !pausaFoco && !arrastrando && !document.hidden;
     if (ultimo !== null && activo) {
       transcurrido += Math.min(ahora - ultimo, 100);
-      if (transcurrido >= intervalo) irA(indice + 1);
+      if (transcurrido >= intervalo) mostrar(indice + 1);
     }
     ultimo = ahora;
     barra.style.transform = `scaleX(${Math.min(transcurrido / intervalo, 1)})`;
@@ -284,29 +232,25 @@ const iniciarCarrusel = () => {
   contenedorCarrusel.addEventListener("focusin", () => (pausaFoco = true));
   contenedorCarrusel.addEventListener("focusout", () => (pausaFoco = false));
 
-  // Deslizar con el dedo (o arrastrar con el mouse)
+  // Deslizar con el dedo (o arrastrar con el mouse) cambia de diapositiva
   let punteroId = null;
   let inicioX = 0;
-  let dx = 0;
   let huboArrastre = false;
 
   contenedorCarrusel.addEventListener("dragstart", (e) => e.preventDefault());
   contenedorCarrusel.addEventListener("pointerdown", (e) => {
-    if (e.button !== 0 || enMovimiento || e.target.closest(".btn, .carrusel-puntos")) return;
+    if (e.button !== 0 || e.target.closest(".btn, .carrusel-puntos")) return;
     punteroId = e.pointerId;
     inicioX = e.clientX;
-    dx = 0;
     huboArrastre = false;
     arrastrando = true;
   });
   contenedorCarrusel.addEventListener("pointermove", (e) => {
-    if (!arrastrando || e.pointerId !== punteroId) return;
-    dx = e.clientX - inicioX;
-    if (!huboArrastre && Math.abs(dx) > 8) {
+    if (!arrastrando || e.pointerId !== punteroId || huboArrastre) return;
+    if (Math.abs(e.clientX - inicioX) > 8) {
       huboArrastre = true;
       contenedorCarrusel.setPointerCapture(punteroId);
     }
-    if (huboArrastre) mover(false, dx);
   });
   const soltar = (e) => {
     if (!arrastrando || e.pointerId !== punteroId) return;
@@ -314,13 +258,18 @@ const iniciarCarrusel = () => {
     if (!huboArrastre) return;
     // El clic que sigue al arrastre se descarta solo en este instante
     setTimeout(() => (huboArrastre = false), 50);
-    const umbral = Math.min(80, contenedorCarrusel.offsetWidth * 0.15);
-    if (dx <= -umbral) irA(indice + 1);
-    else if (dx >= umbral) irA(indice - 1);
-    else mover(true);
+    const dx = e.clientX - inicioX;
+    const umbral = Math.min(60, contenedorCarrusel.offsetWidth * 0.12);
+    if (dx <= -umbral) mostrar(indice + 1);
+    else if (dx >= umbral) mostrar(indice - 1);
   };
   contenedorCarrusel.addEventListener("pointerup", soltar);
-  contenedorCarrusel.addEventListener("pointercancel", soltar);
+  // Si el navegador toma el gesto (desplazamiento vertical), no se cambia
+  contenedorCarrusel.addEventListener("pointercancel", (e) => {
+    if (e.pointerId !== punteroId) return;
+    arrastrando = false;
+    huboArrastre = false;
+  });
   // Un arrastre no debe abrir el enlace sobre el que termino
   contenedorCarrusel.addEventListener("click", (e) => {
     if (huboArrastre) {
@@ -329,9 +278,9 @@ const iniciarCarrusel = () => {
     }
   }, true);
 
-  mover(false);
-  marcarActiva(false);
-  if (!reducirMovimiento) requestAnimationFrame(ciclo);
+  contenedorCarrusel.classList.add("animado");
+  mostrar(0);
+  requestAnimationFrame(ciclo);
 };
 
 if (contenedorCarrusel && carruseles && btnLeft && btnRight) {

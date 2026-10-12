@@ -27,15 +27,25 @@
   user-select: none;
 }
 
+/* Las diapositivas se apilan en la misma celda y se funden entre si */
 .container-carousel .carruseles {
-  display: flex;
-  width: 100%;
-  will-change: transform;
+  display: grid;
 }
 
 .container-carousel .slider-section {
-  flex: 1;
+  grid-area: 1 / 1;
   min-width: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.8s var(--carrusel-curva), visibility 0s linear 0.8s;
+}
+
+.container-carousel .slider-section.activa,
+.container-carousel:not(.animado) .slider-section:first-child {
+  z-index: 1;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.8s var(--carrusel-curva), visibility 0s;
 }
 
 /* Diapositiva: imagen arriba y texto abajo (celular) */
@@ -182,13 +192,14 @@
   to { opacity: 1; transform: none; }
 }
 
+@keyframes carruselAparecer {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @keyframes carruselZoom {
   from { transform: scale(1.05); }
   to { transform: scale(1); }
-}
-
-.container-carousel.animado .slide-info > * {
-  opacity: 0;
 }
 
 .container-carousel .activa .slide-info > * {
@@ -202,13 +213,6 @@
 
 .container-carousel .activa .slide-media img {
   animation: carruselZoom 1.2s var(--carrusel-curva) both;
-}
-
-/* Diapositiva real que reemplaza a su clon: ya se ve completa, sin repetir */
-.container-carousel .sin-animacion .slide-info > *,
-.container-carousel .sin-animacion .slide-media img {
-  animation: none;
-  opacity: 1;
 }
 
 /* Flechas */
@@ -346,16 +350,13 @@
   }
 }
 
-/* Sin animaciones para quien pidio reducir movimiento en su equipo */
+/* Quien pidio reducir movimiento conserva el desvanecimiento, sin zoom ni subida */
 @media (prefers-reduced-motion: reduce) {
-  .container-carousel .slide-info > *,
-  .container-carousel .activa .slide-info > *,
-  .container-carousel .activa .slide-media img {
-    animation: none;
-    opacity: 1;
+  .container-carousel .activa .slide-info > * {
+    animation-name: carruselAparecer;
   }
 
-  .container-carousel .carrusel-progreso {
-    display: none;
+  .container-carousel .activa .slide-media img {
+    animation: none;
   }
 }
