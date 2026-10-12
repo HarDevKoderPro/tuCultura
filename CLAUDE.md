@@ -195,7 +195,7 @@ Extra aprobado (2026-10-11): rediseno del carrusel de inicio (`index.html`, `01-
 Extra aprobado (2026-10-11): mejora de aspecto y legibilidad del texto del home (`index.html`), por fases con aprobacion de cada una:
 - [ ] Fase 1 (publicada, pendiente aprobacion) - tipografia y color (solo CSS, en `01-principal/css/estilosLectura.css`, cargada despues de las hojas existentes): fondo claro, tarjetas blancas, texto sin sombra y con buen contraste, ancho de linea legible, titulos Poppins azul marca con acento amarillo, enlaces y destacados legibles, Mision/Vision en dos columnas.
 - [ ] Fase 2 - estructura de Terminos sin cambiar su redaccion: indice, apartados plegables, tabla de montos de afiliacion y tarjetas de beneficios.
-- [ ] Fase 3 - contenido: ortografia y tipeo, fechas actualizadas a 2026 en la Vision, pie de pagina con iconos planos conservando el icono de WhatsApp y el correo actual del propietario (por ahora).
+- [ ] Fase 3 - contenido: ortografia y tipeo, fechas actualizadas a 2026 en la Vision, pie de pagina con iconos planos conservando el icono de WhatsApp y el correo actual del propietario (por ahora). Pie de pagina adelantado y publicado (2026-10-11): icono plano de Facebook, correo como enlace, WhatsApp conservado y "© 2026".
 
 ## 15) Mantenimiento de este archivo
 
