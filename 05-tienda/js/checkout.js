@@ -53,7 +53,7 @@ async function verificarYCargarCheckout() {
                         
                         <h2 style="color: #023859; font-size: 1.8rem; font-weight: 700; margin-bottom: 1rem;">Acceso Restringido</h2>
                         
-                        <p style="color: #666; font-size: 1.1rem; margin-bottom: 2rem;">Los administradores no pueden realizar compras.<br>Cierre sesión e ingrese como cliente para comprar.</p>
+                        <p style="color: #666; font-size: 1.1rem; margin-bottom: 2rem;">Los administradores no pueden realizar compras.<br>Cierre sesión e ingrese como asociado para comprar.</p>
                         
                         <a href="index.html"
                            style="display: inline-flex; align-items: center; gap: 10px; background: #1e3a5a; color: white; padding: 0.8rem 2rem; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 1rem; transition: background 0.3s ease;">
