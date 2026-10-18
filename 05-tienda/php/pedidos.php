@@ -5,6 +5,7 @@
  */
 
 require_once 'config.php';
+require_once 'bonos-helpers.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -57,6 +58,9 @@ function verificarCheckout($conn) {
     // Obtener datos del usuario
     $usuario = obtenerDatosUsuario($conn, $_SESSION['email']);
     
+    // Bono por puntos que el asociado puede redimir en esta compra (bonos-helpers.php)
+    $bono = bonoDisponibleCheckout($conn, (int)$usuario_id);
+
     jsonResponse([
         'success' => true,
         'usuario' => [
@@ -64,6 +68,11 @@ function verificarCheckout($conn) {
             'apellidos' => $usuario['apellidos'] ?? '',
             'email' => $usuario['email'] ?? '',
             'telefono' => $usuario['telefono'] ?? ''
+        ],
+        'bono' => [
+            'disponibles' => $bono['disponibles'],
+            'valor' => $bono['valor'],
+            'valor_formateado' => formatearPrecio($bono['valor'])
         ]
     ]);
 }
@@ -103,6 +112,7 @@ function crearPedido($conn) {
     $codigo_postal = sanitizar($_POST['codigo_postal'] ?? '');
     $notas = sanitizar($_POST['notas'] ?? '');
     $metodo_pago = sanitizar($_POST['metodo_pago'] ?? 'contraentrega');
+    $usar_bono = !empty($_POST['usar_bono']);
     
     // Validar email
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -150,6 +160,11 @@ function crearPedido($conn) {
     
     // Generar número de pedido
     $numero_pedido = generarNumeroPedido();
+
+    // Tablas de bonos listas ANTES de la transaccion (un ALTER TABLE haria commit implicito)
+    if ($usar_bono) {
+        asegurarTablaBonos($conn);
+    }
     
     // Iniciar transacción
     $conn->begin_transaction();
@@ -171,6 +186,14 @@ function crearPedido($conn) {
         );
         $stmtPedido->execute();
         $pedido_id = $conn->insert_id;
+
+        // Redimir bono: se descuenta del total y queda entregado con este pedido
+        $descuento_bono = 0;
+        if ($usar_bono) {
+            $aplicado = aplicarBonoAPedido($conn, (int)$usuario_id, (int)$pedido_id, (float)$total, $email);
+            $descuento_bono = $aplicado['descuento'];
+            $total = max(0, $total - $descuento_bono);
+        }
         
         // Crear detalles del pedido y actualizar stock
         $stmtDetalle = $conn->prepare("
@@ -212,10 +235,16 @@ function crearPedido($conn) {
                 'numero' => $numero_pedido,
                 'id' => $pedido_id,
                 'total' => $total,
-                'total_formateado' => formatearPrecio($total)
+                'total_formateado' => formatearPrecio($total),
+                'descuento_bono' => $descuento_bono,
+                'descuento_bono_formateado' => formatearPrecio($descuento_bono)
             ]
         ]);
-        
+
+    } catch (BonoException $e) {
+        // Bono no disponible o sin valor definido: no se crea el pedido
+        $conn->rollback();
+        jsonResponse(['error' => $e->getMessage(), 'bono_no_disponible' => true], 400);
     } catch (Exception $e) {
         $conn->rollback();
         jsonResponse(['error' => 'Error al procesar el pedido. Intente nuevamente.'], 500);
@@ -303,6 +332,8 @@ function detallePedido($conn) {
     $pedido['costo_envio_formateado'] = formatearPrecio($pedido['costo_envio']);
     $pedido['impuestos_formateado'] = formatearPrecio($pedido['impuestos']);
     $pedido['total_formateado'] = formatearPrecio($pedido['total']);
+    $pedido['descuento_bono'] = (float)($pedido['descuento_bono'] ?? 0);
+    $pedido['descuento_bono_formateado'] = formatearPrecio($pedido['descuento_bono']);
     $pedido['fecha_formateada'] = date('d/m/Y H:i', strtotime($pedido['fecha_creacion']));
     $pedido['estado_texto'] = ucfirst($pedido['estado']);
     $pedido['detalles'] = $detalles;

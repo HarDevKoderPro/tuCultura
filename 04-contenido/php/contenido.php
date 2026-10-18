@@ -255,10 +255,14 @@ $esCuentaAdmin = isset($_SESSION['rol']) && $_SESSION['rol'] !== 'cliente';
               ? '≈ $ ' . number_format($puntosAcumulados * $valorPunto, 0, ',', '.') . ' COP'
               : 'Valor por definir'; ?>
           </p>
-          <!-- Bonos: uno cada 50 puntos acumulados (bonos-helpers.php) -->
+          <!-- Bonos: uno cada 50 puntos; se redime en una compra de la tienda y los puntos vuelven a acumular (bonos-helpers.php) -->
           <div class="puntos-bono">
             <?php if ($bonos['bonos_disponibles'] > 0): ?>
               <p class="bono-disponible">🎁 ¡Tienes <?php echo $bonos['bonos_disponibles'] === 1 ? 'un bono disponible' : $bonos['bonos_disponibles'] . ' bonos disponibles'; ?>!</p>
+              <p class="bono-uso">
+                <?php echo $bonos['valor_bono'] > 0 ? 'Vale $ ' . number_format($bonos['valor_bono'], 0, ',', '.') . '. ' : ''; ?>Úsalo en tu próxima compra en la
+                <a href="../../05-tienda/index.html">tienda</a>.
+              </p>
             <?php endif; ?>
             <div class="bono-barra" role="progressbar" aria-label="Avance al siguiente bono"
                  aria-valuemin="0" aria-valuemax="100" aria-valuenow="<?php echo $bonos['porcentaje_siguiente']; ?>">
@@ -266,10 +270,13 @@ $esCuentaAdmin = isset($_SESSION['rol']) && $_SESSION['rol'] !== 'cliente';
             </div>
             <p class="bono-faltan">
               Te <?php echo $bonos['puntos_faltantes'] === 1 ? 'falta 1 punto' : 'faltan ' . $bonos['puntos_faltantes'] . ' puntos'; ?>
-              para tu <?php echo $bonos['bonos_obtenidos'] > 0 ? 'bono #' . $bonos['siguiente_bono'] : 'primer bono'; ?>
+              para tu <?php echo ($bonos['bonos_disponibles'] + $bonos['bonos_entregados']) > 0 ? 'siguiente bono' : 'primer bono'; ?>
             </p>
             <?php if ($bonos['bonos_entregados'] > 0): ?>
-              <p class="bono-entregados"><?php echo $bonos['bonos_entregados'] === 1 ? '1 bono entregado' : $bonos['bonos_entregados'] . ' bonos entregados'; ?></p>
+              <p class="bono-entregados">
+                ✅ <?php echo $bonos['bonos_entregados'] === 1 ? '1 bono usado' : $bonos['bonos_entregados'] . ' bonos usados'; ?><?php
+                echo $bonos['ultimo_pedido'] !== '' ? ' (último en el pedido ' . htmlspecialchars($bonos['ultimo_pedido']) . ')' : ''; ?>
+              </p>
             <?php endif; ?>
           </div>
         </div>

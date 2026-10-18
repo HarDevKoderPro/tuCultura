@@ -496,6 +496,17 @@ body {
   font-weight: 700;
 }
 
+.puntos-bono .bono-uso {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: #166534;
+}
+
+.puntos-bono .bono-uso a {
+  color: #15803d;
+  font-weight: 700;
+}
+
 .puntos-bono .bono-barra {
   height: 8px;
   background: rgba(146, 64, 14, 0.15);

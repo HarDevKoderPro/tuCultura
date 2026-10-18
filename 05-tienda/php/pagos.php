@@ -14,6 +14,7 @@
 require_once 'config.php';
 require_once 'puntos-pagos-helpers.php';
 require_once 'correo-pedidos.php';
+require_once 'bonos-helpers.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -92,6 +93,7 @@ function crearPreferenciaSandbox($conn)
   }
 
   $input = obtenerEntradaCheckout();
+  $usarBono = !empty($_POST['usar_bono']);
 
   // Mismos campos obligatorios que pedidos.php?action=crear
   foreach (['nombre', 'apellido', 'telefono', 'email', 'direccion', 'ciudad', 'departamento'] as $campo) {
@@ -110,6 +112,20 @@ function crearPreferenciaSandbox($conn)
       'error' => 'El carrito esta vacio',
       'carrito_vacio' => true
     ], 400);
+  }
+
+  // Si el bono cubre toda la compra no hay nada que pagar en MercadoPago.
+  // Tablas de bonos listas ANTES de la transaccion (un ALTER TABLE haria commit implicito)
+  if ($usarBono) {
+    asegurarTablaBonos($conn);
+    $valorBono = valorBonoCop($conn);
+    if ($valorBono > 0 && $valorBono >= (float)$carrito['total']) {
+      jsonResponse([
+        'success' => false,
+        'error' => 'Tu bono cubre toda la compra: elige Pago Contra Entrega (no tendrás que pagar nada).',
+        'bono_cubre_total' => true
+      ], 400);
+    }
   }
 
   $numeroPedido = generarNumeroPedido();
@@ -167,6 +183,25 @@ function crearPreferenciaSandbox($conn)
   try {
     $pedidoId = crearPedidoPendienteMP($conn, (int)$usuarioId, $numeroPedido, $carrito, $input);
 
+    // Bono redimido: queda reservado en este pedido (si el pedido se cancela, vuelve).
+    // MercadoPago cobra un solo item por el total con el descuento.
+    if ($usarBono) {
+      $aplicado = aplicarBonoAPedido($conn, (int)$usuarioId, (int)$pedidoId, (float)$carrito['total'], (string)$usuario['email']);
+      $carrito['descuento_bono'] = $aplicado['descuento'];
+      $carrito['total'] = round(max(0, (float)$carrito['total'] - $aplicado['descuento']), 2);
+      $payloadPreferencia['items'] = [[
+        'id' => 'pedido-' . $numeroPedido,
+        'title' => 'Compra Tu Cultura (pedido ' . $numeroPedido . ', con bono)',
+        'description' => 'Productos de la tienda menos el bono por puntos',
+        'quantity' => 1,
+        'currency_id' => TIENDA_MONEDA,
+        'unit_price' => (float)$carrito['total']
+      ]];
+      $payloadRegistro['carrito']['descuento_bono'] = $aplicado['descuento'];
+      $payloadRegistro['carrito']['total'] = $carrito['total'];
+      $payloadRegistro['preference_payload'] = $payloadPreferencia;
+    }
+
     $pagoLocalId = insertarIntentoPago(
       $conn,
       $pedidoId,
@@ -186,6 +221,10 @@ function crearPreferenciaSandbox($conn)
     }
 
     $conn->commit();
+  } catch (BonoException $e) {
+    // Bono no disponible o sin valor definido
+    $conn->rollback();
+    jsonResponse(['success' => false, 'error' => $e->getMessage(), 'bono_no_disponible' => true], 400);
   } catch (Exception $e) {
     $conn->rollback();
     error_log('pagos.php crear_preferencia: ' . $e->getMessage());
@@ -208,6 +247,9 @@ function crearPreferenciaSandbox($conn)
     );
     // Sin preferencia no hay forma de pagar: el pedido no debe quedar pendiente
     actualizarEstadoPedido($conn, $pedidoId, 'cancelado');
+    if ($usarBono) {
+      liberarBonosDePedidosCancelados($conn);
+    }
 
     jsonResponse([
       'success' => false,
@@ -253,6 +295,7 @@ function crearPreferenciaSandbox($conn)
       'subtotal' => $carrito['subtotal'],
       'costo_envio' => $carrito['costo_envio'],
       'impuestos' => $carrito['impuestos'],
+      'descuento_bono' => $carrito['descuento_bono'] ?? 0,
       'total' => $carrito['total'],
       'total_formateado' => formatearPrecio($carrito['total'])
     ]

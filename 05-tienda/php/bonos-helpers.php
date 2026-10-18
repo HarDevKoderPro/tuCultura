@@ -4,23 +4,33 @@
  * Bonos por puntos acumulados
  * Tu Cultura es Progreso - Tienda Virtual
  *
- * Cada PUNTOS_POR_BONO puntos acumulados (puntos_saldo, que suma +1 al comprador
- * y a sus dos antecesores por cada compra aprobada) el asociado obtiene un bono.
- * Los puntos no se descuentan: el bono N se obtiene al llegar a N x 50 puntos.
+ * Reglas:
+ * - Cada PUNTOS_POR_BONO puntos de saldo (puntos_saldo, +1 al comprador y a sus dos
+ *   antecesores por cada compra aprobada) equivalen a un bono disponible.
+ * - El bono vale PUNTOS_POR_BONO x valor_punto_cop (configuracion_tienda) y se redime
+ *   en una compra de la tienda: se descuenta del total del pedido, queda "entregado"
+ *   (con el pedido) y se descuentan sus puntos del saldo, que vuelve a acumular desde
+ *   lo que sobre.
+ * - El admin tambien puede marcarlo entregado a mano o eliminarlo (estado 'anulado',
+ *   con motivo); ambos descuentan los puntos. Deshacer / restaurar los devuelven.
+ * - Si el pedido donde se uso el bono se cancela, el bono vuelve a "pendiente" y los
+ *   puntos regresan (liberarBonosDePedidosCancelados).
  *
- * Los bonos se registran en `bonos_puntos` para que el admin haga el
- * seguimiento (pendiente -> entregado). "Eliminar" un bono lo deja en estado
- * 'anulado' con motivo (no se borra: si se borrara, la sincronizacion lo volveria
- * a crear porque el asociado sigue teniendo los puntos). Se sincronizan al consultar (pagina de
- * contenido del asociado y reporte del admin), asi que el flujo de pagos no cambia.
- * La fecha de obtencion se calcula con los movimientos de puntos (cuando el
- * acumulado llego a la meta).
+ * Cada bono tiene puntos_descontados (0/1) para no descontar ni devolver dos veces.
+ * Los movimientos de puntos quedan en puntos_movimientos (tipos canje_bono,
+ * anulacion_bono, reverso_bono).
  *
- * Usa mysqli: lo incluyen 05-tienda/php/admin.php y 04-contenido/php/conexion.php.
+ * Usa mysqli: lo incluyen admin.php, pedidos.php, pagos.php,
+ * cancelar_pedidos_abandonados.php y 04-contenido/php/conexion.php.
  */
 
 if (!defined('PUNTOS_POR_BONO')) {
   define('PUNTOS_POR_BONO', 50);
+}
+
+if (!class_exists('BonoException')) {
+  /** Error de regla de negocio de bonos (mensaje apto para mostrar al usuario). */
+  class BonoException extends Exception {}
 }
 
 if (!function_exists('asegurarTablaBonos')) {
@@ -42,98 +52,178 @@ if (!function_exists('asegurarTablaBonos')) {
       fecha_anulado DATETIME NULL,
       anulado_por VARCHAR(255) NULL,
       motivo_anulado VARCHAR(255) NULL,
+      pedido_id INT NULL,
+      valor_cop INT NULL,
+      puntos_descontados TINYINT(1) NOT NULL DEFAULT 0,
       UNIQUE KEY uq_bonos_usuario_numero (usuario_id, numero),
-      KEY idx_bonos_estado (estado, fecha_obtenido)
+      KEY idx_bonos_estado (estado, fecha_obtenido),
+      KEY idx_bonos_pedido (pedido_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-    // Tablas creadas antes de poder eliminar (anular) bonos
-    $columna = $conn->query("SHOW COLUMNS FROM bonos_puntos LIKE 'motivo_anulado'");
-    if ($columna && $columna->num_rows === 0) {
-      $conn->query("ALTER TABLE bonos_puntos
-        ADD COLUMN fecha_anulado DATETIME NULL,
-        ADD COLUMN anulado_por VARCHAR(255) NULL,
-        ADD COLUMN motivo_anulado VARCHAR(255) NULL");
+    // Tablas creadas con versiones anteriores: agregar las columnas que falten
+    $columnas = [
+      'fecha_anulado' => 'DATETIME NULL',
+      'anulado_por' => 'VARCHAR(255) NULL',
+      'motivo_anulado' => 'VARCHAR(255) NULL',
+      'pedido_id' => 'INT NULL',
+      'valor_cop' => 'INT NULL',
+      'puntos_descontados' => 'TINYINT(1) NOT NULL DEFAULT 0',
+    ];
+    $existentes = [];
+    $res = $conn->query("SHOW COLUMNS FROM bonos_puntos");
+    while ($fila = $res->fetch_assoc()) $existentes[$fila['Field']] = true;
+    foreach ($columnas as $nombre => $definicion) {
+      if (!isset($existentes[$nombre])) {
+        $conn->query("ALTER TABLE bonos_puntos ADD COLUMN $nombre $definicion");
+      }
+    }
+
+    // Descuento por bono en el pedido (0 = sin bono)
+    $res = $conn->query("SHOW COLUMNS FROM pedidos LIKE 'descuento_bono'");
+    if ($res && $res->num_rows === 0) {
+      $conn->query("ALTER TABLE pedidos ADD COLUMN descuento_bono DECIMAL(12,2) NOT NULL DEFAULT 0");
     }
 
     $verificada = true;
   }
 }
 
-if (!function_exists('resumenBonosPuntos')) {
+if (!function_exists('valorBonoCop')) {
   /**
-   * Calculo puro: bonos obtenidos y puntos que faltan para el siguiente.
+   * Valor en pesos de un bono: PUNTOS_POR_BONO x valor del punto (0 = sin definir).
    */
-  function resumenBonosPuntos(int $puntos): array
+  function valorBonoCop(mysqli $conn): int
   {
-    $puntos = max(0, $puntos);
-    $obtenidos = intdiv($puntos, PUNTOS_POR_BONO);
-    $avance = $puntos % PUNTOS_POR_BONO;
-    return [
-      'puntos' => $puntos,
-      'puntos_por_bono' => PUNTOS_POR_BONO,
-      'bonos_obtenidos' => $obtenidos,
-      'siguiente_bono' => $obtenidos + 1,
-      'puntos_faltantes' => PUNTOS_POR_BONO - $avance,
-      'porcentaje_siguiente' => (int)round($avance * 100 / PUNTOS_POR_BONO),
-    ];
+    try {
+      $res = $conn->query("SELECT valor FROM configuracion_tienda WHERE clave = 'valor_punto_cop' LIMIT 1");
+      $fila = $res ? $res->fetch_assoc() : null;
+      return $fila ? max(0, (int)$fila['valor']) * PUNTOS_POR_BONO : 0;
+    } catch (Throwable $e) {
+      return 0;
+    }
+  }
+}
+
+if (!function_exists('saldoPuntosBono')) {
+  function saldoPuntosBono(mysqli $conn, int $usuarioId): int
+  {
+    $stmt = $conn->prepare("SELECT puntos_acumulados FROM puntos_saldo WHERE usuario_id = ? LIMIT 1");
+    $stmt->bind_param("i", $usuarioId);
+    $stmt->execute();
+    $fila = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $fila ? (int)$fila['puntos_acumulados'] : 0;
+  }
+}
+
+if (!function_exists('moverPuntosBono')) {
+  /**
+   * Suma (positivo) o descuenta (negativo) puntos por un bono y deja el movimiento.
+   */
+  function moverPuntosBono(mysqli $conn, int $usuarioId, int $bonoId, int $puntos, string $tipo, string $descripcion): void
+  {
+    $clave = 'bono:' . $bonoId . ':' . $tipo . ':' . uniqid('', true);
+    $stmt = $conn->prepare("INSERT INTO puntos_movimientos
+        (usuario_id, pedido_id, pago_id, nivel, tipo, puntos, descripcion, metadata_json, clave_idempotencia)
+      VALUES (?, NULL, NULL, 0, ?, ?, ?, ?, ?)");
+    $metadata = json_encode(['bono_id' => $bonoId]);
+    $stmt->bind_param("isisss", $usuarioId, $tipo, $puntos, $descripcion, $metadata, $clave);
+    $stmt->execute();
+    $stmt->close();
+
+    $stmt = $conn->prepare("INSERT INTO puntos_saldo (usuario_id, puntos_acumulados) VALUES (?, GREATEST(0, ?))
+      ON DUPLICATE KEY UPDATE puntos_acumulados = GREATEST(0, puntos_acumulados + ?)");
+    $stmt->bind_param("iii", $usuarioId, $puntos, $puntos);
+    $stmt->execute();
+    $stmt->close();
   }
 }
 
 if (!function_exists('sincronizarBonosUsuario')) {
   /**
-   * Crea en bonos_puntos los bonos que el asociado ya alcanzo y aun no estan
-   * registrados (idempotente: UNIQUE usuario_id + numero).
+   * Bonos pendientes = floor(saldo / PUNTOS_POR_BONO): crea los que falten.
+   * (Los entregados y eliminados ya descontaron sus puntos del saldo.)
    */
-  function sincronizarBonosUsuario(mysqli $conn, int $usuarioId, int $puntos): void
+  function sincronizarBonosUsuario(mysqli $conn, int $usuarioId, int $saldo): void
   {
-    $obtenidos = intdiv(max(0, $puntos), PUNTOS_POR_BONO);
-    if ($usuarioId <= 0 || $obtenidos === 0) return;
+    $disponibles = intdiv(max(0, $saldo), PUNTOS_POR_BONO);
+    if ($usuarioId <= 0 || $disponibles === 0) return;
     asegurarTablaBonos($conn);
 
-    $stmt = $conn->prepare("SELECT COALESCE(MAX(numero), 0) AS ultimo FROM bonos_puntos WHERE usuario_id = ?");
+    $stmt = $conn->prepare("SELECT SUM(estado = 'pendiente') AS pendientes, COALESCE(MAX(numero), 0) AS ultimo
+                            FROM bonos_puntos WHERE usuario_id = ?");
     $stmt->bind_param("i", $usuarioId);
     $stmt->execute();
-    $ultimo = (int)$stmt->get_result()->fetch_assoc()['ultimo'];
+    $fila = $stmt->get_result()->fetch_assoc();
     $stmt->close();
-    if ($ultimo >= $obtenidos) return;
+    $pendientes = (int)$fila['pendientes'];
+    $numero = (int)$fila['ultimo'];
+    if ($pendientes >= $disponibles) return;
 
-    // Fecha en que el acumulado alcanzo cada meta, segun los movimientos de puntos
-    $fechas = [];
-    $stmt = $conn->prepare("SELECT puntos, fecha_creacion FROM puntos_movimientos
-                            WHERE usuario_id = ? AND puntos > 0 ORDER BY fecha_creacion, id");
+    // Fecha de obtencion: el ultimo punto ganado
+    $stmt = $conn->prepare("SELECT MAX(fecha_creacion) FROM puntos_movimientos WHERE usuario_id = ? AND puntos > 0");
     $stmt->bind_param("i", $usuarioId);
     $stmt->execute();
-    $res = $stmt->get_result();
-    $acumulado = 0;
-    $siguiente = 1;
-    while (($mov = $res->fetch_assoc()) && $siguiente <= $obtenidos) {
-      $acumulado += (int)$mov['puntos'];
-      while ($siguiente <= $obtenidos && $acumulado >= $siguiente * PUNTOS_POR_BONO) {
-        $fechas[$siguiente++] = $mov['fecha_creacion'];
-      }
-    }
+    $fecha = $stmt->get_result()->fetch_row()[0] ?: date('Y-m-d H:i:s');
     $stmt->close();
 
     $insertar = $conn->prepare("INSERT IGNORE INTO bonos_puntos (usuario_id, numero, puntos_meta, fecha_obtenido)
                                 VALUES (?, ?, ?, ?)");
-    for ($n = $ultimo + 1; $n <= $obtenidos; $n++) {
-      $meta = $n * PUNTOS_POR_BONO;
-      // Sin movimientos suficientes (puntos cargados a mano): fecha de hoy
-      $fecha = $fechas[$n] ?? date('Y-m-d H:i:s');
-      $insertar->bind_param("iiis", $usuarioId, $n, $meta, $fecha);
+    $meta = PUNTOS_POR_BONO;
+    for ($i = $pendientes; $i < $disponibles; $i++) {
+      $numero++;
+      $insertar->bind_param("iiis", $usuarioId, $numero, $meta, $fecha);
       $insertar->execute();
     }
     $insertar->close();
   }
 }
 
+if (!function_exists('liberarBonosDePedidosCancelados')) {
+  /**
+   * Bonos usados en pedidos que terminaron cancelados: vuelven a "pendiente" y
+   * los puntos regresan al asociado. Idempotente.
+   */
+  function liberarBonosDePedidosCancelados(mysqli $conn): int
+  {
+    asegurarTablaBonos($conn);
+    $res = $conn->query("SELECT b.id FROM bonos_puntos b JOIN pedidos p ON p.id = b.pedido_id
+                         WHERE b.estado = 'entregado' AND p.estado = 'cancelado'");
+    $liberados = 0;
+    while ($fila = $res->fetch_assoc()) {
+      $conn->begin_transaction();
+      try {
+        $bono = bloquearBono($conn, (int)$fila['id']);
+        if ($bono && $bono['estado'] === 'entregado' && $bono['pedido_id']) {
+          $nota = 'Liberado: el pedido donde se usó fue cancelado';
+          $stmt = $conn->prepare("UPDATE bonos_puntos SET estado = 'pendiente', pedido_id = NULL, valor_cop = NULL,
+                                    fecha_entrega = NULL, entregado_por = NULL, nota = ?, puntos_descontados = 0
+                                  WHERE id = ?");
+          $stmt->bind_param("si", $nota, $bono['id']);
+          $stmt->execute();
+          $stmt->close();
+          if ((int)$bono['puntos_descontados'] === 1) {
+            moverPuntosBono($conn, (int)$bono['usuario_id'], (int)$bono['id'], PUNTOS_POR_BONO, 'reverso_bono', 'Bono liberado por pedido cancelado');
+          }
+          $liberados++;
+        }
+        $conn->commit();
+      } catch (Throwable $e) {
+        $conn->rollback();
+        error_log('bonos: no se pudo liberar el bono ' . $fila['id'] . ': ' . $e->getMessage());
+      }
+    }
+    return $liberados;
+  }
+}
+
 if (!function_exists('sincronizarBonosTodos')) {
   /**
-   * Sincroniza a todos los asociados que tienen al menos un bono (reporte del admin).
+   * Libera bonos de pedidos cancelados y crea los bonos que falten (reporte del admin).
    */
   function sincronizarBonosTodos(mysqli $conn): void
   {
-    asegurarTablaBonos($conn);
+    liberarBonosDePedidosCancelados($conn);
     $res = $conn->query("SELECT usuario_id, puntos_acumulados FROM puntos_saldo WHERE puntos_acumulados >= " . (int)PUNTOS_POR_BONO);
     if (!$res) return;
     while ($fila = $res->fetch_assoc()) {
@@ -142,29 +232,225 @@ if (!function_exists('sincronizarBonosTodos')) {
   }
 }
 
+if (!function_exists('bloquearBono')) {
+  /** Lee un bono con FOR UPDATE (llamar dentro de una transaccion). */
+  function bloquearBono(mysqli $conn, int $bonoId): ?array
+  {
+    $stmt = $conn->prepare("SELECT * FROM bonos_puntos WHERE id = ? FOR UPDATE");
+    $stmt->bind_param("i", $bonoId);
+    $stmt->execute();
+    $bono = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $bono ?: null;
+  }
+}
+
+if (!function_exists('cambiarEstadoBono')) {
+  /**
+   * Cambios de estado desde el admin, en una transaccion. Acciones:
+   * - entregar (pendiente -> entregado, descuenta puntos)
+   * - deshacer (entregado a mano -> pendiente, devuelve puntos)
+   * - anular (pendiente/entregado a mano -> anulado, descuenta puntos si no estaban descontados)
+   * - restaurar (anulado -> entregado si tenia entrega, si no pendiente devolviendo puntos)
+   * @return string '' si se aplico, o el mensaje de error.
+   */
+  function cambiarEstadoBono(mysqli $conn, int $bonoId, string $accion, string $admin, string $texto): string
+  {
+    asegurarTablaBonos($conn);
+    $conn->begin_transaction();
+    try {
+      $bono = bloquearBono($conn, $bonoId);
+      if (!$bono) {
+        $conn->rollback();
+        return 'Bono no encontrado';
+      }
+      $uid = (int)$bono['usuario_id'];
+      $descontados = (int)$bono['puntos_descontados'] === 1;
+      $enPedido = !empty($bono['pedido_id']);
+
+      if ($accion === 'entregar') {
+        if ($bono['estado'] !== 'pendiente') throw new BonoException('Solo se puede entregar un bono pendiente');
+        $stmt = $conn->prepare("UPDATE bonos_puntos SET estado = 'entregado', fecha_entrega = NOW(), entregado_por = ?,
+                                  nota = ?, puntos_descontados = 1 WHERE id = ?");
+        $stmt->bind_param("ssi", $admin, $texto, $bonoId);
+        $stmt->execute();
+        $stmt->close();
+        if (!$descontados) moverPuntosBono($conn, $uid, $bonoId, -PUNTOS_POR_BONO, 'canje_bono', 'Bono #' . $bono['numero'] . ' entregado por el admin');
+      } elseif ($accion === 'deshacer') {
+        if ($bono['estado'] !== 'entregado') throw new BonoException('El bono no está entregado');
+        if ($enPedido) throw new BonoException('Este bono se usó en un pedido: para devolverlo, cancela el pedido');
+        $stmt = $conn->prepare("UPDATE bonos_puntos SET estado = 'pendiente', fecha_entrega = NULL, entregado_por = NULL,
+                                  nota = ?, puntos_descontados = 0 WHERE id = ?");
+        $stmt->bind_param("si", $texto, $bonoId);
+        $stmt->execute();
+        $stmt->close();
+        if ($descontados) moverPuntosBono($conn, $uid, $bonoId, PUNTOS_POR_BONO, 'reverso_bono', 'Entrega del bono #' . $bono['numero'] . ' deshecha');
+      } elseif ($accion === 'anular') {
+        if ($bono['estado'] === 'anulado') throw new BonoException('El bono ya está eliminado');
+        if ($enPedido) throw new BonoException('Este bono se usó en un pedido: para devolverlo, cancela el pedido');
+        $stmt = $conn->prepare("UPDATE bonos_puntos SET estado = 'anulado', fecha_anulado = NOW(), anulado_por = ?,
+                                  motivo_anulado = ?, puntos_descontados = 1 WHERE id = ?");
+        $stmt->bind_param("ssi", $admin, $texto, $bonoId);
+        $stmt->execute();
+        $stmt->close();
+        if (!$descontados) moverPuntosBono($conn, $uid, $bonoId, -PUNTOS_POR_BONO, 'anulacion_bono', 'Bono #' . $bono['numero'] . ' eliminado por el admin');
+      } elseif ($accion === 'restaurar') {
+        if ($bono['estado'] !== 'anulado') throw new BonoException('El bono no está eliminado');
+        $aEntregado = !empty($bono['fecha_entrega']);
+        $estado = $aEntregado ? 'entregado' : 'pendiente';
+        $flag = $aEntregado ? 1 : 0;
+        $stmt = $conn->prepare("UPDATE bonos_puntos SET estado = ?, fecha_anulado = NULL, anulado_por = NULL,
+                                  motivo_anulado = NULL, puntos_descontados = ? WHERE id = ?");
+        $stmt->bind_param("sii", $estado, $flag, $bonoId);
+        $stmt->execute();
+        $stmt->close();
+        if (!$aEntregado && $descontados) moverPuntosBono($conn, $uid, $bonoId, PUNTOS_POR_BONO, 'reverso_bono', 'Bono #' . $bono['numero'] . ' restaurado');
+      } else {
+        throw new BonoException('Acción no válida');
+      }
+
+      $conn->commit();
+      return '';
+    } catch (BonoException $e) {
+      $conn->rollback();
+      return $e->getMessage();
+    } catch (Throwable $e) {
+      $conn->rollback();
+      error_log('bonos cambiarEstadoBono: ' . $e->getMessage());
+      return 'No se pudo actualizar el bono';
+    }
+  }
+}
+
+if (!function_exists('aplicarBonoAPedido')) {
+  /**
+   * Redime el bono pendiente mas antiguo del usuario en un pedido recien creado:
+   * descuenta su valor del total (sin pasar de 0), lo marca entregado con el pedido
+   * y descuenta sus puntos. Llamar DENTRO de la transaccion que crea el pedido.
+   * @return array ['descuento' => float, 'bono_id' => int]
+   * @throws BonoException si no hay bono disponible o no tiene valor definido
+   */
+  function aplicarBonoAPedido(mysqli $conn, int $usuarioId, int $pedidoId, float $totalPedido, string $email): array
+  {
+    asegurarTablaBonos($conn);
+    sincronizarBonosUsuario($conn, $usuarioId, saldoPuntosBono($conn, $usuarioId));
+
+    $valor = valorBonoCop($conn);
+    if ($valor <= 0) throw new BonoException('El valor del bono aún no está definido. Intenta sin el bono.');
+
+    $stmt = $conn->prepare("SELECT * FROM bonos_puntos WHERE usuario_id = ? AND estado = 'pendiente'
+                            ORDER BY numero LIMIT 1 FOR UPDATE");
+    $stmt->bind_param("i", $usuarioId);
+    $stmt->execute();
+    $bono = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if (!$bono) throw new BonoException('No tienes un bono disponible.');
+
+    $descuento = (float)min($valor, $totalPedido);
+    $valorAplicado = (int)round($descuento);
+    $quien = 'Compra del asociado (' . $email . ')';
+    $nota = 'Redimido en compra';
+    $stmt = $conn->prepare("UPDATE bonos_puntos SET estado = 'entregado', fecha_entrega = NOW(), entregado_por = ?,
+                              nota = ?, pedido_id = ?, valor_cop = ?, puntos_descontados = 1 WHERE id = ?");
+    $stmt->bind_param("ssiii", $quien, $nota, $pedidoId, $valorAplicado, $bono['id']);
+    $stmt->execute();
+    $stmt->close();
+
+    if ((int)$bono['puntos_descontados'] === 0) {
+      moverPuntosBono($conn, $usuarioId, (int)$bono['id'], -PUNTOS_POR_BONO, 'canje_bono', 'Bono #' . $bono['numero'] . ' redimido en compra');
+    }
+
+    $stmt = $conn->prepare("UPDATE pedidos SET descuento_bono = ?, total = GREATEST(0, total - ?) WHERE id = ?");
+    $stmt->bind_param("ddi", $descuento, $descuento, $pedidoId);
+    $stmt->execute();
+    $stmt->close();
+
+    return ['descuento' => $descuento, 'bono_id' => (int)$bono['id']];
+  }
+}
+
+if (!function_exists('bonoDisponibleCheckout')) {
+  /**
+   * Para el checkout: cuantos bonos puede usar y cuanto vale cada uno.
+   */
+  function bonoDisponibleCheckout(mysqli $conn, int $usuarioId): array
+  {
+    try {
+      asegurarTablaBonos($conn);
+      liberarBonosDePedidosCancelados($conn);
+      sincronizarBonosUsuario($conn, $usuarioId, saldoPuntosBono($conn, $usuarioId));
+      $stmt = $conn->prepare("SELECT COUNT(*) FROM bonos_puntos WHERE usuario_id = ? AND estado = 'pendiente'");
+      $stmt->bind_param("i", $usuarioId);
+      $stmt->execute();
+      $disponibles = (int)$stmt->get_result()->fetch_row()[0];
+      $stmt->close();
+      $valor = valorBonoCop($conn);
+      return ['disponibles' => $disponibles, 'valor' => $valor];
+    } catch (Throwable $e) {
+      error_log('bonos checkout: ' . $e->getMessage());
+      return ['disponibles' => 0, 'valor' => 0];
+    }
+  }
+}
+
 if (!function_exists('bonosDelUsuario')) {
   /**
-   * Resumen para la pagina de contenido: obtenidos, disponibles (pendientes de
-   * entrega), entregados y puntos para el siguiente.
+   * Resumen para la pagina de contenido del asociado.
    */
-  function bonosDelUsuario(mysqli $conn, int $usuarioId, int $puntos): array
+  function bonosDelUsuario(mysqli $conn, int $usuarioId, int $saldo): array
   {
-    $resumen = resumenBonosPuntos($puntos);
-    $resumen['bonos_disponibles'] = 0;
-    $resumen['bonos_entregados'] = 0;
-    if ($resumen['bonos_obtenidos'] === 0) return $resumen;
+    $saldo = max(0, $saldo);
+    $resumen = [
+      'puntos' => $saldo,
+      'puntos_por_bono' => PUNTOS_POR_BONO,
+      'puntos_faltantes' => PUNTOS_POR_BONO - ($saldo % PUNTOS_POR_BONO),
+      'porcentaje_siguiente' => (int)round(($saldo % PUNTOS_POR_BONO) * 100 / PUNTOS_POR_BONO),
+      'bonos_disponibles' => 0,
+      'bonos_entregados' => 0,
+      'valor_bono' => 0,
+      'ultimo_pedido' => '',
+    ];
 
-    sincronizarBonosUsuario($conn, $usuarioId, $puntos);
+    asegurarTablaBonos($conn);
+    liberarBonosDePedidosCancelados($conn);
+    sincronizarBonosUsuario($conn, $usuarioId, $saldo);
+
     $stmt = $conn->prepare("SELECT estado, COUNT(*) AS total FROM bonos_puntos WHERE usuario_id = ? GROUP BY estado");
     $stmt->bind_param("i", $usuarioId);
     $stmt->execute();
     $res = $stmt->get_result();
     while ($fila = $res->fetch_assoc()) {
-      if ($fila['estado'] === 'entregado') $resumen['bonos_entregados'] = (int)$fila['total'];
-      elseif ($fila['estado'] === 'pendiente') $resumen['bonos_disponibles'] = (int)$fila['total'];
-      // 'anulado': eliminado por el admin, no se muestra al asociado
+      if ($fila['estado'] === 'pendiente') $resumen['bonos_disponibles'] = (int)$fila['total'];
+      elseif ($fila['estado'] === 'entregado') $resumen['bonos_entregados'] = (int)$fila['total'];
     }
     $stmt->close();
+
+    $stmt = $conn->prepare("SELECT p.numero_pedido FROM bonos_puntos b JOIN pedidos p ON p.id = b.pedido_id
+                            WHERE b.usuario_id = ? AND b.estado = 'entregado' ORDER BY b.fecha_entrega DESC LIMIT 1");
+    $stmt->bind_param("i", $usuarioId);
+    $stmt->execute();
+    $fila = $stmt->get_result()->fetch_row();
+    $stmt->close();
+    $resumen['ultimo_pedido'] = $fila ? (string)$fila[0] : '';
+    $resumen['valor_bono'] = valorBonoCop($conn);
     return $resumen;
+  }
+}
+
+if (!function_exists('resumenBonosPuntos')) {
+  /** Calculo sin base de datos (respaldo de 04-contenido si faltan tablas). */
+  function resumenBonosPuntos(int $saldo): array
+  {
+    $saldo = max(0, $saldo);
+    return [
+      'puntos' => $saldo,
+      'puntos_por_bono' => PUNTOS_POR_BONO,
+      'puntos_faltantes' => PUNTOS_POR_BONO - ($saldo % PUNTOS_POR_BONO),
+      'porcentaje_siguiente' => (int)round(($saldo % PUNTOS_POR_BONO) * 100 / PUNTOS_POR_BONO),
+      'bonos_disponibles' => intdiv($saldo, PUNTOS_POR_BONO),
+      'bonos_entregados' => 0,
+      'valor_bono' => 0,
+      'ultimo_pedido' => '',
+    ];
   }
 }

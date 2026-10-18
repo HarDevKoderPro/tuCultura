@@ -198,6 +198,9 @@ if (!function_exists('construirCorreoPedido')) {
       . '<tr style="background:#023859;color:#fff"><th style="padding:6px;text-align:left">Producto</th><th style="padding:6px">Cant.</th><th style="padding:6px;text-align:right">Subtotal</th></tr>'
       . $filas
       . '<tr><td colspan="2" style="padding:6px;text-align:right">Envío</td><td style="padding:6px;text-align:right">' . $envio . '</td></tr>'
+      . ((float)($pedido['descuento_bono'] ?? 0) > 0
+        ? '<tr><td colspan="2" style="padding:6px;text-align:right;color:#15803d">Bono por puntos</td><td style="padding:6px;text-align:right;color:#15803d">- ' . formatearPrecio($pedido['descuento_bono']) . '</td></tr>'
+        : '')
       . '<tr><td colspan="2" style="padding:6px;text-align:right"><b>Total</b></td><td style="padding:6px;text-align:right"><b>' . formatearPrecio($pedido['total']) . '</b></td></tr>'
       . '</table>'
       . '<p><b>Envío a:</b><br>'

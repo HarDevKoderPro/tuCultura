@@ -53,3 +53,10 @@ $stmt->bind_param('ii', $horas, $dias);
 $stmt->execute();
 
 echo date('Y-m-d H:i:s') . ' Pedidos MercadoPago abandonados cancelados: ' . $stmt->affected_rows . PHP_EOL;
+
+// Bonos por puntos usados en pedidos cancelados: vuelven al asociado con sus puntos
+require_once __DIR__ . '/bonos-helpers.php';
+$liberados = liberarBonosDePedidosCancelados($conn);
+if ($liberados > 0) {
+  echo date('Y-m-d H:i:s') . ' Bonos liberados de pedidos cancelados: ' . $liberados . PHP_EOL;
+}

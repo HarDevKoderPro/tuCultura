@@ -972,6 +972,8 @@ function detallePedidoAdmin($conn) {
     $pedido['costo_envio_formateado'] = formatearPrecio($pedido['costo_envio']);
     $pedido['impuestos_formateado'] = formatearPrecio($pedido['impuestos']);
     $pedido['total_formateado'] = formatearPrecio($pedido['total']);
+    $pedido['descuento_bono'] = (float)($pedido['descuento_bono'] ?? 0);
+    $pedido['descuento_bono_formateado'] = formatearPrecio($pedido['descuento_bono']);
     $pedido['fecha_formateada'] = date('d/m/Y H:i', strtotime($pedido['fecha_creacion']));
     $pedido['estado_texto'] = ucfirst($pedido['estado']);
     $pedido['detalles'] = $detalles;
@@ -1083,8 +1085,12 @@ function actualizarEstadoPedido($conn) {
     
     $stmt = $conn->prepare("UPDATE pedidos SET estado = ? WHERE id = ?");
     $stmt->bind_param("si", $estado, $id);
-    
+
     if ($stmt->execute()) {
+        // Pedido cancelado: si se pago con bono, el bono y sus puntos vuelven al asociado
+        if ($estado === 'cancelado') {
+            liberarBonosDePedidosCancelados($conn);
+        }
         jsonResponse(['success' => true, 'mensaje' => 'Estado actualizado exitosamente']);
     } else {
         jsonResponse(['error' => 'Error al actualizar el estado'], 500);
@@ -1100,10 +1106,10 @@ function actualizarEstadoPedido($conn) {
 // ==================== BONOS POR PUNTOS ====================
 
 /**
- * Endpoint: reporte de bonos obtenidos (uno cada PUNTOS_POR_BONO puntos) para
- * el seguimiento de entregas. Filtros: estado (pendiente/entregado/anulado; vacio =
- * todos), buscar (nombre, apellido o email). Incluye los asociados proximos a su
- * siguiente bono.
+ * Endpoint: reporte de bonos (uno cada PUNTOS_POR_BONO puntos de saldo, ver
+ * bonos-helpers.php) para el seguimiento. Filtros: estado (pendiente/entregado/anulado;
+ * vacio = todos), buscar (nombre, apellido o email). Incluye los asociados proximos
+ * a su siguiente bono.
  */
 function listarBonosAdmin($conn) {
     sincronizarBonosTodos($conn);
@@ -1114,11 +1120,13 @@ function listarBonosAdmin($conn) {
     $sql = "SELECT b.id, b.usuario_id, b.numero, b.puntos_meta, b.fecha_obtenido, b.estado,
                    b.fecha_entrega, b.nota, b.entregado_por,
                    b.fecha_anulado, b.anulado_por, b.motivo_anulado,
+                   b.pedido_id, b.valor_cop, pe.numero_pedido, pe.estado AS estado_pedido,
                    r.nombres, r.apellidos, r.email, r.telefono, r.referente,
                    COALESCE(s.puntos_acumulados, 0) AS puntos_actuales
             FROM bonos_puntos b
             JOIN registros r ON r.id = b.usuario_id
             LEFT JOIN puntos_saldo s ON s.usuario_id = b.usuario_id
+            LEFT JOIN pedidos pe ON pe.id = b.pedido_id
             WHERE 1 = 1";
     $tipos = '';
     $params = [];
@@ -1151,13 +1159,21 @@ function listarBonosAdmin($conn) {
         $b['numero'] = (int)$b['numero'];
         $b['puntos_meta'] = (int)$b['puntos_meta'];
         $b['puntos_actuales'] = (int)$b['puntos_actuales'];
+        $b['valor_cop'] = $b['valor_cop'] !== null ? (int)$b['valor_cop'] : null;
+        $b['valor_formateado'] = $b['valor_cop'] !== null ? formatearPrecio($b['valor_cop']) : '';
         $b['fecha_obtenido_formateada'] = date('d/m/Y', strtotime($b['fecha_obtenido']));
         $b['fecha_entrega_formateada'] = $b['fecha_entrega'] ? date('d/m/Y H:i', strtotime($b['fecha_entrega'])) : '';
         $b['fecha_anulado_formateada'] = $b['fecha_anulado'] ? date('d/m/Y H:i', strtotime($b['fecha_anulado'])) : '';
     }
     unset($b);
 
-    $resumen = ['pendientes' => 0, 'entregados' => 0, 'anulados' => 0, 'asociados' => 0, 'puntos_por_bono' => PUNTOS_POR_BONO];
+    $valorBono = valorBonoCop($conn);
+    $resumen = [
+        'pendientes' => 0, 'entregados' => 0, 'anulados' => 0, 'asociados' => 0,
+        'puntos_por_bono' => PUNTOS_POR_BONO,
+        'valor_bono' => $valorBono,
+        'valor_bono_formateado' => $valorBono > 0 ? formatearPrecio($valorBono) : 'Sin definir'
+    ];
     $claves = ['pendiente' => 'pendientes', 'entregado' => 'entregados', 'anulado' => 'anulados'];
     $res = $conn->query("SELECT estado, COUNT(*) AS total FROM bonos_puntos GROUP BY estado");
     while ($fila = $res->fetch_assoc()) {
@@ -1173,13 +1189,12 @@ function listarBonosAdmin($conn) {
                            AND " . (int)PUNTOS_POR_BONO . " - MOD(s.puntos_acumulados, " . (int)PUNTOS_POR_BONO . ") <= 10
                          ORDER BY MOD(s.puntos_acumulados, " . (int)PUNTOS_POR_BONO . ") DESC LIMIT 50");
     while ($fila = $res->fetch_assoc()) {
-        $r = resumenBonosPuntos((int)$fila['puntos_acumulados']);
+        $puntos = (int)$fila['puntos_acumulados'];
         $proximos[] = [
             'nombre' => trim($fila['nombres'] . ' ' . $fila['apellidos']),
             'email' => $fila['email'],
-            'puntos' => (int)$fila['puntos_acumulados'],
-            'puntos_faltantes' => $r['puntos_faltantes'],
-            'siguiente_bono' => $r['siguiente_bono'],
+            'puntos' => $puntos,
+            'puntos_faltantes' => PUNTOS_POR_BONO - ($puntos % PUNTOS_POR_BONO),
         ];
     }
 
@@ -1187,8 +1202,9 @@ function listarBonosAdmin($conn) {
 }
 
 /**
- * Endpoint (POST id, estado entregado|pendiente, nota): marca la entrega de un bono
- * o la deshace si fue un error.
+ * Endpoint (POST id, estado entregado|pendiente, nota): entrega manual de un bono
+ * (descuenta sus puntos) o la deshace (los devuelve). Los bonos usados en un pedido
+ * se devuelven cancelando el pedido.
  */
 function actualizarBonoAdmin($conn) {
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
@@ -1197,39 +1213,20 @@ function actualizarBonoAdmin($conn) {
     if (!$id || !in_array($estado, ['pendiente', 'entregado'], true)) {
         jsonResponse(['error' => 'Datos inválidos'], 400);
     }
-    asegurarTablaBonos($conn);
 
-    // Un bono eliminado solo vuelve con "Restaurar" (bono_restaurar)
-    if ($estado === 'entregado') {
-        $admin = $_SESSION['email'] ?? '';
-        $stmt = $conn->prepare("UPDATE bonos_puntos
-                                SET estado = 'entregado', fecha_entrega = NOW(), entregado_por = ?, nota = ?
-                                WHERE id = ? AND estado <> 'anulado'");
-        $stmt->bind_param("ssi", $admin, $nota, $id);
-    } else {
-        $stmt = $conn->prepare("UPDATE bonos_puntos
-                                SET estado = 'pendiente', fecha_entrega = NULL, entregado_por = NULL, nota = ?
-                                WHERE id = ? AND estado <> 'anulado'");
-        $stmt->bind_param("si", $nota, $id);
-    }
-    $stmt->execute();
-    $cambio = $stmt->affected_rows;
-    $stmt->close();
-
-    $existe = $conn->query("SELECT 1 FROM bonos_puntos WHERE id = " . $id)->num_rows > 0;
-    if (!$existe) {
-        jsonResponse(['error' => 'Bono no encontrado'], 404);
+    $error = cambiarEstadoBono($conn, $id, $estado === 'entregado' ? 'entregar' : 'deshacer', $_SESSION['email'] ?? '', $nota);
+    if ($error !== '') {
+        jsonResponse(['error' => $error], 400);
     }
     jsonResponse([
         'success' => true,
-        'mensaje' => $estado === 'entregado' ? 'Bono marcado como entregado' : 'Bono vuelto a pendiente',
-        'cambio' => $cambio > 0
+        'mensaje' => $estado === 'entregado' ? 'Bono marcado como entregado' : 'Bono vuelto a pendiente'
     ]);
 }
 
 /**
- * Endpoint (POST id, motivo): elimina un bono de pendientes/entregados. Queda en
- * estado 'anulado' con motivo, fecha y admin para la trazabilidad (ver bonos-helpers.php).
+ * Endpoint (POST id, motivo): elimina un bono (estado 'anulado' con motivo, fecha y
+ * admin, para la trazabilidad) y descuenta sus puntos. Se puede restaurar.
  */
 function eliminarBonoAdmin($conn) {
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
@@ -1237,45 +1234,27 @@ function eliminarBonoAdmin($conn) {
     if (!$id || $motivo === '') {
         jsonResponse(['error' => 'Indica el motivo para eliminar el bono'], 400);
     }
-    asegurarTablaBonos($conn);
 
-    $admin = $_SESSION['email'] ?? '';
-    $stmt = $conn->prepare("UPDATE bonos_puntos
-                            SET estado = 'anulado', fecha_anulado = NOW(), anulado_por = ?, motivo_anulado = ?
-                            WHERE id = ? AND estado <> 'anulado'");
-    $stmt->bind_param("ssi", $admin, $motivo, $id);
-    $stmt->execute();
-    $cambio = $stmt->affected_rows;
-    $stmt->close();
-
-    if (!$cambio) {
-        jsonResponse(['error' => 'Bono no encontrado o ya eliminado'], 404);
+    $error = cambiarEstadoBono($conn, $id, 'anular', $_SESSION['email'] ?? '', $motivo);
+    if ($error !== '') {
+        jsonResponse(['error' => $error], 400);
     }
     jsonResponse(['success' => true, 'mensaje' => 'Bono eliminado (queda en Eliminados)']);
 }
 
 /**
  * Endpoint (POST id): restaura un bono eliminado a su estado anterior
- * (entregado si tenia fecha de entrega, si no pendiente).
+ * (entregado si tenia fecha de entrega, si no pendiente devolviendo los puntos).
  */
 function restaurarBonoAdmin($conn) {
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
     if (!$id) {
         jsonResponse(['error' => 'ID requerido'], 400);
     }
-    asegurarTablaBonos($conn);
 
-    $stmt = $conn->prepare("UPDATE bonos_puntos
-                            SET estado = IF(fecha_entrega IS NULL, 'pendiente', 'entregado'),
-                                fecha_anulado = NULL, anulado_por = NULL, motivo_anulado = NULL
-                            WHERE id = ? AND estado = 'anulado'");
-    $stmt->bind_param("i", $id);
-    $stmt->execute();
-    $cambio = $stmt->affected_rows;
-    $stmt->close();
-
-    if (!$cambio) {
-        jsonResponse(['error' => 'Bono no encontrado o no está eliminado'], 404);
+    $error = cambiarEstadoBono($conn, $id, 'restaurar', $_SESSION['email'] ?? '', '');
+    if ($error !== '') {
+        jsonResponse(['error' => $error], 400);
     }
     jsonResponse(['success' => true, 'mensaje' => 'Bono restaurado']);
 }
@@ -1319,9 +1298,7 @@ function listarAsociadosConBonoAdmin($conn) {
         foreach (['usuario_id', 'puntos', 'pendientes', 'entregados', 'anulados'] as $campo) {
             $a[$campo] = (int)$a[$campo];
         }
-        $r = resumenBonosPuntos($a['puntos']);
-        $a['puntos_faltantes'] = $r['puntos_faltantes'];
-        $a['siguiente_bono'] = $r['siguiente_bono'];
+        $a['puntos_faltantes'] = PUNTOS_POR_BONO - ($a['puntos'] % PUNTOS_POR_BONO);
         $a['ultimo_bono_formateado'] = date('d/m/Y', strtotime($a['ultimo_bono']));
     }
     unset($a);

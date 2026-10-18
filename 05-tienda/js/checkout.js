@@ -5,6 +5,7 @@
 
 const API_BASE = "php/";
 let carritoData = null;
+let bonoData = null; // Bono por puntos disponible (pedidos.php?action=verificar_checkout)
 
 document.addEventListener("DOMContentLoaded", () => {
   verificarYCargarCheckout();
@@ -77,7 +78,9 @@ async function verificarYCargarCheckout() {
 
     if (dataCarrito.success && dataCarrito.carrito.items.length > 0) {
       carritoData = dataCarrito.carrito;
+      bonoData = dataVerif.bono || null;
       renderizarCheckout(dataVerif.usuario, carritoData);
+      inicializarBono();
     } else {
       window.location.href = "carrito.html";
     }
@@ -161,6 +164,8 @@ function renderizarCheckout(usuario, carrito) {
                     <textarea id="notas" name="notas" rows="3" placeholder="Instrucciones especiales para la entrega..."></textarea>
                 </div>
                 
+                ${htmlBono(carrito)}
+
                 <h2 style="margin-top: 2rem;"><i class="fas fa-credit-card"></i> Método de Pago</h2>
                 
                 <div class="form-grupo">
@@ -224,9 +229,14 @@ function renderizarCheckout(usuario, carrito) {
                 <span>${carrito.costo_envio === 0 ? "GRATIS" : carrito.costo_envio_formateado}</span>
             </div>
             
+            <div class="resumen-linea resumen-linea-bono" id="resumen-bono" hidden>
+                <span>🎁 Bono por puntos</span>
+                <span id="resumen-bono-valor"></span>
+            </div>
+            
             <div class="resumen-linea total">
                 <span>Total a Pagar</span>
-                <span>${carrito.total_formateado}</span>
+                <span id="resumen-total">${carrito.total_formateado}</span>
             </div>
             
             <a href="carrito.html" class="btn-seguir-comprando">
@@ -234,6 +244,63 @@ function renderizarCheckout(usuario, carrito) {
             </a>
         </div>
     `;
+}
+
+// ==== BONO POR PUNTOS ====
+// El asociado con bono disponible puede redimirlo: se descuenta del total
+// (sin pasar de 0) y el servidor lo marca entregado con el pedido.
+function formatearCOP(valor) {
+  return "$ " + Math.round(valor).toLocaleString("es-CO");
+}
+
+function htmlBono(carrito) {
+  if (!bonoData || bonoData.disponibles < 1) return "";
+  if (!bonoData.valor) {
+    return `
+        <div class="checkout-bono checkout-bono--inactivo">
+            <i class="fas fa-gift"></i>
+            <div><strong>Tienes un bono por puntos</strong>
+            <p>Su valor aún no está definido por la tienda; pronto podrás usarlo.</p></div>
+        </div>`;
+  }
+  const cubreTodo = bonoData.valor >= carrito.total;
+  const cantidad = bonoData.disponibles === 1 ? "un bono" : `${bonoData.disponibles} bonos`;
+  return `
+        <label class="checkout-bono" for="usar_bono">
+            <input type="checkbox" id="usar_bono" name="usar_bono" value="1">
+            <i class="fas fa-gift"></i>
+            <div>
+                <strong>Usar mi bono de ${bonoData.valor_formateado} en esta compra</strong>
+                <p>Tienes ${cantidad} por tus puntos. Al usarlo se descuenta del total y tus puntos empiezan a acumular de nuevo.</p>
+                ${cubreTodo ? `<p class="checkout-bono-aviso">Tu bono cubre toda la compra: no tendrás que pagar nada. Lo que sobre del bono no se guarda.</p>` : ""}
+            </div>
+        </label>`;
+}
+
+function inicializarBono() {
+  const casilla = document.getElementById("usar_bono");
+  if (casilla) casilla.addEventListener("change", actualizarResumenBono);
+}
+
+function actualizarResumenBono() {
+  const casilla = document.getElementById("usar_bono");
+  const usar = !!(casilla && casilla.checked);
+  const descuento = usar ? Math.min(bonoData.valor, carritoData.total) : 0;
+  const total = Math.max(0, carritoData.total - descuento);
+
+  document.getElementById("resumen-bono").hidden = !usar;
+  document.getElementById("resumen-bono-valor").textContent = "- " + formatearCOP(descuento);
+  document.getElementById("resumen-total").textContent = usar ? formatearCOP(total) : carritoData.total_formateado;
+
+  // Sin nada que pagar, MercadoPago no aplica
+  const radioMP = document.querySelector('input[name="metodo_pago"][value="mercadopago"]');
+  if (radioMP) {
+    radioMP.disabled = usar && total <= 0;
+    radioMP.closest("label").style.opacity = radioMP.disabled ? "0.5" : "";
+    if (radioMP.disabled && radioMP.checked) {
+      document.querySelector('input[name="metodo_pago"][value="contraentrega"]').checked = true;
+    }
+  }
 }
 
 async function procesarPedido(event) {

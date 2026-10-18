@@ -219,6 +219,7 @@
                         <div style="margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--color-borde);">
                             <div class="resumen-linea"><span>Subtotal</span><span>${p.subtotal_formateado}</span></div>
                             <div class="resumen-linea"><span>Env\u00edo</span><span>${p.costo_envio_formateado}</span></div>
+                            ${Number(p.descuento_bono) > 0 ? `<div class="resumen-linea" style="color: var(--color-exito);"><span>\ud83c\udf81 Bono por puntos</span><span>- ${p.descuento_bono_formateado}</span></div>` : ''}
                             <div class="resumen-linea total"><span>Total</span><span>${p.total_formateado}</span></div>
                         </div>
                         ${p.notas ? `<p style="margin-top: 1rem;"><strong>Notas:</strong> ${p.notas}</p>` : ''}

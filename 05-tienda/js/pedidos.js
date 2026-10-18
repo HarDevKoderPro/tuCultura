@@ -138,6 +138,7 @@ function renderizarDetallePedido(pedido) {
         <div style="margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--color-borde);">
             <div class="resumen-linea"><span>Subtotal</span><span>${pedido.subtotal_formateado}</span></div>
             <div class="resumen-linea"><span>Env\u00edo</span><span>${pedido.costo_envio_formateado}</span></div>
+            ${Number(pedido.descuento_bono) > 0 ? `<div class="resumen-linea" style="color: var(--color-exito);"><span>\ud83c\udf81 Bono por puntos</span><span>- ${pedido.descuento_bono_formateado}</span></div>` : ''}
             <div class="resumen-linea total"><span>Total</span><span>${pedido.total_formateado}</span></div>
         </div>
     `;

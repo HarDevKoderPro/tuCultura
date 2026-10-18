@@ -152,7 +152,7 @@
                         <th>Pendientes</th>
                         <th>Entregados</th>
                         <th>Último bono</th>
-                        <th>Siguiente bono</th>
+                        <th>Próximo bono</th>
                         <th>Acción</th>
                     </tr>
                 </thead>
@@ -168,12 +168,11 @@
                     <tr>
                         <th>Asociado</th>
                         <th>Puntos</th>
-                        <th>Siguiente bono</th>
                         <th>Le faltan</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr><td colspan="4"><div class="loading"><div class="spinner"></div></div></td></tr>
+                    <tr><td colspan="3"><div class="loading"><div class="spinner"></div></div></td></tr>
                 </tbody>
             </table>
         </div>
@@ -290,7 +289,7 @@
             document.getElementById('res-entregados').textContent = r.entregados;
             document.getElementById('res-asociados').textContent = r.asociados;
             document.getElementById('res-anulados').textContent = r.anulados;
-            document.getElementById('res-regla').textContent = `1 bono cada ${r.puntos_por_bono} puntos`;
+            document.getElementById('res-regla').textContent = `1 bono cada ${r.puntos_por_bono} puntos · vale ${r.valor_bono_formateado}`;
         }
 
         function htmlAsociado(nombre, email, telefono) {
@@ -313,6 +312,10 @@
                 partes.push(`<div>Entregado ${escaparHtml(b.fecha_entrega_formateada)}</div>
                              <div class="entrega-detalle">${escaparHtml(b.entregado_por || '')}</div>`);
             }
+            if (b.numero_pedido) {
+                partes.push(`<div class="entrega-detalle"><i class="fas fa-shopping-bag"></i> Redimido en el pedido <strong>${escaparHtml(b.numero_pedido)}</strong>
+                             ${b.valor_formateado ? `(${escaparHtml(b.valor_formateado)})` : ''}</div>`);
+            }
             if (b.nota) partes.push(`<div class="entrega-detalle"><i class="fas fa-sticky-note"></i> ${escaparHtml(b.nota)}</div>`);
             if (b.estado === 'anulado') {
                 partes.push(`<div>Eliminado ${escaparHtml(b.fecha_anulado_formateada)}</div>
@@ -325,6 +328,10 @@
         function htmlAcciones(b) {
             if (b.estado === 'anulado') {
                 return `<button class="btn-restaurar" onclick="restaurarBono(${b.id})"><i class="fas fa-undo"></i> Restaurar</button>`;
+            }
+            // Redimido en una compra: se devuelve cancelando el pedido
+            if (b.pedido_id) {
+                return `<span class="entrega-detalle" title="Si se cancela el pedido, el bono y sus puntos vuelven al asociado">Usado en compra</span>`;
             }
             const principal = b.estado === 'entregado'
                 ? `<button class="btn-deshacer" onclick="deshacerEntrega(${b.id})" title="Volver a pendiente"><i class="fas fa-undo"></i> Deshacer</button>`
@@ -365,7 +372,7 @@
                     <td>${a.pendientes ? `<span class="bono-estado pendiente">${a.pendientes}</span>` : '0'}</td>
                     <td>${a.entregados}</td>
                     <td>${escaparHtml(a.ultimo_bono_formateado)}</td>
-                    <td>#${a.siguiente_bono} <div class="asociado-email">faltan ${a.puntos_faltantes} pts</div></td>
+                    <td>faltan ${a.puntos_faltantes} pts</td>
                     <td><button class="btn-ver-bonos" data-email="${escaparHtml(a.email).replace(/"/g, '&quot;')}" onclick="verBonosDe(this.dataset.email)"><i class="fas fa-list"></i> Ver sus bonos</button></td>
                 </tr>
             `).join('');
@@ -374,14 +381,13 @@
         function renderizarProximos(proximos) {
             const tbody = document.querySelector('#tabla-proximos tbody');
             if (!proximos || proximos.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4">Nadie está a 10 puntos o menos de su siguiente bono</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="3">Nadie está a 10 puntos o menos de su siguiente bono</td></tr>';
                 return;
             }
             tbody.innerHTML = proximos.map(p => `
                 <tr>
                     <td><strong>${escaparHtml(p.nombre)}</strong><div class="asociado-email">${escaparHtml(p.email)}</div></td>
                     <td>${p.puntos}</td>
-                    <td>#${p.siguiente_bono}</td>
                     <td>${p.puntos_faltantes} pts</td>
                 </tr>
             `).join('');
@@ -397,7 +403,7 @@
                 title: '¿Marcar bono como entregado?',
                 html: `<p>${escaparHtml(nombreBono(id))}</p>`,
                 input: 'textarea',
-                inputLabel: 'Nota (opcional): cómo se entregó, número de transferencia, etc.',
+                inputLabel: 'Nota (opcional): cómo se entregó. Se descuentan sus puntos del asociado.',
                 inputAttributes: { maxlength: 255 },
                 showCancelButton: true,
                 confirmButtonText: 'Sí, entregado',
@@ -412,7 +418,7 @@
             const result = await Swal.fire({
                 icon: 'warning',
                 title: '¿Volver el bono a pendiente?',
-                text: 'Úsalo solo si se marcó como entregado por error.',
+                text: 'Úsalo solo si se marcó como entregado por error. Los puntos vuelven al asociado.',
                 showCancelButton: true,
                 confirmButtonText: 'Sí, volver a pendiente',
                 cancelButtonText: 'Cancelar'
@@ -426,7 +432,7 @@
                 icon: 'warning',
                 title: '¿Eliminar este bono?',
                 html: `<p>${escaparHtml(nombreBono(id))}</p>
-                       <p style="font-size:0.9rem;color:#666;">Sale de pendientes y entregados y queda en <strong>Eliminados</strong> con el motivo, para la trazabilidad. Se puede restaurar.</p>`,
+                       <p style="font-size:0.9rem;color:#666;">Sale de pendientes y entregados y queda en <strong>Eliminados</strong> con el motivo, para la trazabilidad. Si estaba pendiente, se descuentan sus puntos. Se puede restaurar.</p>`,
                 input: 'textarea',
                 inputLabel: 'Motivo (obligatorio)',
                 inputAttributes: { maxlength: 255 },
@@ -475,15 +481,15 @@
         function exportarCsv() {
             let columnas, filas;
             if (vista === 'asociados') {
-                columnas = ['Nombre', 'Email', 'Teléfono', 'Puntos', 'Pendientes', 'Entregados', 'Último bono', 'Siguiente bono', 'Le faltan'];
+                columnas = ['Nombre', 'Email', 'Teléfono', 'Puntos', 'Pendientes', 'Entregados', 'Último bono', 'Le faltan'];
                 filas = asociados.map(a => [`${a.nombres} ${a.apellidos}`, a.email, a.telefono || '', a.puntos, a.pendientes,
-                    a.entregados, a.ultimo_bono_formateado, `#${a.siguiente_bono}`, a.puntos_faltantes]);
+                    a.entregados, a.ultimo_bono_formateado, a.puntos_faltantes]);
             } else {
-                columnas = ['Nombre', 'Email', 'Teléfono', 'Bono', 'Puntos meta', 'Obtenido', 'Puntos hoy', 'Estado',
-                    'Fecha entrega', 'Entregado por', 'Nota', 'Fecha eliminado', 'Eliminado por', 'Motivo'];
+                columnas = ['Nombre', 'Email', 'Teléfono', 'Bono', 'Puntos', 'Obtenido', 'Puntos hoy', 'Estado',
+                    'Fecha entrega', 'Entregado por', 'Pedido', 'Valor aplicado', 'Nota', 'Fecha eliminado', 'Eliminado por', 'Motivo'];
                 filas = bonos.map(b => [`${b.nombres} ${b.apellidos}`, b.email, b.telefono || '', `#${b.numero}`, b.puntos_meta,
                     b.fecha_obtenido_formateada, b.puntos_actuales, b.estado === 'anulado' ? 'eliminado' : b.estado,
-                    b.fecha_entrega_formateada, b.entregado_por || '', b.nota || '',
+                    b.fecha_entrega_formateada, b.entregado_por || '', b.numero_pedido || '', b.valor_cop ?? '', b.nota || '',
                     b.fecha_anulado_formateada, b.anulado_por || '', b.motivo_anulado || '']);
             }
             if (!filas.length) {

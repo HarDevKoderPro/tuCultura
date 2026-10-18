@@ -826,6 +826,29 @@ body.visor-fotos-abierto { overflow: hidden; }
     .aviso-invitacion-boton { order: 3; margin-left: 2rem; }
 }
 
+/* Bono por puntos en el checkout (js/checkout.js) */
+.checkout-bono {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: #f0fdf4;
+    border: 2px solid #86efac;
+    border-radius: var(--radio-borde);
+    cursor: pointer;
+}
+
+.checkout-bono input { margin-top: 0.3rem; width: 1.15rem; height: 1.15rem; accent-color: #16a34a; flex: 0 0 auto; }
+.checkout-bono > i { font-size: 1.5rem; color: #16a34a; flex: 0 0 auto; }
+.checkout-bono strong { color: #166534; }
+.checkout-bono p { margin: 0.25rem 0 0; font-size: 0.85rem; color: var(--color-texto-claro); }
+.checkout-bono .checkout-bono-aviso { color: #b45309; font-weight: 600; }
+.checkout-bono--inactivo { background: var(--color-fondo); border-color: var(--color-borde); cursor: default; }
+.checkout-bono--inactivo > i { color: var(--color-texto-claro); }
+.resumen-linea-bono { color: #15803d; font-weight: 600; }
+.resumen-linea-bono[hidden] { display: none; }
+
 /* Compartir producto con un contacto (catalogo y producto.html, js/compartir.js) */
 .producto-categoria-fila {
     display: flex;

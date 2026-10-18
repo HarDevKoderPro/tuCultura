@@ -253,9 +253,6 @@ function obtenerBonosUsuario($conn, $usuarioId, $puntos)
     return bonosDelUsuario($conn, (int)$usuarioId, (int)$puntos);
   } catch (Throwable $e) {
     // Sin las tablas de puntos/bonos: solo el calculo, sin estado de entrega
-    $resumen = resumenBonosPuntos((int)$puntos);
-    $resumen['bonos_disponibles'] = $resumen['bonos_obtenidos'];
-    $resumen['bonos_entregados'] = 0;
-    return $resumen;
+    return resumenBonosPuntos((int)$puntos);
   }
 }
