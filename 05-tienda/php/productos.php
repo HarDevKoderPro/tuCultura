@@ -115,6 +115,7 @@ try {
         $pdo->prepare("UPDATE productos SET vistas = vistas + 1 WHERE id = ?")->execute([$id]);
         $productoFormateado = formatearProducto($producto);
         $productoFormateado['imagenes'] = imagenesProductoTienda($pdo, (int)$producto['id'], $producto['imagen']);
+        $productoFormateado['medios'] = mediosProductoTienda($pdo, (int)$producto['id'], $producto['imagen']);
         $response = [
           'success' => true,
           'producto' => $productoFormateado,
@@ -127,7 +128,7 @@ try {
 
     case 'imagenes':
       // Fotos del producto (principal + adicionales) para la galeria del catalogo;
-      // a diferencia de 'detalle', no suma vistas
+      // 'medios' incluye tambien los videos. A diferencia de 'detalle', no suma vistas
       $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
       $stmt = $pdo->prepare("SELECT id, imagen FROM productos WHERE id = ? AND activo = 1");
       $stmt->execute([$id]);
@@ -136,7 +137,8 @@ try {
       if ($producto) {
         $response = [
           'success' => true,
-          'imagenes' => imagenesProductoTienda($pdo, (int)$producto['id'], $producto['imagen'])
+          'imagenes' => imagenesProductoTienda($pdo, (int)$producto['id'], $producto['imagen']),
+          'medios' => mediosProductoTienda($pdo, (int)$producto['id'], $producto['imagen'])
         ];
       } else {
         $response['error'] = 'Producto no encontrado';

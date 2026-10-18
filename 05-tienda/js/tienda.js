@@ -451,7 +451,7 @@ async function cargarGaleriaModal(p, img) {
     const data = await response.json();
     // Si mientras tanto se abrio otro producto, no tocar su galeria
     if (data.success && modalGaleriaProductoId === p.id) {
-      montarGaleriaProducto(img, miniaturas, data.imagenes, p.nombre);
+      montarGaleriaProducto(img, miniaturas, data.medios || data.imagenes, p.nombre);
     }
   } catch (error) {
     console.error("Error al cargar las fotos del producto:", error);

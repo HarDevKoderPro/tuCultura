@@ -151,7 +151,7 @@ function renderizarProducto(producto, umbral = 10) {
     montarGaleriaProducto(
         document.getElementById('producto-imagen-principal'),
         document.getElementById('producto-miniaturas'),
-        producto.imagenes,
+        producto.medios || producto.imagenes,
         producto.nombre
     );
 }

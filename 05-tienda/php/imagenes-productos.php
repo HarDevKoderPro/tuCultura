@@ -103,8 +103,11 @@ function optimizarImagenProducto(string $carpeta, string $nombre): string
 // ==================== FOTOS ADICIONALES DE PRODUCTOS ====================
 // La foto principal sigue en productos.imagen; las demas van en producto_imagenes
 // (en el orden en que se suben). La tienda las muestra como tira de miniaturas.
+// Una fila puede ser un video (tipo 'video'): se reproduce en el visor ampliado.
 
 const IMAGENES_PRODUCTO_MAX_ADICIONALES = 10;
+const VIDEOS_PRODUCTO_MAX = 1;
+const VIDEO_PRODUCTO_MAX_BYTES = 40 * 1024 * 1024;
 
 function asegurarTablaImagenesProducto(PDO $pdo): void
 {
@@ -115,24 +118,31 @@ function asegurarTablaImagenesProducto(PDO $pdo): void
     id INT PRIMARY KEY AUTO_INCREMENT,
     producto_id INT NOT NULL,
     imagen VARCHAR(255) NOT NULL,
+    tipo VARCHAR(10) NOT NULL DEFAULT 'imagen',
     orden INT NOT NULL DEFAULT 0,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_producto_imagenes_producto (producto_id, orden)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
+  // Tablas creadas antes de los videos: agregar la columna tipo
+  $columna = $pdo->query("SHOW COLUMNS FROM producto_imagenes LIKE 'tipo'")->fetch();
+  if (!$columna) {
+    $pdo->exec("ALTER TABLE producto_imagenes ADD COLUMN tipo VARCHAR(10) NOT NULL DEFAULT 'imagen' AFTER imagen");
+  }
+
   $verificada = true;
 }
 
 /**
- * Fotos adicionales de un producto: [['id' => .., 'imagen' => ..], ...]
+ * Fotos y videos adicionales de un producto: [['id' => .., 'imagen' => archivo, 'tipo' => 'imagen'|'video'], ...]
  */
 function listarImagenesAdicionales(PDO $pdo, int $productoId): array
 {
   asegurarTablaImagenesProducto($pdo);
-  $stmt = $pdo->prepare("SELECT id, imagen FROM producto_imagenes WHERE producto_id = ? ORDER BY orden, id");
+  $stmt = $pdo->prepare("SELECT id, imagen, tipo FROM producto_imagenes WHERE producto_id = ? ORDER BY orden, id");
   $stmt->execute([$productoId]);
   return array_map(function ($fila) {
-    return ['id' => (int)$fila['id'], 'imagen' => $fila['imagen']];
+    return ['id' => (int)$fila['id'], 'imagen' => $fila['imagen'], 'tipo' => $fila['tipo'] === 'video' ? 'video' : 'imagen'];
   }, $stmt->fetchAll(PDO::FETCH_ASSOC));
 }
 
@@ -146,9 +156,27 @@ function imagenesProductoTienda(PDO $pdo, int $productoId, ?string $principal): 
     $imagenes[] = $principal;
   }
   foreach (listarImagenesAdicionales($pdo, $productoId) as $fila) {
-    if ($fila['imagen'] !== $principal) {
+    if ($fila['tipo'] === 'imagen' && $fila['imagen'] !== $principal) {
       $imagenes[] = $fila['imagen'];
     }
   }
   return $imagenes;
+}
+
+/**
+ * Fotos y videos para la galeria de la tienda, en orden (principal primero):
+ * [['tipo' => 'imagen'|'video', 'archivo' => ..], ...]
+ */
+function mediosProductoTienda(PDO $pdo, int $productoId, ?string $principal): array
+{
+  $medios = [];
+  if (!empty($principal)) {
+    $medios[] = ['tipo' => 'imagen', 'archivo' => $principal];
+  }
+  foreach (listarImagenesAdicionales($pdo, $productoId) as $fila) {
+    if ($fila['imagen'] !== $principal) {
+      $medios[] = ['tipo' => $fila['tipo'], 'archivo' => $fila['imagen']];
+    }
+  }
+  return $medios;
 }

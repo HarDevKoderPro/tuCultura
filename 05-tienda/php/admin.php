@@ -43,6 +43,9 @@ switch ($action) {
     case 'producto_imagenes_subir':
         subirImagenesProducto($pdo);
         break;
+    case 'producto_video_subir':
+        subirVideoProducto($pdo);
+        break;
     case 'producto_imagen_eliminar':
         eliminarImagenProducto($pdo);
         break;
@@ -592,6 +595,7 @@ function subirImagenesProducto($pdo) {
         jsonResponse(['error' => 'Producto no encontrado'], 404);
     }
 
+    // Fotos y videos comparten el limite de adicionales
     // $_FILES['imagenes'] llega con un arreglo por campo (name[], tmp_name[], ...)
     $archivos = [];
     if (isset($_FILES['imagenes']) && is_array($_FILES['imagenes']['name'])) {
@@ -633,6 +637,89 @@ function subirImagenesProducto($pdo) {
     ]);
 }
 
+function subirVideoProducto($pdo) {
+    // Si el archivo supera post_max_size, PHP descarta todo el POST
+    if (empty($_POST) && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
+        jsonResponse(['error' => 'El video supera el tamaño máximo permitido (40 MB).'], 400);
+    }
+
+    $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+    if (!$id) {
+        jsonResponse(['error' => 'ID requerido'], 400);
+    }
+
+    $stmt = $pdo->prepare("SELECT id FROM productos WHERE id = ?");
+    $stmt->execute([$id]);
+    if (!$stmt->fetch()) {
+        jsonResponse(['error' => 'Producto no encontrado'], 404);
+    }
+
+    if (!isset($_FILES['video']) || $_FILES['video']['error'] === UPLOAD_ERR_NO_FILE) {
+        jsonResponse(['error' => 'No se recibió el video'], 400);
+    }
+
+    $actuales = listarImagenesAdicionales($pdo, $id);
+    $videos = count(array_filter($actuales, function ($f) { return $f['tipo'] === 'video'; }));
+    if ($videos >= VIDEOS_PRODUCTO_MAX) {
+        jsonResponse(['error' => 'Este producto ya tiene video. Quita el actual para subir otro.'], 400);
+    }
+    if (count($actuales) >= IMAGENES_PRODUCTO_MAX_ADICIONALES) {
+        jsonResponse(['error' => 'El producto ya tiene ' . IMAGENES_PRODUCTO_MAX_ADICIONALES . ' fotos y videos adicionales.'], 400);
+    }
+
+    $video = guardarArchivoVideo($_FILES['video']);
+
+    $stmtOrden = $pdo->prepare("SELECT COALESCE(MAX(orden), 0) FROM producto_imagenes WHERE producto_id = ?");
+    $stmtOrden->execute([$id]);
+    $orden = (int)$stmtOrden->fetchColumn() + 1;
+    $pdo->prepare("INSERT INTO producto_imagenes (producto_id, imagen, tipo, orden) VALUES (?, ?, 'video', ?)")
+        ->execute([$id, $video, $orden]);
+
+    jsonResponse([
+        'success' => true,
+        'mensaje' => 'Video agregado',
+        'imagenes' => listarImagenesAdicionales($pdo, $id)
+    ]);
+}
+
+/**
+ * Valida y guarda un video (MP4, WebM o MOV, hasta VIDEO_PRODUCTO_MAX_BYTES) en
+ * ../imagenes/productos/. Se guarda tal cual (no hay conversion en el servidor).
+ */
+function guardarArchivoVideo($archivo) {
+    if ($archivo['error'] !== UPLOAD_ERR_OK) {
+        $msg = in_array($archivo['error'], [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE])
+            ? 'El video supera el tamaño máximo permitido (40 MB).'
+            : 'No se pudo subir el video. Intenta de nuevo.';
+        jsonResponse(['error' => $msg], 400);
+    }
+
+    if ($archivo['size'] > VIDEO_PRODUCTO_MAX_BYTES) {
+        jsonResponse(['error' => 'El video supera el tamaño máximo permitido (40 MB).'], 400);
+    }
+
+    $extensiones = ['mp4' => ['video/mp4'], 'webm' => ['video/webm'], 'mov' => ['video/quicktime', 'video/mp4']];
+    $extension = strtolower(pathinfo($archivo['name'], PATHINFO_EXTENSION));
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mimeReal = $finfo->file($archivo['tmp_name']);
+    if (!isset($extensiones[$extension]) || !in_array($mimeReal, $extensiones[$extension])) {
+        jsonResponse(['error' => 'Formato de video no permitido. Usa MP4 (recomendado), WebM o MOV.'], 400);
+    }
+
+    $carpetaDestino = __DIR__ . '/../imagenes/productos/';
+    if (!is_dir($carpetaDestino)) {
+        mkdir($carpetaDestino, 0755, true);
+    }
+    do {
+        $nombreUnico = time() . '_' . bin2hex(random_bytes(6)) . '.' . $extension;
+    } while (file_exists($carpetaDestino . $nombreUnico));
+
+    if (!move_uploaded_file($archivo['tmp_name'], $carpetaDestino . $nombreUnico)) {
+        jsonResponse(['error' => 'Error al guardar el video en el servidor.'], 500);
+    }
+    return $nombreUnico;
+}
+
 function eliminarImagenProducto($pdo) {
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
     if (!$id) {
@@ -668,7 +755,7 @@ function usarImagenComoPrincipal($pdo) {
 
     $pdo->beginTransaction();
     try {
-        $stmt = $pdo->prepare("SELECT pi.producto_id, pi.imagen, p.imagen AS principal
+        $stmt = $pdo->prepare("SELECT pi.producto_id, pi.imagen, pi.tipo, p.imagen AS principal
                                FROM producto_imagenes pi
                                JOIN productos p ON p.id = pi.producto_id
                                WHERE pi.id = ? FOR UPDATE");
@@ -677,6 +764,10 @@ function usarImagenComoPrincipal($pdo) {
         if (!$fila) {
             $pdo->rollBack();
             jsonResponse(['error' => 'Foto no encontrada'], 404);
+        }
+        if ($fila['tipo'] === 'video') {
+            $pdo->rollBack();
+            jsonResponse(['error' => 'Un video no puede ser la foto principal'], 400);
         }
 
         $pdo->prepare("UPDATE productos SET imagen = ? WHERE id = ?")->execute([$fila['imagen'], $fila['producto_id']]);

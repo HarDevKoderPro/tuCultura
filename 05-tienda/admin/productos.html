@@ -127,11 +127,38 @@
             border: 1px solid #ddd;
             border-radius: 8px;
         }
-        .foto-adicional img {
+        .foto-adicional img,
+        .foto-adicional video {
             width: 100%;
             height: 100%;
             object-fit: contain;
             border-radius: 5px;
+        }
+        .foto-adicional-video-icono {
+            position: absolute;
+            left: 6px;
+            bottom: 6px;
+            padding: 1px 6px;
+            background: rgba(0,0,0,0.65);
+            color: #fff;
+            border-radius: 4px;
+            font-size: 0.65rem;
+        }
+        .video-progreso { margin-top: 0.6rem; }
+        .video-progreso[hidden] { display: none; }
+        .video-progreso-barra {
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 0.25rem;
+        }
+        .video-progreso-barra span {
+            display: block;
+            width: 0;
+            height: 100%;
+            background: #023859;
+            transition: width 0.2s;
         }
         .foto-adicional button {
             position: absolute;
@@ -474,16 +501,25 @@
                 </div>
 
                 <div class="form-grupo" id="fotos-adicionales-grupo">
-                    <label>Fotos adicionales <small style="font-weight:normal; color:#666;">(en la tienda se ven como miniaturas debajo de la foto principal)</small></label>
+                    <label>Fotos y video adicionales <small style="font-weight:normal; color:#666;">(en la tienda se ven como miniaturas debajo de la foto principal)</small></label>
                     <div class="fotos-adicionales-lista" id="fotos-adicionales-lista"></div>
                     <div class="fotos-adicionales-acciones">
                         <button type="button" class="btn-secundario" id="btn-agregar-fotos" onclick="document.getElementById('fotos-adicionales-input').click()">
                             <i class="fas fa-images"></i> Agregar fotos
                         </button>
+                        <button type="button" class="btn-secundario" id="btn-agregar-video" onclick="document.getElementById('video-adicional-input').click()">
+                            <i class="fas fa-video"></i> Agregar video
+                        </button>
                         <small id="fotos-adicionales-info"></small>
                     </div>
                     <input type="file" id="fotos-adicionales-input" multiple
                            accept=".jpg,.jpeg,.png,.webp,.gif,.avif" style="display:none;">
+                    <input type="file" id="video-adicional-input"
+                           accept=".mp4,.webm,.mov,video/mp4,video/webm,video/quicktime" style="display:none;">
+                    <div class="video-progreso" id="video-progreso" hidden>
+                        <div class="video-progreso-barra"><span id="video-progreso-relleno"></span></div>
+                        <small id="video-progreso-texto">Subiendo video...</small>
+                    </div>
                 </div>
                 
                 <div class="form-fila">

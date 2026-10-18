@@ -14,6 +14,8 @@ let imagenSeleccionada = null; // File object de la imagen nueva
 let imagenActual = '';         // Nombre de imagen existente (al editar)
 let fotosAdicionales = [];     // Fotos adicionales del producto en edicion [{id, imagen}]
 let maxFotosAdicionales = 10;
+const MAX_TAMANO_VIDEO = 40 * 1024 * 1024; // 40 MB (VIDEO_PRODUCTO_MAX_BYTES en el servidor)
+const EXTENSIONES_VIDEO = ['.mp4', '.webm', '.mov'];
 
 // ==================== CONSTANTES DE VALIDACIÓN ====================
 const FORMATOS_PERMITIDOS = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'];
@@ -161,6 +163,11 @@ function inicializarFotosAdicionales() {
         e.target.value = '';
         if (archivos.length) subirFotosAdicionales(archivos);
     });
+    document.getElementById('video-adicional-input').addEventListener('change', (e) => {
+        const archivo = e.target.files && e.target.files[0];
+        e.target.value = '';
+        if (archivo) subirVideoAdicional(archivo);
+    });
 }
 
 function productoEnEdicionId() {
@@ -191,7 +198,15 @@ function renderizarFotosAdicionales() {
     const boton = document.getElementById('btn-agregar-fotos');
     const id = productoEnEdicionId();
 
-    lista.innerHTML = fotosAdicionales.map(f => `
+    lista.innerHTML = fotosAdicionales.map(f => f.tipo === 'video' ? `
+        <div class="foto-adicional">
+            <video src="../imagenes/productos/${f.imagen}#t=0.1" muted playsinline preload="metadata"></video>
+            <span class="foto-adicional-video-icono"><i class="fas fa-video"></i> Video</span>
+            <button type="button" class="btn-foto-quitar" onclick="quitarFotoAdicional(${f.id})" title="Quitar video">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    ` : `
         <div class="foto-adicional">
             <img src="../imagenes/productos/${f.imagen}" alt="Foto adicional"
                  onerror="this.src='../../01-principal/imagenes/fondo-producto.png'">
@@ -204,13 +219,17 @@ function renderizarFotosAdicionales() {
         </div>
     `).join('');
 
+    const botonVideo = document.getElementById('btn-agregar-video');
+    const tieneVideo = fotosAdicionales.some(f => f.tipo === 'video');
     if (!id) {
         boton.disabled = true;
-        info.textContent = 'Guarda el producto para poder agregar más fotos.';
+        botonVideo.disabled = true;
+        info.textContent = 'Guarda el producto para poder agregar más fotos o un video.';
     } else {
         const disponibles = maxFotosAdicionales - fotosAdicionales.length;
         boton.disabled = disponibles <= 0;
-        info.textContent = `${fotosAdicionales.length} de ${maxFotosAdicionales}. Puedes elegir varias a la vez. La estrella la vuelve foto principal.`;
+        botonVideo.disabled = disponibles <= 0 || tieneVideo;
+        info.textContent = `${fotosAdicionales.length} de ${maxFotosAdicionales}. Puedes elegir varias fotos a la vez. La estrella vuelve una foto la principal. Un video por producto (MP4, máx. 40 MB).`;
     }
 }
 
@@ -264,10 +283,67 @@ async function subirFotosAdicionales(archivos) {
     renderizarFotosAdicionales();
 }
 
+// El video se sube con XMLHttpRequest para mostrar el avance (fetch no lo informa)
+function subirVideoAdicional(archivo) {
+    const id = productoEnEdicionId();
+    if (!id) return;
+
+    const extension = '.' + archivo.name.split('.').pop().toLowerCase();
+    if (!EXTENSIONES_VIDEO.includes(extension)) {
+        Swal.fire('Formato no permitido', 'Usa un video MP4 (recomendado), WebM o MOV.', 'warning');
+        return;
+    }
+    if (archivo.size > MAX_TAMANO_VIDEO) {
+        Swal.fire('Video muy pesado', `El video pesa ${(archivo.size / 1048576).toFixed(1)} MB; el máximo es 40 MB.`, 'warning');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('id', id);
+    formData.append('video', archivo);
+
+    const progreso = document.getElementById('video-progreso');
+    const relleno = document.getElementById('video-progreso-relleno');
+    const texto = document.getElementById('video-progreso-texto');
+    const botonVideo = document.getElementById('btn-agregar-video');
+    progreso.hidden = false;
+    relleno.style.width = '0';
+    texto.textContent = 'Subiendo video... 0%';
+    botonVideo.disabled = true;
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_BASE}?action=producto_video_subir`);
+    xhr.upload.onprogress = (e) => {
+        if (!e.lengthComputable) return;
+        const pct = Math.round((e.loaded / e.total) * 100);
+        relleno.style.width = pct + '%';
+        texto.textContent = pct < 100 ? `Subiendo video... ${pct}%` : 'Guardando video...';
+    };
+    xhr.onload = () => {
+        progreso.hidden = true;
+        let data = {};
+        try { data = JSON.parse(xhr.responseText); } catch (e) { /* respuesta no JSON */ }
+        if (data.success) {
+            fotosAdicionales = data.imagenes || [];
+            Swal.fire({ icon: 'success', title: data.mensaje, timer: 1500, showConfirmButton: false });
+        } else {
+            const error = data.error || (xhr.status === 413 ? 'El video es demasiado pesado.' : 'No se pudo subir el video.');
+            Swal.fire('Error', error, 'error');
+        }
+        renderizarFotosAdicionales();
+    };
+    xhr.onerror = () => {
+        progreso.hidden = true;
+        Swal.fire('Error', 'Error de conexión al subir el video', 'error');
+        renderizarFotosAdicionales();
+    };
+    xhr.send(formData);
+}
+
 async function quitarFotoAdicional(fotoId) {
     const result = await Swal.fire({
         icon: 'warning',
-        title: '¿Quitar esta foto?',
+        title: '¿Quitarla de la galería?',
         text: 'Dejará de verse en la tienda',
         showCancelButton: true,
         confirmButtonText: 'Sí, quitar',
