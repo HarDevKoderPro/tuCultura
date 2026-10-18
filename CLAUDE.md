@@ -15,7 +15,7 @@ Contexto minimo para implementar nuevas funcionalidades sin romper lo existente,
 - Modulos por carpeta numerada en la raiz:
   - `00-enConstruccion/`, `01-principal/` (assets compartidos), `index.html` (landing).
   - `02-iniciarSesion/`: login (`php/iniciarSesion.php`), recuperacion de clave (PHPMailer).
-  - `03-registrarse/`: registro con email de referente (arbol de referidos).
+  - `03-registrarse/`: registro con email de referente (arbol de referidos). Con invitacion (`?ref=` o codigo guardado por `05-tienda/js/invitacion.js`) muestra "Te invito: X" en lugar del campo y envia `ref`; `validarEmails.php` y `registrarse.php` traducen el codigo al email (`emailReferentePorCodigo`, incluye `05-tienda/php/invitaciones-helpers.php`). Con `?volver=` (aviso de la tienda) al terminar va al login con `origen=tienda&returnUrl=producto.html?id=N` (permitido en `iniciarSesion.php`).
   - `04-contenido/`: zona de usuarios (`php/contenido.php`), niveles de referidos, video y libros.
   - `05-tienda/`: tienda virtual (ver seccion 3).
 
@@ -208,7 +208,7 @@ Se ejecuta en orden, paso a paso; cada punto se evalua y aprueba con el usuario 
 Extra aprobado (2026-10-18): invitacion a afiliarse dentro del enlace de producto. Decisiones del usuario: el invitado solo ve el nombre corto de quien lo invito ("Maria G."), nunca su email; si abre enlaces de dos asociados gana el ultimo; en el registro el patrocinador viene listo pero se puede cambiar ("¿Te invito otra persona?"). Paso a paso con aprobacion:
 - [x] 1. El enlace de "Compartir" lleva `&ref=CODIGO` del asociado con sesion (`codigos_invitacion`, `invitaciones.php?action=mi_codigo`); `compartir.php` lo pasa a `producto.html`.
 - [x] 2. La tienda guarda el codigo 30 dias (ultimo gana) y, sin sesion, muestra el aviso "X te invito... Registrate para comprar y ganar puntos" con boton Registrarme (`invitaciones.php?action=resolver`).
-- [ ] 3. Registro (`03-registrarse`) con "Te invito: X" resuelto por codigo (backend traduce codigo -> email de referente), enlace para cambiarlo y regreso al producto al terminar. El registro normal no cambia.
+- [x] 3. Registro (`03-registrarse`) con "Te invito: X" resuelto por codigo (backend traduce codigo -> email de referente), enlace para cambiarlo y regreso al producto al terminar. El registro normal no cambia.
 - [ ] 4. Verificar puntos: compra aprobada del invitado suma a su patrocinador (nivel 1) y al de este (nivel 2), sin cambios de codigo.
 - [ ] 5. Boton "Mi enlace de invitacion" en `04-contenido` (aprobado para despues de 1-4).
 
@@ -271,3 +271,4 @@ Actualizar al cerrar cada iteracion que cambie rutas/paginas, endpoints o contra
 - 2026-10-18: varias fotos por producto: tabla `producto_imagenes`, seccion "Fotos adicionales" en el admin, tira de miniaturas en el modal del catalogo y en `producto.html` (`js/galeria-producto.js`) y visor ampliado al hacer clic.
 - 2026-10-18: invitacion en enlaces de producto, paso 1: `codigos_invitacion`, `invitaciones.php?action=mi_codigo`, `compartir.php` acepta `ref`.
 - 2026-10-18: invitacion paso 2: `js/invitacion.js` (codigo 30 dias + aviso para visitantes sin sesion), `invitaciones.php?action=resolver`.
+- 2026-10-18: invitacion paso 3: registro con patrocinador por codigo (`ref`), regreso al producto tras iniciar sesion (`returnUrl=producto.html?id=N`).

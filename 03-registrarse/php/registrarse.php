@@ -42,6 +42,18 @@ if (isset(
   $pass = trim($data['pass']);
   $referente = trim($data['referente']);
 
+  // Registro desde un enlace de invitacion: se traduce el codigo al email del
+  // asociado que invito (se valida aqui, no se confia en el navegador)
+  if ($referente === '' && !empty($data['ref'])) {
+    require_once __DIR__ . '/../../05-tienda/php/invitaciones-helpers.php';
+    $referente = emailReferentePorCodigo($conn, $data['ref']);
+    if ($referente === '') {
+      echo json_encode(['respuesta' => 'Referente no registrado']);
+      $conn->close();
+      exit;
+    }
+  }
+
   // Extraer fecha enviada por el navegador o usar la del servidor como respaldo
   $fecha_actual = isset($data['fecha']) ? $data['fecha'] : date("Y-m-d");
 

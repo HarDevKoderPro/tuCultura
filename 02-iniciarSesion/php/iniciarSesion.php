@@ -83,7 +83,8 @@ if ($login_valido) {
     // ✅ 3. Cliente con returnUrl (ej: viene del checkout)
     // Solo permitir URLs relativas dentro de la tienda por seguridad
     $allowedReturns = ['checkout.html', 'carrito.html', 'mis-pedidos.html'];
-    if (in_array($returnUrl, $allowedReturns)) {
+    if (in_array($returnUrl, $allowedReturns) || preg_match('/^producto\.html\?id=\d+$/', $returnUrl)) {
+      // producto.html?id=N: quien se registro desde un enlace de invitacion vuelve al producto
       $redirectUrl = '../05-tienda/' . $returnUrl;
     } else {
       // returnUrl no reconocida → comportamiento por defecto

@@ -95,3 +95,26 @@ function resolverCodigoInvitacion(PDO $pdo, $codigo): ?array
 
   return ['email' => $fila['email'], 'nombre_corto' => $nombreCorto !== '' ? $nombreCorto : 'Un asociado'];
 }
+
+/**
+ * Email del asociado dueno de un codigo, con una conexion mysqli (la usan
+ * 03-registrarse/php/validarEmails.php y registrarse.php). '' si no existe.
+ */
+function emailReferentePorCodigo(mysqli $conn, $codigo): string
+{
+  $codigo = normalizarCodigoInvitacion($codigo);
+  if ($codigo === '') return '';
+
+  $existe = $conn->query("SHOW TABLES LIKE 'codigos_invitacion'");
+  if (!$existe || $existe->num_rows === 0) return '';
+
+  $stmt = $conn->prepare("SELECT r.email FROM codigos_invitacion c
+                          JOIN registros r ON r.id = c.usuario_id
+                          WHERE c.codigo = ? LIMIT 1");
+  if (!$stmt) return '';
+  $stmt->bind_param("s", $codigo);
+  $stmt->execute();
+  $fila = $stmt->get_result()->fetch_assoc();
+  $stmt->close();
+  return $fila ? (string)$fila['email'] : '';
+}

@@ -31,6 +31,13 @@ if (isset(
   $email = trim($data['email']);
   $referente = trim($data['referente']);
 
+  // Registro desde un enlace de invitacion: el referente llega como codigo
+  // (el email del asociado nunca pasa por el navegador)
+  if ($referente === '' && !empty($data['ref'])) {
+    require_once __DIR__ . '/../../05-tienda/php/invitaciones-helpers.php';
+    $referente = emailReferentePorCodigo($conn, $data['ref']);
+  }
+
   // Consultas preparadas: los valores nunca se interpolan en el SQL.
   // Se comparan tal cual, igual que los guarda registrarse.php
   $stmt = $conn->prepare("SELECT 1 FROM registros WHERE email = ? LIMIT 1");

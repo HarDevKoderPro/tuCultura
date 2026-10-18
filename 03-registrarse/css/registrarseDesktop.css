@@ -124,6 +124,40 @@ a {
   font-weight: 700;
 }
 
+/* Invitacion recibida por enlace: reemplaza el campo "Referido por" */
+.invitacionRegistro {
+  width: 90%;
+  margin-top: 15px;
+  padding: 10px 12px;
+  background: #fff8e1;
+  border: 1px solid #ffe08a;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  color: #333;
+}
 
+.invitacionRegistro[hidden] {
+  display: none;
+}
 
+.invitacionRegistro strong {
+  color: #054a8f;
+}
 
+.invitacionCambiar {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #054a8f;
+  font: inherit;
+  font-size: 0.85em;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.label[hidden] {
+  display: none;
+}

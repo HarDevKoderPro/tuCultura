@@ -59,8 +59,14 @@
         <span class="label__span">Contraseña</span>
       </label>
 
+      <!-- Invitacion recibida por enlace (03-registrarse/js/registrarse.js) -->
+      <div class="invitacionRegistro" id="invitacionRegistro" hidden>
+        <span>&#127873; Te invitó: <strong id="invitacionNombre"></strong></span>
+        <button type="button" class="invitacionCambiar" id="btnCambiarReferente">¿Te invitó otra persona?</button>
+      </div>
+
       <!-- Input Referente -->
-      <label class="label">
+      <label class="label" id="labelReferente">
         <input type="email" class="label__input" id="inputReferente" placeholder=" " autocomplete="off">
         <span class="label__span">Referido por</span>
       </label>
