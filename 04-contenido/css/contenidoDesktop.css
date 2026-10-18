@@ -283,6 +283,58 @@ body {
   transform: scale(0.95);
 }
 
+.tarjeta-carrito svg {
+  display: block;
+}
+
+.tarjeta-carrito:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+  color: #111827;
+}
+
+/* Aviso al agregar al carrito desde las tarjetas */
+.aviso-carrito {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translate(-50%, 20px);
+  max-width: calc(100% - 32px);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 0.95rem;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  z-index: 1000;
+}
+
+.aviso-carrito.visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+
+.aviso-carrito--exito {
+  background: #065f46;
+}
+
+.aviso-carrito--error {
+  background: #b91c1c;
+}
+
+.aviso-carrito a {
+  color: #fef3c7;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .tarjeta-back-body {
   flex: 1;
   margin: 4px 0 8px 0;

@@ -26,6 +26,75 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ─────────────────────────────────────────
+  // AGREGAR AL CARRITO DESDE LAS TARJETAS
+  // Usa la misma API y sesion de la tienda (carrito del usuario logueado)
+  // ─────────────────────────────────────────
+  const URL_TIENDA = "../../05-tienda/";
+
+  function mostrarAvisoCarrito(mensaje, tipo, conEnlace) {
+    let aviso = document.getElementById("aviso-carrito");
+    if (!aviso) {
+      aviso = document.createElement("div");
+      aviso.id = "aviso-carrito";
+      aviso.setAttribute("role", "status");
+      document.body.appendChild(aviso);
+    }
+    aviso.className = `aviso-carrito aviso-carrito--${tipo}`;
+    aviso.innerHTML = "";
+    const texto = document.createElement("span");
+    texto.textContent = mensaje;
+    aviso.appendChild(texto);
+    if (conEnlace) {
+      const enlace = document.createElement("a");
+      enlace.href = `${URL_TIENDA}carrito.html`;
+      enlace.textContent = "Ver carrito";
+      aviso.appendChild(enlace);
+    }
+    aviso.classList.add("visible");
+    clearTimeout(aviso._timer);
+    aviso._timer = setTimeout(() => aviso.classList.remove("visible"), 4000);
+  }
+
+  document.querySelectorAll(".tarjeta-carrito").forEach((boton) => {
+    boton.addEventListener("click", async (event) => {
+      // Evita que el clic gire la tarjeta
+      event.stopPropagation();
+
+      if (boton.dataset.admin === "1") {
+        mostrarAvisoCarrito(
+          "Las cuentas de administrador no pueden comprar. Ingresa como asociado.",
+          "error",
+          false,
+        );
+        return;
+      }
+
+      boton.disabled = true;
+      try {
+        const datos = new FormData();
+        datos.append("producto_id", boton.dataset.productoId);
+        datos.append("cantidad", "1");
+        const res = await fetch(`${URL_TIENDA}php/carrito.php?action=agregar`, {
+          method: "POST",
+          body: datos,
+          credentials: "same-origin",
+        });
+        const data = await res.json();
+        if (data.success) {
+          mostrarAvisoCarrito(`${data.producto_nombre}: ${data.mensaje.toLowerCase()}`, "exito", true);
+        } else {
+          mostrarAvisoCarrito(data.error || "No se pudo agregar el producto", "error", false);
+        }
+      } catch (err) {
+        console.error("Error agregando al carrito:", err);
+        mostrarAvisoCarrito("Error de conexión. Intenta de nuevo.", "error", false);
+      } finally {
+        boton.disabled = false;
+      }
+    });
+  });
+
+  // ─────────────────────────────────────────
   // CARGA DINÁMICA DE TABLA POR NIVEL
   // ─────────────────────────────────────────
   const statCards = document.querySelectorAll(".stat-card--clickable");

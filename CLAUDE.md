@@ -22,7 +22,7 @@ Contexto minimo para implementar nuevas funcionalidades sin romper lo existente,
 ## 3) Modulo de tienda (`05-tienda/`)
 
 ### Frontend cliente
-- `index.html` (catalogo, filtros, destacados, modal detalle) - `js/tienda.js`; `js/tienda-filtros.js` (en celular <768px la barra de filtros es un panel inferior con precio y "Solo destacados", y las categorias van en el desplegable `#select-categoria`). La fila `#nav-categorias` ya no se muestra en ningun tamano (escritorio usa la columna lateral) pero sigue en la pagina porque tienda.js la arma y el desplegable de celular se construye con ella. El grupo de radios "Ordenar por" de la columna esta oculto (`hidden`) pero se conserva: tienda.js lee el orden de esos radios y `#select-orden` (con marcador "Ordenar por") los sincroniza. En celular los productos van en dos columnas.
+- `index.html` (catalogo, filtros, destacados, modal detalle) - `js/tienda.js` (al vaciar el buscador despues de una busqueda vuelve al listado con los filtros activos); `js/tienda-filtros.js` (en celular <768px la barra de filtros es un panel inferior con precio y "Solo destacados", y las categorias van en el desplegable `#select-categoria`). La fila `#nav-categorias` ya no se muestra en ningun tamano (escritorio usa la columna lateral) pero sigue en la pagina porque tienda.js la arma y el desplegable de celular se construye con ella. El grupo de radios "Ordenar por" de la columna esta oculto (`hidden`) pero se conserva: tienda.js lee el orden de esos radios y `#select-orden` (con marcador "Ordenar por") los sincroniza. En celular los productos van en dos columnas.
 - `producto.html` - `js/producto.js`; `carrito.html` - `js/carrito.js`; `checkout.html` - `js/checkout.js`.
 - `confirmacion.html`; `mis-pedidos.html` - `js/pedidos.js`; `js/sesion-ui.js` (menu "Mi cuenta" del icono de usuario).
 
@@ -59,7 +59,7 @@ Comportamiento heredado conocido: el carrito anonimo (por `session_id`) no se mi
 
 ## 6) Integracion `05-tienda` <-> `04-contenido`
 
-- Las tarjetas giratorias de `04-contenido/php/contenido.php` leen `05-tienda/php/tarjetas-contenido.json` (clave `productos_vinculados`) y consultan la BD de tienda.
+- Las tarjetas giratorias de `04-contenido/php/contenido.php` leen `05-tienda/php/tarjetas-contenido.json` (clave `productos_vinculados`) y consultan la BD de tienda. En la cara trasera tienen un boton de carrito (`.tarjeta-carrito`, `04-contenido/js/contenido.js`) que llama a `05-tienda/php/carrito.php?action=agregar` con la misma sesion; para cuentas admin solo muestra un aviso; agotado = deshabilitado.
 - Cambios en `admin-tarjetas.php` afectan a `04-contenido`.
 - `tarjetas-contenido.json` es estado de runtime: en el VPS vive montado desde el host; no versionarlo ni sobrescribirlo en despliegues.
 
@@ -252,3 +252,4 @@ Actualizar al cerrar cada iteracion que cambie rutas/paginas, endpoints o contra
 - 2026-10-11: home: tipografia y color (`estilosLectura.css`), fotos de seccion del usuario en WebP, Mision y Vision reescritas, pie con iconos planos; carrusel con desvanecimiento.
 - 2026-10-11: rendimiento del home: cabeceras WebP con preload, fuentes WOFF2, sin jQuery ni boxicons, cache del navegador en Apache (mod_headers, `DeflateAlterETag Remove`), fotos de productos WebP automaticas (GD en el Dockerfile, `imagenes-productos.php`) y logos optimizados.
 - 2026-10-12: tienda: filtros en panel inferior y dos columnas en celular, desplegable de categorias, filtro "Solo destacados" (`destacados=1`), menu "Mi cuenta" en el icono de usuario (`sesion-ui.js`), pie simplificado (2026), detalle de producto compacto en celular; en escritorio sin fila de categorias ni "Ordenar por" en la columna.
+- 2026-10-17: pruebas para la exposicion del sistema de pagos (seccion 14, punto 1). Mensaje de bloqueo al admin dice "asociado". Carrito en las tarjetas giratorias de `04-contenido`. Buscador de la tienda: al vaciarlo vuelve al listado. Pendiente decidir: `haroldvaldes@yahoo.com` y `luisfer5428@gmail.com` son admins (`$admins` en `config.php` y en `iniciarSesion.php`) y por eso no pueden comprar; propuesta: cuenta admin dedicada antes de la exposicion con luisfer.

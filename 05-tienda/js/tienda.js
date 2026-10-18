@@ -19,6 +19,7 @@ let precioMin = null;
 let precioMax = null;
 let timeoutPrecio = null;
 let umbralBajoStock = 10; // se actualiza desde el backend
+let busquedaActiva = false; // true mientras la grilla muestra resultados de busqueda
 
 // ==== INICIALIZACIÓN ====
 
@@ -49,6 +50,13 @@ function initEventListeners() {
   if (inputBusqueda) {
     inputBusqueda.addEventListener("keypress", (e) => {
       if (e.key === "Enter") buscarProductos();
+    });
+    // Al vaciar el cuadro despues de una busqueda, volver al listado normal
+    inputBusqueda.addEventListener("input", () => {
+      if (busquedaActiva && inputBusqueda.value.trim() === "") {
+        busquedaActiva = false;
+        aplicarFiltros();
+      }
     });
   }
 
@@ -514,6 +522,7 @@ async function buscarProductos() {
   if (!grid) return;
 
   grid.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  busquedaActiva = true;
 
   const seccionDestacados = document.getElementById("productos-destacados");
   if (seccionDestacados) seccionDestacados.classList.add("oculto");

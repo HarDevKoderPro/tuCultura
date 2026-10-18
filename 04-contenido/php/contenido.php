@@ -19,6 +19,9 @@ $registrosIniciales = obtenerRegistrosNivel1($conn, $_SESSION['email']);
 // Puntos acumulados por compras aprobadas (propias y de referidos nivel 1 y 2)
 $puntosAcumulados = obtenerPuntosUsuario($conn, (int)$_SESSION['user_id']);
 $valorPunto       = obtenerValorPunto($conn);
+
+// Las cuentas de administrador no pueden comprar en la tienda (el carrito de las tarjetas lo avisa)
+$esCuentaAdmin = isset($_SESSION['rol']) && $_SESSION['rol'] !== 'cliente';
 ?>
 
 <!DOCTYPE html>
@@ -177,6 +180,14 @@ $valorPunto       = obtenerValorPunto($conn);
             <div class="tarjeta-trasera">
               <div class="tarjeta-back-header">
                 <span class="tarjeta-categoria"><?php echo $categoria; ?></span>
+                <button type="button" class="tarjeta-carrito"
+                        data-producto-id="<?php echo intval($prod['id']); ?>"
+                        data-admin="<?php echo $esCuentaAdmin ? '1' : '0'; ?>"
+                        title="<?php echo $stock > 0 ? 'Agregar al carrito' : 'Agotado'; ?>"
+                        aria-label="Agregar <?php echo $nombre; ?> al carrito"
+                        <?php echo $stock > 0 ? '' : 'disabled'; ?>>
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.7 12.4a1.5 1.5 0 0 0 1.5 1.1h8.6a1.5 1.5 0 0 0 1.5-1.1L21 7H6.2"/><path d="M13 9v5M10.5 11.5h5"/></svg>
+                </button>
               </div>
               <div class="tarjeta-back-body">
                 <h3 class="tarjeta-nombre"><?php echo $nombre; ?></h3>
