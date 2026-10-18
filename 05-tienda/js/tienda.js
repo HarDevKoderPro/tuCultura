@@ -381,6 +381,7 @@ function verDetalleProducto(id) {
   img.onerror = () => {
     img.src = "../01-principal/imagenes/fondo-producto.png";
   };
+  cargarGaleriaModal(p, img);
 
   const preciosEl = document.getElementById("detalle-precios");
   const tieneOferta = p.precio_oferta && p.precio_oferta < p.precio;
@@ -434,6 +435,27 @@ function verDetalleProducto(id) {
   }
 
   document.getElementById("modal-detalle-producto").classList.add("activo");
+}
+
+// Fotos adicionales del producto: tira de miniaturas bajo la foto del modal
+let modalGaleriaProductoId = null;
+
+async function cargarGaleriaModal(p, img) {
+  const miniaturas = document.getElementById("detalle-miniaturas");
+  if (!miniaturas || typeof montarGaleriaProducto !== "function") return;
+
+  montarGaleriaProducto(img, miniaturas, [], p.nombre);
+  modalGaleriaProductoId = p.id;
+  try {
+    const response = await fetch(`${API_BASE}productos.php?action=imagenes&id=${p.id}`);
+    const data = await response.json();
+    // Si mientras tanto se abrio otro producto, no tocar su galeria
+    if (data.success && modalGaleriaProductoId === p.id) {
+      montarGaleriaProducto(img, miniaturas, data.imagenes, p.nombre);
+    }
+  } catch (error) {
+    console.error("Error al cargar las fotos del producto:", error);
+  }
 }
 
 function cerrarModalDetalle() {

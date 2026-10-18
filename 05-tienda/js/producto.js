@@ -84,11 +84,13 @@ function renderizarProducto(producto, umbral = 10) {
     }
     
     container.innerHTML = `
-        <div class="producto-detalle-galeria">
+        <div class="producto-detalle-galeria galeria-producto">
             <img src="imagenes/productos/${imagen}" 
                  alt="${producto.nombre}" 
                  class="producto-detalle-imagen-principal"
+                 id="producto-imagen-principal"
                  onerror="this.src='../01-principal/imagenes/fondo-producto.png'">
+            <div class="galeria-miniaturas" id="producto-miniaturas" hidden></div>
         </div>
         
         <div class="producto-detalle-info">
@@ -145,6 +147,13 @@ function renderizarProducto(producto, umbral = 10) {
             `}
         </div>
     `;
+    
+    montarGaleriaProducto(
+        document.getElementById('producto-imagen-principal'),
+        document.getElementById('producto-miniaturas'),
+        producto.imagenes,
+        producto.nombre
+    );
 }
 
 function renderizarRelacionados(productos) {

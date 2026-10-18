@@ -198,8 +198,11 @@
         <button class="modal-cerrar" onclick="cerrarModalDetalle()">&times;</button>
       </div>
       <div class="modal-cuerpo-detalle">
-        <div class="detalle-imagen">
-          <img src="" id="detalle-img" alt="Producto">
+        <div class="detalle-galeria galeria-producto">
+          <div class="detalle-imagen">
+            <img src="" id="detalle-img" alt="Producto">
+          </div>
+          <div class="galeria-miniaturas" id="detalle-miniaturas" hidden></div>
         </div>
         <div class="detalle-info">
           <div class="producto-categoria-fila">
@@ -235,6 +238,7 @@
   <script src="../sweetalert2.min.js"></script>
   <script src="js/sesion-ui.js"></script>
   <script src="js/compartir.js"></script>
+  <script src="js/galeria-producto.js"></script>
   <script src="js/tienda.js"></script>
   <script src="js/tienda-filtros.js"></script>
 </body>

@@ -26,9 +26,10 @@ Contexto minimo para implementar nuevas funcionalidades sin romper lo existente,
 - `producto.html` - `js/producto.js`; `carrito.html` - `js/carrito.js`; `checkout.html` - `js/checkout.js`.
 - `confirmacion.html`; `mis-pedidos.html` - `js/pedidos.js`; `js/sesion-ui.js` (menu "Mi cuenta" del icono de usuario).
 - `js/compartir.js`: boton "Compartir" (estilo Mercado Libre) en el modal del catalogo (`#btn-modal-compartir`) y en `producto.html`; en celular abre el menu nativo del telefono, en computador una ventana con WhatsApp/Facebook/X/Telegram/Correo y enlace para copiar. Comparte `php/compartir.php?id=N`: pagina con etiquetas Open Graph (nombre, precio, descripcion, foto) que redirige a `producto.html?id=N`; `&imagen=1` entrega la foto en JPEG para la vista previa.
+- `js/galeria-producto.js` (`montarGaleriaProducto`): foto grande + tira de miniaturas (solo si hay 2 o mas fotos; en celular tambien se desliza la foto) en el modal del catalogo (`#detalle-miniaturas`, fotos de `productos.php?action=imagenes`) y en `producto.html` (`#producto-miniaturas`, de `producto.imagenes` del detalle).
 
 ### Frontend admin
-- `admin/index.html` (dashboard, bajo stock, umbral, tarjeta "Puntos Asociados" con valor del punto en COP), `admin/productos.html` + `admin/admin-productos.js` (CRUD, imagen, tarjetas), `admin/categorias.html`, `admin/pedidos.html`, `admin/correos.html` (historial de correos de pedidos enviados, con vista del contenido y error si fallo).
+- `admin/index.html` (dashboard, bajo stock, umbral, tarjeta "Puntos Asociados" con valor del punto en COP), `admin/productos.html` + `admin/admin-productos.js` (CRUD, imagen, fotos adicionales que se suben/quitan al momento y la estrella las vuelve principal, tarjetas), `admin/categorias.html`, `admin/pedidos.html`, `admin/correos.html` (historial de correos de pedidos enviados, con vista del contenido y error si fallo).
 
 ### Backend API (`php/`)
 - `config.php`: conexion, helpers, sesion, roles, constantes de negocio.
@@ -74,16 +75,17 @@ Comportamiento heredado conocido: el carrito anonimo (por `session_id`) no se mi
 - `detalle_pedido` (pedido_id, producto_id, nombre_producto, cantidad, precio_unitario, subtotal).
 - `configuracion_tienda` (clave, valor) para `umbral_bajo_stock` y `valor_punto_cop` (pesos por punto para el canje; 0 = sin definir).
 - `registros` (autenticacion; email -> id, datos de cliente, columna `referente` = email del patrocinador).
+- `producto_imagenes` (id, producto_id, imagen, orden, fecha_creacion): fotos adicionales (max 10 por producto); la principal sigue en `productos.imagen`. Se crea sola (`asegurarTablaImagenesProducto` en `imagenes-productos.php`). Quitar una foto borra la fila, no el archivo.
 - `correos_tienda` (id, pedido_id, tipo `cliente`/`tienda`, destinatario, asunto, cuerpo, enviado, error, fecha_envio): copia de cada correo de pedido; se crea sola (`asegurarTablaCorreos`).
 - Nuevas (pagos/puntos): `pagos_tienda` (unicos: payment_id, preference_id, idempotency_key), `puntos_saldo` (usuario_id PK), `puntos_movimientos` (unico: clave_idempotencia).
 
 ## 8) Contratos API que el frontend ya espera
 
-- `productos.php`: `success`, `productos[]`, `umbral_bajo_stock`, `paginacion`. `action=listar` acepta el filtro opcional `destacados=1` (casilla "Solo destacados").
+- `productos.php`: `success`, `productos[]`, `umbral_bajo_stock`, `paginacion`. `action=listar` acepta el filtro opcional `destacados=1` (casilla "Solo destacados"). `action=detalle` agrega `producto.imagenes[]` (principal primero) y `action=imagenes&id=` devuelve `imagenes[]` sin sumar vistas.
 - `carrito.php?action=ver`: `carrito.items`, `subtotal`, `costo_envio`, `total` y sus `*_formateado`.
 - `pedidos.php?action=verificar_checkout`: flags `requiere_login`, `es_admin`, `carrito_vacio`; `usuario{}` en exito.
 - `pedidos.php?action=crear`: `pedido.numero`, `pedido.id`, `pedido.total(_formateado)`.
-- `admin.php`: acciones por query string (`action=...`) usadas directamente por las vistas admin. Valor del punto: `obtenerValorPunto` (`valor_punto`, `puntos_emitidos`, `equivalente_total(_formateado)`) y `actualizarValorPunto` (POST `valor`, entero 0-1.000.000); `dashboard` agrega `valor_punto(_formateado)`, `puntos_emitidos`, `puntos_equivalente_formateado`. Correos: `correos_listar` (filtros `pedido`, `tipo`; sin cuerpo) y `correo_detalle&id=` (con `cuerpo` HTML).
+- `admin.php`: acciones por query string (`action=...`) usadas directamente por las vistas admin. Valor del punto: `obtenerValorPunto` (`valor_punto`, `puntos_emitidos`, `equivalente_total(_formateado)`) y `actualizarValorPunto` (POST `valor`, entero 0-1.000.000); `dashboard` agrega `valor_punto(_formateado)`, `puntos_emitidos`, `puntos_equivalente_formateado`. Fotos adicionales: `producto_imagenes&id=` (`imagenes[{id, imagen}]`, `maximo`), `producto_imagenes_subir` (POST `id`, `imagenes[]`), `producto_imagen_eliminar` y `producto_imagen_principal` (POST `id` de la foto; intercambia con la principal y devuelve `principal`). Correos: `correos_listar` (filtros `pedido`, `tipo`; sin cuerpo) y `correo_detalle&id=` (con `cuerpo` HTML).
 - `pagos.php?action=crear_preferencia` (POST, JSON o form, mismos campos que `pedidos.php?action=crear`): crea el pedido `pendiente` (metodo `mercadopago`) y devuelve `pago{}`, `pedido{id, numero, estado}`, `preferencia{id, init_point, sandbox_init_point}`, `resumen{}`; errores con flags `requiere_login`, `es_admin`, `carrito_vacio`, `requiere_configuracion`.
 - `pagos.php?action=webhook_mercadopago`: notificaciones de MercadoPago (Webhooks `data.id`/`type` e IPN `id`/`topic`). Responde 5xx solo cuando conviene que MercadoPago reintente.
 - `pagos.php?action=estado_pedido&pedido=...&payment_id=...` (cliente dueno del pedido): `pedido{numero, estado, estado_texto, metodo_pago, total(_formateado)}`, `pago{estado, detalle}`. Lo usa `confirmacion.html?pedido=...&mp=1`.
@@ -256,3 +258,4 @@ Actualizar al cerrar cada iteracion que cambie rutas/paginas, endpoints o contra
 - 2026-10-12: tienda: filtros en panel inferior y dos columnas en celular, desplegable de categorias, filtro "Solo destacados" (`destacados=1`), menu "Mi cuenta" en el icono de usuario (`sesion-ui.js`), pie simplificado (2026), detalle de producto compacto en celular; en escritorio sin fila de categorias ni "Ordenar por" en la columna.
 - 2026-10-17: pruebas para la exposicion del sistema de pagos (seccion 14, punto 1). Mensaje de bloqueo al admin dice "asociado". Carrito en las tarjetas giratorias de `04-contenido`. Buscador de la tienda: al vaciarlo vuelve al listado. Pendiente decidir: `haroldvaldes@yahoo.com` y `luisfer5428@gmail.com` son admins (`$admins` en `config.php` y en `iniciarSesion.php`) y por eso no pueden comprar; propuesta: cuenta admin dedicada antes de la exposicion con luisfer.
 - 2026-10-18: compartir producto con un contacto: boton "Compartir" en el modal del catalogo y en `producto.html` (`js/compartir.js`) y vista previa Open Graph con foto JPEG (`php/compartir.php`).
+- 2026-10-18: varias fotos por producto: tabla `producto_imagenes`, seccion "Fotos adicionales" en el admin, tira de miniaturas en el modal del catalogo y en `producto.html` (`js/galeria-producto.js`).

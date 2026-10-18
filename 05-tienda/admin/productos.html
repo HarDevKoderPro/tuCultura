@@ -111,6 +111,52 @@
             transform: scale(1.1);
         }
 
+        /* Fotos adicionales (miniaturas en la tienda) */
+        .fotos-adicionales-lista {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            margin-bottom: 0.6rem;
+        }
+        .foto-adicional {
+            position: relative;
+            width: 84px;
+            height: 84px;
+            padding: 4px;
+            background: #f6f7f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .foto-adicional img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 5px;
+        }
+        .foto-adicional button {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            border: none;
+            border-radius: 50%;
+            color: #fff;
+            font-size: 0.7rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        .foto-adicional .btn-foto-quitar { top: -8px; right: -8px; background: #dc3545; }
+        .foto-adicional .btn-foto-principal { bottom: -8px; right: -8px; background: #023859; }
+        .fotos-adicionales-acciones {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        .fotos-adicionales-acciones small { color: #666; }
+
         /* Buscador de productos */
         .search-productos-container {
             margin-bottom: 1rem;
@@ -425,6 +471,19 @@
                     </div>
                     <small id="imagen-nombre-archivo" style="color:#666; margin-top:0.3rem; display:block;"></small>
                     <small id="imagen-error" style="color:#dc3545; margin-top:0.3rem; display:none;"></small>
+                </div>
+
+                <div class="form-grupo" id="fotos-adicionales-grupo">
+                    <label>Fotos adicionales <small style="font-weight:normal; color:#666;">(en la tienda se ven como miniaturas debajo de la foto principal)</small></label>
+                    <div class="fotos-adicionales-lista" id="fotos-adicionales-lista"></div>
+                    <div class="fotos-adicionales-acciones">
+                        <button type="button" class="btn-secundario" id="btn-agregar-fotos" onclick="document.getElementById('fotos-adicionales-input').click()">
+                            <i class="fas fa-images"></i> Agregar fotos
+                        </button>
+                        <small id="fotos-adicionales-info"></small>
+                    </div>
+                    <input type="file" id="fotos-adicionales-input" multiple
+                           accept=".jpg,.jpeg,.png,.webp,.gif,.avif" style="display:none;">
                 </div>
                 
                 <div class="form-fila">

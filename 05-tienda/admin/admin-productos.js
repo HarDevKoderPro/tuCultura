@@ -12,6 +12,8 @@ let categorias = [];
 let idsVinculados = []; // IDs de productos vinculados a tarjetas giratorias
 let imagenSeleccionada = null; // File object de la imagen nueva
 let imagenActual = '';         // Nombre de imagen existente (al editar)
+let fotosAdicionales = [];     // Fotos adicionales del producto en edicion [{id, imagen}]
+let maxFotosAdicionales = 10;
 
 // ==================== CONSTANTES DE VALIDACIÓN ====================
 const FORMATOS_PERMITIDOS = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'];
@@ -23,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     cargarCategorias();
     cargarVinculados().then(() => cargarProductos());
     inicializarSelectorImagen();
+    inicializarFotosAdicionales();
     inicializarBuscador();
 });
 
@@ -147,6 +150,167 @@ function quitarImagen() {
 
 function resetearSelectorImagen() {
     quitarImagen();
+}
+
+// ==================== FOTOS ADICIONALES ====================
+// Se suben y quitan al momento (no esperan al boton Guardar). Solo para
+// productos ya creados: al crear uno nuevo primero hay que guardarlo.
+function inicializarFotosAdicionales() {
+    document.getElementById('fotos-adicionales-input').addEventListener('change', (e) => {
+        const archivos = Array.from(e.target.files || []);
+        e.target.value = '';
+        if (archivos.length) subirFotosAdicionales(archivos);
+    });
+}
+
+function productoEnEdicionId() {
+    return document.getElementById('producto-id').value;
+}
+
+async function cargarFotosAdicionales(id) {
+    fotosAdicionales = [];
+    renderizarFotosAdicionales();
+    if (!id) return;
+
+    try {
+        const response = await fetch(`${API_BASE}?action=producto_imagenes&id=${id}`);
+        const data = await response.json();
+        if (data.success && productoEnEdicionId() == id) {
+            fotosAdicionales = data.imagenes || [];
+            maxFotosAdicionales = data.maximo || maxFotosAdicionales;
+            renderizarFotosAdicionales();
+        }
+    } catch (error) {
+        console.error('Error al cargar fotos adicionales:', error);
+    }
+}
+
+function renderizarFotosAdicionales() {
+    const lista = document.getElementById('fotos-adicionales-lista');
+    const info = document.getElementById('fotos-adicionales-info');
+    const boton = document.getElementById('btn-agregar-fotos');
+    const id = productoEnEdicionId();
+
+    lista.innerHTML = fotosAdicionales.map(f => `
+        <div class="foto-adicional">
+            <img src="../imagenes/productos/${f.imagen}" alt="Foto adicional"
+                 onerror="this.src='../../01-principal/imagenes/fondo-producto.png'">
+            <button type="button" class="btn-foto-quitar" onclick="quitarFotoAdicional(${f.id})" title="Quitar foto">
+                <i class="fas fa-times"></i>
+            </button>
+            <button type="button" class="btn-foto-principal" onclick="usarFotoComoPrincipal(${f.id})" title="Usar como foto principal">
+                <i class="fas fa-star"></i>
+            </button>
+        </div>
+    `).join('');
+
+    if (!id) {
+        boton.disabled = true;
+        info.textContent = 'Guarda el producto para poder agregar más fotos.';
+    } else {
+        const disponibles = maxFotosAdicionales - fotosAdicionales.length;
+        boton.disabled = disponibles <= 0;
+        info.textContent = `${fotosAdicionales.length} de ${maxFotosAdicionales}. Puedes elegir varias a la vez. La estrella la vuelve foto principal.`;
+    }
+}
+
+async function subirFotosAdicionales(archivos) {
+    const id = productoEnEdicionId();
+    if (!id) return;
+
+    const disponibles = maxFotosAdicionales - fotosAdicionales.length;
+    if (archivos.length > disponibles) {
+        Swal.fire('Demasiadas fotos', `Puedes agregar ${disponibles} foto(s) más a este producto.`, 'warning');
+        return;
+    }
+    for (const archivo of archivos) {
+        const extension = '.' + archivo.name.split('.').pop().toLowerCase();
+        if (!FORMATOS_PERMITIDOS.includes(archivo.type) && !EXTENSIONES_PERMITIDAS.includes(extension)) {
+            Swal.fire('Formato no permitido', `${archivo.name}: usa JPG, PNG, WebP, GIF o AVIF.`, 'warning');
+            return;
+        }
+        if (archivo.size > MAX_TAMANO) {
+            Swal.fire('Foto muy pesada', `${archivo.name} supera 5 MB.`, 'warning');
+            return;
+        }
+    }
+
+    const formData = new FormData();
+    formData.append('id', id);
+    archivos.forEach(a => formData.append('imagenes[]', a));
+
+    const info = document.getElementById('fotos-adicionales-info');
+    info.textContent = 'Subiendo fotos...';
+
+    try {
+        const response = await fetch(`${API_BASE}?action=producto_imagenes_subir`, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (data.success) {
+            fotosAdicionales = data.imagenes || [];
+            Swal.fire({ icon: 'success', title: data.mensaje, timer: 1500, showConfirmButton: false });
+        } else {
+            Swal.fire('Error', data.error || 'No se pudieron subir las fotos', 'error');
+            // Alguna pudo quedar guardada antes del error: recargar la lista
+            await cargarFotosAdicionales(id);
+            return;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire('Error', 'Error de conexión', 'error');
+    }
+    renderizarFotosAdicionales();
+}
+
+async function quitarFotoAdicional(fotoId) {
+    const result = await Swal.fire({
+        icon: 'warning',
+        title: '¿Quitar esta foto?',
+        text: 'Dejará de verse en la tienda',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, quitar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc3545'
+    });
+    if (!result.isConfirmed) return;
+
+    await accionFotoAdicional('producto_imagen_eliminar', fotoId);
+}
+
+async function usarFotoComoPrincipal(fotoId) {
+    const data = await accionFotoAdicional('producto_imagen_principal', fotoId);
+    if (data && data.principal) {
+        // La principal ya cambio en la BD: reflejarla en el formulario y en la lista
+        imagenSeleccionada = null;
+        imagenActual = data.principal;
+        mostrarVistaPrevia(`../imagenes/productos/${data.principal}`, data.principal);
+        cargarProductos();
+    }
+}
+
+async function accionFotoAdicional(action, fotoId) {
+    const formData = new FormData();
+    formData.append('id', fotoId);
+    try {
+        const response = await fetch(`${API_BASE}?action=${action}`, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (data.success) {
+            fotosAdicionales = data.imagenes || [];
+            renderizarFotosAdicionales();
+            Swal.fire({ icon: 'success', title: data.mensaje, timer: 1200, showConfirmButton: false });
+            return data;
+        }
+        Swal.fire('Error', data.error || 'No se pudo completar la acción', 'error');
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire('Error', 'Error de conexión', 'error');
+    }
+    return null;
 }
 
 // ==================== CATEGORÍAS ====================
@@ -277,6 +441,7 @@ function abrirModalProducto() {
     document.getElementById('producto-id').value = '';
     document.getElementById('producto-activo').checked = true;
     resetearSelectorImagen();
+    cargarFotosAdicionales(null);
     document.getElementById('modal-producto').classList.add('activo');
 }
 
@@ -307,6 +472,7 @@ async function editarProducto(id) {
                 imagenActual = p.imagen;
                 mostrarVistaPrevia(`../imagenes/productos/${p.imagen}`, p.imagen);
             }
+            cargarFotosAdicionales(p.id);
             
             document.getElementById('modal-producto').classList.add('activo');
         }

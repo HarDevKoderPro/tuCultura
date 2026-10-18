@@ -37,6 +37,18 @@ switch ($action) {
     case 'producto_eliminar':
         eliminarProducto($conn);
         break;
+    case 'producto_imagenes':
+        listarImagenesProductoAdmin($pdo);
+        break;
+    case 'producto_imagenes_subir':
+        subirImagenesProducto($pdo);
+        break;
+    case 'producto_imagen_eliminar':
+        eliminarImagenProducto($pdo);
+        break;
+    case 'producto_imagen_principal':
+        usarImagenComoPrincipal($pdo);
+        break;
     case 'producto_detalle':
         detalleProductoAdmin($conn);
         break;
@@ -554,6 +566,139 @@ function eliminarProducto($conn) {
     }
 }
 
+// ==================== FOTOS ADICIONALES ====================
+
+function listarImagenesProductoAdmin($pdo) {
+    $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+    if (!$id) {
+        jsonResponse(['error' => 'ID requerido'], 400);
+    }
+    jsonResponse([
+        'success' => true,
+        'imagenes' => listarImagenesAdicionales($pdo, $id),
+        'maximo' => IMAGENES_PRODUCTO_MAX_ADICIONALES
+    ]);
+}
+
+function subirImagenesProducto($pdo) {
+    $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+    if (!$id) {
+        jsonResponse(['error' => 'ID requerido'], 400);
+    }
+
+    $stmt = $pdo->prepare("SELECT id FROM productos WHERE id = ?");
+    $stmt->execute([$id]);
+    if (!$stmt->fetch()) {
+        jsonResponse(['error' => 'Producto no encontrado'], 404);
+    }
+
+    // $_FILES['imagenes'] llega con un arreglo por campo (name[], tmp_name[], ...)
+    $archivos = [];
+    if (isset($_FILES['imagenes']) && is_array($_FILES['imagenes']['name'])) {
+        foreach ($_FILES['imagenes']['name'] as $i => $nombre) {
+            if ($_FILES['imagenes']['error'][$i] === UPLOAD_ERR_NO_FILE) continue;
+            $archivos[] = [
+                'name' => $nombre,
+                'type' => $_FILES['imagenes']['type'][$i],
+                'tmp_name' => $_FILES['imagenes']['tmp_name'][$i],
+                'error' => $_FILES['imagenes']['error'][$i],
+                'size' => $_FILES['imagenes']['size'][$i],
+            ];
+        }
+    }
+    if (!$archivos) {
+        jsonResponse(['error' => 'No se recibieron fotos'], 400);
+    }
+
+    $actuales = listarImagenesAdicionales($pdo, $id);
+    $disponibles = IMAGENES_PRODUCTO_MAX_ADICIONALES - count($actuales);
+    if (count($archivos) > $disponibles) {
+        jsonResponse(['error' => 'Cada producto admite hasta ' . IMAGENES_PRODUCTO_MAX_ADICIONALES
+            . " fotos adicionales. Puedes subir {$disponibles} más."], 400);
+    }
+
+    $stmtOrden = $pdo->prepare("SELECT COALESCE(MAX(orden), 0) FROM producto_imagenes WHERE producto_id = ?");
+    $stmtOrden->execute([$id]);
+    $orden = (int)$stmtOrden->fetchColumn();
+    $insertar = $pdo->prepare("INSERT INTO producto_imagenes (producto_id, imagen, orden) VALUES (?, ?, ?)");
+    foreach ($archivos as $archivo) {
+        $imagen = guardarArchivoImagen($archivo);
+        $insertar->execute([$id, $imagen, ++$orden]);
+    }
+
+    jsonResponse([
+        'success' => true,
+        'mensaje' => count($archivos) === 1 ? 'Foto agregada' : count($archivos) . ' fotos agregadas',
+        'imagenes' => listarImagenesAdicionales($pdo, $id)
+    ]);
+}
+
+function eliminarImagenProducto($pdo) {
+    $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+    if (!$id) {
+        jsonResponse(['error' => 'ID requerido'], 400);
+    }
+    asegurarTablaImagenesProducto($pdo);
+
+    // Solo se quita de la galeria; el archivo queda en disco (igual que la foto principal)
+    $stmt = $pdo->prepare("SELECT producto_id FROM producto_imagenes WHERE id = ?");
+    $stmt->execute([$id]);
+    $productoId = $stmt->fetchColumn();
+    if (!$productoId) {
+        jsonResponse(['error' => 'Foto no encontrada'], 404);
+    }
+    $pdo->prepare("DELETE FROM producto_imagenes WHERE id = ?")->execute([$id]);
+
+    jsonResponse([
+        'success' => true,
+        'mensaje' => 'Foto quitada',
+        'imagenes' => listarImagenesAdicionales($pdo, (int)$productoId)
+    ]);
+}
+
+/**
+ * Intercambia una foto adicional con la principal del producto.
+ */
+function usarImagenComoPrincipal($pdo) {
+    $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+    if (!$id) {
+        jsonResponse(['error' => 'ID requerido'], 400);
+    }
+    asegurarTablaImagenesProducto($pdo);
+
+    $pdo->beginTransaction();
+    try {
+        $stmt = $pdo->prepare("SELECT pi.producto_id, pi.imagen, p.imagen AS principal
+                               FROM producto_imagenes pi
+                               JOIN productos p ON p.id = pi.producto_id
+                               WHERE pi.id = ? FOR UPDATE");
+        $stmt->execute([$id]);
+        $fila = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$fila) {
+            $pdo->rollBack();
+            jsonResponse(['error' => 'Foto no encontrada'], 404);
+        }
+
+        $pdo->prepare("UPDATE productos SET imagen = ? WHERE id = ?")->execute([$fila['imagen'], $fila['producto_id']]);
+        if (!empty($fila['principal'])) {
+            $pdo->prepare("UPDATE producto_imagenes SET imagen = ? WHERE id = ?")->execute([$fila['principal'], $id]);
+        } else {
+            $pdo->prepare("DELETE FROM producto_imagenes WHERE id = ?")->execute([$id]);
+        }
+        $pdo->commit();
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        jsonResponse(['error' => 'No se pudo cambiar la foto principal'], 500);
+    }
+
+    jsonResponse([
+        'success' => true,
+        'mensaje' => 'Foto principal actualizada',
+        'principal' => $fila['imagen'],
+        'imagenes' => listarImagenesAdicionales($pdo, (int)$fila['producto_id'])
+    ]);
+}
+
 // ==================== CATEGORÍAS ====================
 
 function listarCategoriasAdmin($conn) {
@@ -739,9 +884,15 @@ function procesarImagenSubida() {
     if (!isset($_FILES['imagen_file']) || $_FILES['imagen_file']['error'] === UPLOAD_ERR_NO_FILE) {
         return '';
     }
-    
-    $archivo = $_FILES['imagen_file'];
-    
+
+    return guardarArchivoImagen($_FILES['imagen_file']);
+}
+
+/**
+ * Valida y guarda un archivo de $_FILES (uno solo). Responde con error JSON si
+ * no es valido. @return string Nombre del archivo a usar (el WebP si se genero).
+ */
+function guardarArchivoImagen($archivo) {
     // Verificar errores de subida
     if ($archivo['error'] !== UPLOAD_ERR_OK) {
         $errores = [

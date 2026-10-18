@@ -579,6 +579,47 @@ body {
 
 .btn-agregar-grande:hover { background: var(--color-secundario); }
 
+/* Galeria de fotos del producto (modal del catalogo y producto.html, js/galeria-producto.js) */
+.galeria-producto { min-width: 0; }
+
+.galeria-miniaturas {
+    position: relative;
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding: 0.15rem 0.1rem 0.35rem;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+}
+
+.galeria-miniaturas[hidden] { display: none; }
+
+.galeria-miniatura {
+    flex: 0 0 auto;
+    width: 64px;
+    height: 64px;
+    padding: 3px;
+    background: #f6f7f9;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.2s, opacity 0.2s;
+    opacity: 0.7;
+}
+
+.galeria-miniatura img { width: 100%; height: 100%; object-fit: contain; border-radius: 5px; }
+.galeria-miniatura:hover { opacity: 1; border-color: var(--color-borde); }
+.galeria-miniatura.activa { opacity: 1; border-color: var(--color-primario); }
+.galeria-miniatura:focus-visible { outline: 2px solid var(--color-acento); outline-offset: 1px; }
+
+/* Con varias fotos, la foto grande del modal tiene alto fijo (no salta al cambiar) */
+.detalle-galeria.con-miniaturas .detalle-imagen img {
+    aspect-ratio: 1;
+    object-fit: contain;
+    background: #f6f7f9;
+}
+
 /* Compartir producto con un contacto (catalogo y producto.html, js/compartir.js) */
 .producto-categoria-fila {
     display: flex;
@@ -2117,6 +2158,8 @@ body {
         border-radius: 14px;
     }
     .detalle-imagen img { width: 100%; height: 100%; object-fit: contain; border-radius: 0; }
+    .galeria-miniaturas { margin-top: 0.5rem; }
+    .galeria-miniatura { width: 52px; height: 52px; }
 
     .detalle-info { gap: 0.65rem; }
     .detalle-precios { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.6rem; font-size: inherit; }

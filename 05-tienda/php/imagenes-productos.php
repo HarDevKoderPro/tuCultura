@@ -99,3 +99,56 @@ function optimizarImagenProducto(string $carpeta, string $nombre): string
   @chmod($rutaWebp, 0664);
   return $nombreWebp;
 }
+
+// ==================== FOTOS ADICIONALES DE PRODUCTOS ====================
+// La foto principal sigue en productos.imagen; las demas van en producto_imagenes
+// (en el orden en que se suben). La tienda las muestra como tira de miniaturas.
+
+const IMAGENES_PRODUCTO_MAX_ADICIONALES = 10;
+
+function asegurarTablaImagenesProducto(PDO $pdo): void
+{
+  static $verificada = false;
+  if ($verificada) return;
+
+  $pdo->exec("CREATE TABLE IF NOT EXISTS producto_imagenes (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    producto_id INT NOT NULL,
+    imagen VARCHAR(255) NOT NULL,
+    orden INT NOT NULL DEFAULT 0,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_producto_imagenes_producto (producto_id, orden)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+  $verificada = true;
+}
+
+/**
+ * Fotos adicionales de un producto: [['id' => .., 'imagen' => ..], ...]
+ */
+function listarImagenesAdicionales(PDO $pdo, int $productoId): array
+{
+  asegurarTablaImagenesProducto($pdo);
+  $stmt = $pdo->prepare("SELECT id, imagen FROM producto_imagenes WHERE producto_id = ? ORDER BY orden, id");
+  $stmt->execute([$productoId]);
+  return array_map(function ($fila) {
+    return ['id' => (int)$fila['id'], 'imagen' => $fila['imagen']];
+  }, $stmt->fetchAll(PDO::FETCH_ASSOC));
+}
+
+/**
+ * Todas las fotos del producto para la tienda: principal primero y luego las adicionales.
+ */
+function imagenesProductoTienda(PDO $pdo, int $productoId, ?string $principal): array
+{
+  $imagenes = [];
+  if (!empty($principal)) {
+    $imagenes[] = $principal;
+  }
+  foreach (listarImagenesAdicionales($pdo, $productoId) as $fila) {
+    if ($fila['imagen'] !== $principal) {
+      $imagenes[] = $fila['imagen'];
+    }
+  }
+  return $imagenes;
+}
