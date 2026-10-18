@@ -9,7 +9,9 @@
  * Los puntos no se descuentan: el bono N se obtiene al llegar a N x 50 puntos.
  *
  * Los bonos se registran en `bonos_puntos` para que el admin haga el
- * seguimiento (pendiente -> entregado). Se sincronizan al consultar (pagina de
+ * seguimiento (pendiente -> entregado). "Eliminar" un bono lo deja en estado
+ * 'anulado' con motivo (no se borra: si se borrara, la sincronizacion lo volveria
+ * a crear porque el asociado sigue teniendo los puntos). Se sincronizan al consultar (pagina de
  * contenido del asociado y reporte del admin), asi que el flujo de pagos no cambia.
  * La fecha de obtencion se calcula con los movimientos de puntos (cuando el
  * acumulado llego a la meta).
@@ -37,9 +39,21 @@ if (!function_exists('asegurarTablaBonos')) {
       fecha_entrega DATETIME NULL,
       nota VARCHAR(255) NULL,
       entregado_por VARCHAR(255) NULL,
+      fecha_anulado DATETIME NULL,
+      anulado_por VARCHAR(255) NULL,
+      motivo_anulado VARCHAR(255) NULL,
       UNIQUE KEY uq_bonos_usuario_numero (usuario_id, numero),
       KEY idx_bonos_estado (estado, fecha_obtenido)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    // Tablas creadas antes de poder eliminar (anular) bonos
+    $columna = $conn->query("SHOW COLUMNS FROM bonos_puntos LIKE 'motivo_anulado'");
+    if ($columna && $columna->num_rows === 0) {
+      $conn->query("ALTER TABLE bonos_puntos
+        ADD COLUMN fecha_anulado DATETIME NULL,
+        ADD COLUMN anulado_por VARCHAR(255) NULL,
+        ADD COLUMN motivo_anulado VARCHAR(255) NULL");
+    }
 
     $verificada = true;
   }
@@ -147,7 +161,8 @@ if (!function_exists('bonosDelUsuario')) {
     $res = $stmt->get_result();
     while ($fila = $res->fetch_assoc()) {
       if ($fila['estado'] === 'entregado') $resumen['bonos_entregados'] = (int)$fila['total'];
-      else $resumen['bonos_disponibles'] += (int)$fila['total'];
+      elseif ($fila['estado'] === 'pendiente') $resumen['bonos_disponibles'] = (int)$fila['total'];
+      // 'anulado': eliminado por el admin, no se muestra al asociado
     }
     $stmt->close();
     return $resumen;

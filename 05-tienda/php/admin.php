@@ -111,6 +111,15 @@ switch ($action) {
     case 'bono_actualizar':
         actualizarBonoAdmin($conn);
         break;
+    case 'bono_eliminar':
+        eliminarBonoAdmin($conn);
+        break;
+    case 'bono_restaurar':
+        restaurarBonoAdmin($conn);
+        break;
+    case 'bonos_asociados':
+        listarAsociadosConBonoAdmin($conn);
+        break;
 
     case 'correos_listar':
         listarCorreosAdmin($conn);
@@ -1092,8 +1101,9 @@ function actualizarEstadoPedido($conn) {
 
 /**
  * Endpoint: reporte de bonos obtenidos (uno cada PUNTOS_POR_BONO puntos) para
- * el seguimiento de entregas. Filtros: estado (pendiente/entregado), buscar
- * (nombre, apellido o email). Incluye los asociados proximos a su siguiente bono.
+ * el seguimiento de entregas. Filtros: estado (pendiente/entregado/anulado; vacio =
+ * todos), buscar (nombre, apellido o email). Incluye los asociados proximos a su
+ * siguiente bono.
  */
 function listarBonosAdmin($conn) {
     sincronizarBonosTodos($conn);
@@ -1103,6 +1113,7 @@ function listarBonosAdmin($conn) {
 
     $sql = "SELECT b.id, b.usuario_id, b.numero, b.puntos_meta, b.fecha_obtenido, b.estado,
                    b.fecha_entrega, b.nota, b.entregado_por,
+                   b.fecha_anulado, b.anulado_por, b.motivo_anulado,
                    r.nombres, r.apellidos, r.email, r.telefono, r.referente,
                    COALESCE(s.puntos_acumulados, 0) AS puntos_actuales
             FROM bonos_puntos b
@@ -1111,7 +1122,7 @@ function listarBonosAdmin($conn) {
             WHERE 1 = 1";
     $tipos = '';
     $params = [];
-    if (in_array($estado, ['pendiente', 'entregado'], true)) {
+    if (in_array($estado, ['pendiente', 'entregado', 'anulado'], true)) {
         $sql .= " AND b.estado = ?";
         $tipos .= 's';
         $params[] = $estado;
@@ -1122,9 +1133,10 @@ function listarBonosAdmin($conn) {
         $like = '%' . $buscar . '%';
         array_push($params, $like, $like, $like);
     }
-    // Pendientes primero (los mas antiguos arriba), luego entregados recientes
-    $sql .= " ORDER BY b.estado = 'entregado', CASE WHEN b.estado = 'entregado' THEN NULL ELSE b.fecha_obtenido END ASC,
-              b.fecha_entrega DESC LIMIT 500";
+    // Pendientes primero (los mas antiguos arriba), luego entregados y eliminados recientes
+    $sql .= " ORDER BY FIELD(b.estado, 'pendiente', 'entregado', 'anulado'),
+              CASE WHEN b.estado = 'pendiente' THEN b.fecha_obtenido END ASC,
+              COALESCE(b.fecha_anulado, b.fecha_entrega) DESC LIMIT 500";
 
     $stmt = $conn->prepare($sql);
     if ($params) {
@@ -1141,15 +1153,17 @@ function listarBonosAdmin($conn) {
         $b['puntos_actuales'] = (int)$b['puntos_actuales'];
         $b['fecha_obtenido_formateada'] = date('d/m/Y', strtotime($b['fecha_obtenido']));
         $b['fecha_entrega_formateada'] = $b['fecha_entrega'] ? date('d/m/Y H:i', strtotime($b['fecha_entrega'])) : '';
+        $b['fecha_anulado_formateada'] = $b['fecha_anulado'] ? date('d/m/Y H:i', strtotime($b['fecha_anulado'])) : '';
     }
     unset($b);
 
-    $resumen = ['pendientes' => 0, 'entregados' => 0, 'asociados' => 0, 'puntos_por_bono' => PUNTOS_POR_BONO];
-    $res = $conn->query("SELECT estado, COUNT(*) AS total, COUNT(DISTINCT usuario_id) AS asociados FROM bonos_puntos GROUP BY estado");
+    $resumen = ['pendientes' => 0, 'entregados' => 0, 'anulados' => 0, 'asociados' => 0, 'puntos_por_bono' => PUNTOS_POR_BONO];
+    $claves = ['pendiente' => 'pendientes', 'entregado' => 'entregados', 'anulado' => 'anulados'];
+    $res = $conn->query("SELECT estado, COUNT(*) AS total FROM bonos_puntos GROUP BY estado");
     while ($fila = $res->fetch_assoc()) {
-        $resumen[$fila['estado'] === 'entregado' ? 'entregados' : 'pendientes'] += (int)$fila['total'];
+        if (isset($claves[$fila['estado']])) $resumen[$claves[$fila['estado']]] = (int)$fila['total'];
     }
-    $resumen['asociados'] = (int)$conn->query("SELECT COUNT(DISTINCT usuario_id) FROM bonos_puntos")->fetch_row()[0];
+    $resumen['asociados'] = (int)$conn->query("SELECT COUNT(DISTINCT usuario_id) FROM bonos_puntos WHERE estado <> 'anulado'")->fetch_row()[0];
 
     // Proximos: les faltan 10 puntos o menos para su siguiente bono
     $proximos = [];
@@ -1185,16 +1199,17 @@ function actualizarBonoAdmin($conn) {
     }
     asegurarTablaBonos($conn);
 
+    // Un bono eliminado solo vuelve con "Restaurar" (bono_restaurar)
     if ($estado === 'entregado') {
         $admin = $_SESSION['email'] ?? '';
         $stmt = $conn->prepare("UPDATE bonos_puntos
                                 SET estado = 'entregado', fecha_entrega = NOW(), entregado_por = ?, nota = ?
-                                WHERE id = ?");
+                                WHERE id = ? AND estado <> 'anulado'");
         $stmt->bind_param("ssi", $admin, $nota, $id);
     } else {
         $stmt = $conn->prepare("UPDATE bonos_puntos
                                 SET estado = 'pendiente', fecha_entrega = NULL, entregado_por = NULL, nota = ?
-                                WHERE id = ?");
+                                WHERE id = ? AND estado <> 'anulado'");
         $stmt->bind_param("si", $nota, $id);
     }
     $stmt->execute();
@@ -1210,6 +1225,108 @@ function actualizarBonoAdmin($conn) {
         'mensaje' => $estado === 'entregado' ? 'Bono marcado como entregado' : 'Bono vuelto a pendiente',
         'cambio' => $cambio > 0
     ]);
+}
+
+/**
+ * Endpoint (POST id, motivo): elimina un bono de pendientes/entregados. Queda en
+ * estado 'anulado' con motivo, fecha y admin para la trazabilidad (ver bonos-helpers.php).
+ */
+function eliminarBonoAdmin($conn) {
+    $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+    $motivo = mb_substr(trim($_POST['motivo'] ?? ''), 0, 255);
+    if (!$id || $motivo === '') {
+        jsonResponse(['error' => 'Indica el motivo para eliminar el bono'], 400);
+    }
+    asegurarTablaBonos($conn);
+
+    $admin = $_SESSION['email'] ?? '';
+    $stmt = $conn->prepare("UPDATE bonos_puntos
+                            SET estado = 'anulado', fecha_anulado = NOW(), anulado_por = ?, motivo_anulado = ?
+                            WHERE id = ? AND estado <> 'anulado'");
+    $stmt->bind_param("ssi", $admin, $motivo, $id);
+    $stmt->execute();
+    $cambio = $stmt->affected_rows;
+    $stmt->close();
+
+    if (!$cambio) {
+        jsonResponse(['error' => 'Bono no encontrado o ya eliminado'], 404);
+    }
+    jsonResponse(['success' => true, 'mensaje' => 'Bono eliminado (queda en Eliminados)']);
+}
+
+/**
+ * Endpoint (POST id): restaura un bono eliminado a su estado anterior
+ * (entregado si tenia fecha de entrega, si no pendiente).
+ */
+function restaurarBonoAdmin($conn) {
+    $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+    if (!$id) {
+        jsonResponse(['error' => 'ID requerido'], 400);
+    }
+    asegurarTablaBonos($conn);
+
+    $stmt = $conn->prepare("UPDATE bonos_puntos
+                            SET estado = IF(fecha_entrega IS NULL, 'pendiente', 'entregado'),
+                                fecha_anulado = NULL, anulado_por = NULL, motivo_anulado = NULL
+                            WHERE id = ? AND estado = 'anulado'");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $cambio = $stmt->affected_rows;
+    $stmt->close();
+
+    if (!$cambio) {
+        jsonResponse(['error' => 'Bono no encontrado o no está eliminado'], 404);
+    }
+    jsonResponse(['success' => true, 'mensaje' => 'Bono restaurado']);
+}
+
+/**
+ * Endpoint: asociados con bono (sin contar eliminados), con sus totales. Filtro buscar.
+ */
+function listarAsociadosConBonoAdmin($conn) {
+    sincronizarBonosTodos($conn);
+    $buscar = isset($_GET['buscar']) ? trim($_GET['buscar']) : '';
+
+    $sql = "SELECT r.id AS usuario_id, r.nombres, r.apellidos, r.email, r.telefono,
+                   COALESCE(s.puntos_acumulados, 0) AS puntos,
+                   SUM(b.estado = 'pendiente') AS pendientes,
+                   SUM(b.estado = 'entregado') AS entregados,
+                   SUM(b.estado = 'anulado') AS anulados,
+                   MAX(b.fecha_obtenido) AS ultimo_bono
+            FROM bonos_puntos b
+            JOIN registros r ON r.id = b.usuario_id
+            LEFT JOIN puntos_saldo s ON s.usuario_id = b.usuario_id
+            WHERE 1 = 1";
+    $params = [];
+    if ($buscar !== '') {
+        $sql .= " AND (r.nombres LIKE ? OR r.apellidos LIKE ? OR r.email LIKE ?)";
+        $like = '%' . $buscar . '%';
+        $params = [$like, $like, $like];
+    }
+    $sql .= " GROUP BY r.id, r.nombres, r.apellidos, r.email, r.telefono, s.puntos_acumulados
+              HAVING pendientes + entregados > 0
+              ORDER BY pendientes DESC, puntos DESC LIMIT 500";
+
+    $stmt = $conn->prepare($sql);
+    if ($params) {
+        $stmt->bind_param('sss', ...$params);
+    }
+    $stmt->execute();
+    $asociados = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+
+    foreach ($asociados as &$a) {
+        foreach (['usuario_id', 'puntos', 'pendientes', 'entregados', 'anulados'] as $campo) {
+            $a[$campo] = (int)$a[$campo];
+        }
+        $r = resumenBonosPuntos($a['puntos']);
+        $a['puntos_faltantes'] = $r['puntos_faltantes'];
+        $a['siguiente_bono'] = $r['siguiente_bono'];
+        $a['ultimo_bono_formateado'] = date('d/m/Y', strtotime($a['ultimo_bono']));
+    }
+    unset($a);
+
+    jsonResponse(['success' => true, 'asociados' => $asociados]);
 }
 
 function listarCorreosAdmin($conn) {
