@@ -202,7 +202,12 @@
           <img src="" id="detalle-img" alt="Producto">
         </div>
         <div class="detalle-info">
-          <span class="producto-categoria" id="detalle-categoria">Categoría</span>
+          <div class="producto-categoria-fila">
+            <span class="producto-categoria" id="detalle-categoria">Categoría</span>
+            <button type="button" class="btn-compartir-producto" id="btn-modal-compartir">
+              <i class="fas fa-share-alt"></i> Compartir
+            </button>
+          </div>
           <div class="detalle-precios" id="detalle-precios">
             <!-- Se llena dinámicamente -->
           </div>
@@ -229,6 +234,7 @@
   <!-- ✅ Scripts al final del body -->
   <script src="../sweetalert2.min.js"></script>
   <script src="js/sesion-ui.js"></script>
+  <script src="js/compartir.js"></script>
   <script src="js/tienda.js"></script>
   <script src="js/tienda-filtros.js"></script>
 </body>

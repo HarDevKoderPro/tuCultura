@@ -92,7 +92,12 @@ function renderizarProducto(producto, umbral = 10) {
         </div>
         
         <div class="producto-detalle-info">
-            <span class="producto-categoria">${producto.categoria_nombre || 'Sin categoría'}</span>
+            <div class="producto-categoria-fila">
+                <span class="producto-categoria">${producto.categoria_nombre || 'Sin categoría'}</span>
+                <button type="button" class="btn-compartir-producto" onclick="compartirProducto(productoActual)">
+                    <i class="fas fa-share-alt"></i> Compartir
+                </button>
+            </div>
             <h1>${producto.nombre}</h1>
             
             <div class="producto-detalle-precio">

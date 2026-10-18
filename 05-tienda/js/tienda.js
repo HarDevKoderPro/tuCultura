@@ -413,6 +413,9 @@ function verDetalleProducto(id) {
     }
   }
 
+  const btnCompartir = document.getElementById("btn-modal-compartir");
+  if (btnCompartir) btnCompartir.onclick = () => compartirProducto(p);
+
   const btnAgregar = document.getElementById("btn-modal-agregar");
   const stock = p.stock !== undefined ? p.stock : 999;
   if (stock === 0) {

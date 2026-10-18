@@ -579,6 +579,97 @@ body {
 
 .btn-agregar-grande:hover { background: var(--color-secundario); }
 
+/* Compartir producto con un contacto (catalogo y producto.html, js/compartir.js) */
+.producto-categoria-fila {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.btn-compartir-producto {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.75rem;
+    background: none;
+    border: 1px solid var(--color-borde);
+    border-radius: 999px;
+    color: var(--color-primario);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transicion);
+}
+
+.btn-compartir-producto:hover { background: #eef4f8; border-color: var(--color-primario); }
+
+.compartir-producto-nombre { margin: 0 0 1rem; color: var(--color-texto-claro); }
+
+.compartir-redes {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.compartir-red {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 4rem;
+    color: var(--color-texto);
+    font-size: 0.8rem;
+    text-decoration: none;
+}
+
+.btn-compartir {
+    width: 3rem;
+    height: 3rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 1.3rem;
+    font-weight: 700;
+    transition: var(--transicion);
+}
+
+.compartir-red:hover .btn-compartir { transform: translateY(-2px); filter: brightness(1.1); }
+.btn-compartir-whatsapp { background: #25d366; }
+.btn-compartir-facebook { background: #1877f2; }
+.btn-compartir-x { background: #000; }
+.btn-compartir-telegram { background: #229ed9; }
+.btn-compartir-correo { background: var(--color-secundario); }
+
+.compartir-enlace { display: flex; gap: 0.5rem; }
+
+.compartir-enlace input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio-borde);
+    font-size: 0.85rem;
+    color: var(--color-texto-claro);
+}
+
+.compartir-enlace button {
+    padding: 0.6rem 1rem;
+    background: var(--color-primario);
+    color: #fff;
+    border: none;
+    border-radius: var(--radio-borde);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.compartir-enlace button.copiado { background: var(--color-exito); }
+
 /* ==== CARRITO ==== */
 .carrito-contenido { display: grid; gap: 1.5rem; }
 
