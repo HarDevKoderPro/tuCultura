@@ -36,7 +36,8 @@ Contexto minimo para implementar nuevas funcionalidades sin romper lo existente,
 - `productos.php`, `categorias.php`, `carrito.php`, `pedidos.php`, `admin.php`, `admin-tarjetas.php`, `sesion.php`, `logout.php`, `logout_admin.php`.
 - Pagos/puntos: `pagos.php`, `puntos-pagos-helpers.php`, `migrar_pagos_puntos.php`.
 - `correo-pedidos.php`: correo al comprador + aviso a la tienda (reusa PHPMailer de `02-iniciarSesion/php/PHPMailer`); cada envio queda en `correos_tienda`.
-- `compartir.php`: vista previa para redes sociales de un producto (HTML, no JSON; ver `js/compartir.js`).
+- `compartir.php`: vista previa para redes sociales de un producto (HTML, no JSON; ver `js/compartir.js`). Acepta `&ref=CODIGO` (invitacion del asociado que comparte) y lo pasa a `producto.html?id=N&ref=CODIGO`.
+- `invitaciones.php` + `invitaciones-helpers.php`: codigos de invitacion de asociados (`action=mi_codigo`: codigo del usuario con sesion, '' sin sesion). `compartir.js` lo agrega a los enlaces que comparte un asociado con sesion.
 - `cancelar_pedidos_abandonados.php`: solo CLI (por web responde 404), lo ejecuta el cron.
 - `imagenes-productos.php`: `optimizarImagenProducto()` genera un WebP optimizado (lado mayor 1200 px, calidad 82, conserva transparencia) de cada foto subida en el admin; el producto usa el WebP y el original queda en disco. Requiere GD con WebP (Dockerfile). `optimizar_imagenes_productos.php`: solo CLI, aplica lo mismo a las fotos existentes (`--simular` para ver sin cambiar).
 
@@ -76,6 +77,7 @@ Comportamiento heredado conocido: el carrito anonimo (por `session_id`) no se mi
 - `configuracion_tienda` (clave, valor) para `umbral_bajo_stock` y `valor_punto_cop` (pesos por punto para el canje; 0 = sin definir).
 - `registros` (autenticacion; email -> id, datos de cliente, columna `referente` = email del patrocinador).
 - `producto_imagenes` (id, producto_id, imagen, orden, fecha_creacion): fotos adicionales (max 10 por producto); la principal sigue en `productos.imagen`. Se crea sola (`asegurarTablaImagenesProducto` en `imagenes-productos.php`). Quitar una foto borra la fila, no el archivo.
+- `codigos_invitacion` (usuario_id PK = `registros.id`, codigo unico de 6 caracteres sin 0/O/1/I/L, fecha_creacion): codigo opaco del asociado para enlaces de invitacion (el email nunca va en el enlace). Se crea sola; el codigo se genera la primera vez que se pide.
 - `correos_tienda` (id, pedido_id, tipo `cliente`/`tienda`, destinatario, asunto, cuerpo, enviado, error, fecha_envio): copia de cada correo de pedido; se crea sola (`asegurarTablaCorreos`).
 - Nuevas (pagos/puntos): `pagos_tienda` (unicos: payment_id, preference_id, idempotency_key), `puntos_saldo` (usuario_id PK), `puntos_movimientos` (unico: clave_idempotencia).
 
@@ -202,6 +204,13 @@ Se ejecuta en orden, paso a paso; cada punto se evalua y aprueba con el usuario 
 3. [ ] Explicacion detallada para el cliente de lo que debe hacer para poner a funcionar el sistema (cuenta MercadoPago, credenciales, dominio, valor del punto, canje, operacion diaria).
 4. [ ] Solo cuando el usuario lo indique: crear la cuenta MercadoPago real y hacer transacciones pequenas de prueba (ver pendiente 8 de la seccion 13).
 
+Extra aprobado (2026-10-18): invitacion a afiliarse dentro del enlace de producto. Decisiones del usuario: el invitado solo ve el nombre corto de quien lo invito ("Maria G."), nunca su email; si abre enlaces de dos asociados gana el ultimo; en el registro el patrocinador viene listo pero se puede cambiar ("¿Te invito otra persona?"). Paso a paso con aprobacion:
+- [x] 1. El enlace de "Compartir" lleva `&ref=CODIGO` del asociado con sesion (`codigos_invitacion`, `invitaciones.php?action=mi_codigo`); `compartir.php` lo pasa a `producto.html`.
+- [ ] 2. La tienda guarda el codigo 30 dias (ultimo gana) y, sin sesion, muestra el aviso "X te invito... Registrate para comprar y ganar puntos" con boton Registrarme (`invitaciones.php?action=resolver`).
+- [ ] 3. Registro (`03-registrarse`) con "Te invito: X" resuelto por codigo (backend traduce codigo -> email de referente), enlace para cambiarlo y regreso al producto al terminar. El registro normal no cambia.
+- [ ] 4. Verificar puntos: compra aprobada del invitado suma a su patrocinador (nivel 1) y al de este (nivel 2), sin cambios de codigo.
+- [ ] 5. Boton "Mi enlace de invitacion" en `04-contenido` (aprobado para despues de 1-4).
+
 Extra aprobado (2026-10-11): rediseno del carrusel de inicio (`index.html`, `01-principal/js/main.js`, `01-principal/css/estilosCarrusel.css`): libro + productos destacados de la tienda (`productos.php?action=destacados`, cada uno abre `producto.html?id=`), tarjeta con imagen y texto en dos columnas (apiladas en celular), etiqueta de descuento, boton de accion, puntos indicadores, barra de tiempo, flechas en circulo, deslizamiento tactil (cambia de diapositiva), avance cada 5,5 s con desvanecimiento cruzado de 1,5 s (ease-in-out) (pedido del usuario en vez de desplazamiento) y entrada escalonada del contenido; con "reducir movimiento" sigue avanzando y desvaneciendo, solo sin zoom ni subida del texto. Aprobado.
 
 Extra aprobado (2026-10-11): mejora de aspecto y legibilidad del texto del home (`index.html`), por fases con aprobacion de cada una:
@@ -259,3 +268,4 @@ Actualizar al cerrar cada iteracion que cambie rutas/paginas, endpoints o contra
 - 2026-10-17: pruebas para la exposicion del sistema de pagos (seccion 14, punto 1). Mensaje de bloqueo al admin dice "asociado". Carrito en las tarjetas giratorias de `04-contenido`. Buscador de la tienda: al vaciarlo vuelve al listado. Pendiente decidir: `haroldvaldes@yahoo.com` y `luisfer5428@gmail.com` son admins (`$admins` en `config.php` y en `iniciarSesion.php`) y por eso no pueden comprar; propuesta: cuenta admin dedicada antes de la exposicion con luisfer.
 - 2026-10-18: compartir producto con un contacto: boton "Compartir" en el modal del catalogo y en `producto.html` (`js/compartir.js`) y vista previa Open Graph con foto JPEG (`php/compartir.php`).
 - 2026-10-18: varias fotos por producto: tabla `producto_imagenes`, seccion "Fotos adicionales" en el admin, tira de miniaturas en el modal del catalogo y en `producto.html` (`js/galeria-producto.js`) y visor ampliado al hacer clic.
+- 2026-10-18: invitacion en enlaces de producto, paso 1: `codigos_invitacion`, `invitaciones.php?action=mi_codigo`, `compartir.php` acepta `ref`.

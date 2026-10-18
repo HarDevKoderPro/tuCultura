@@ -6,20 +6,32 @@
  * el nombre, precio y foto del producto para la vista previa, y lleva al contacto
  * a producto.html?id=..., donde puede verlo y comprarlo.
  *
+ * Si quien comparte tiene sesion, el enlace lleva su codigo de invitacion
+ * (&ref=..., php/invitaciones.php?action=mi_codigo) para que el contacto pueda
+ * registrarse con el como referente.
+ *
  * Uso: compartirProducto({ id, nombre })
  * - Celular: abre el menu de compartir del telefono (WhatsApp, Instagram, etc.).
  * - Computador: ventana con las redes y el enlace para copiar.
  */
 
-function urlCompartirProducto(id) {
+// Se pide al cargar la pagina para tenerlo listo al tocar "Compartir" (el menu
+// del telefono exige abrirse enseguida despues del toque)
+const codigoInvitacionPromesa = fetch('php/invitaciones.php?action=mi_codigo')
+    .then(res => res.json())
+    .then(data => (data && data.success && data.codigo) || '')
+    .catch(() => '');
+
+function urlCompartirProducto(id, codigo = '') {
     const base = window.location.href.split(/[?#]/)[0].replace(/[^/]*$/, '');
-    return `${base}php/compartir.php?id=${encodeURIComponent(id)}`;
+    const ref = codigo ? `&ref=${encodeURIComponent(codigo)}` : '';
+    return `${base}php/compartir.php?id=${encodeURIComponent(id)}${ref}`;
 }
 
 async function compartirProducto(producto) {
     if (!producto || !producto.id) return;
 
-    const url = urlCompartirProducto(producto.id);
+    const url = urlCompartirProducto(producto.id, await codigoInvitacionPromesa);
     const texto = `Mira este producto en Tu Cultura es Progreso: ${producto.nombre}`;
 
     const esCelular = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;

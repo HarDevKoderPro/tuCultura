@@ -10,11 +10,14 @@
  * producto.html?id=...
  *
  * - compartir.php?id=N          pagina con la vista previa (redirige al producto)
+ * - compartir.php?id=N&ref=COD  igual, con el codigo de invitacion del asociado que
+ *                               compartio (invitaciones-helpers.php); pasa a producto.html
  * - compartir.php?id=N&imagen=1 foto del producto en JPEG (no todas las redes
  *                               muestran WebP en la vista previa)
  */
 
 require_once 'config.php';
+require_once 'invitaciones-helpers.php';
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
@@ -40,9 +43,12 @@ if (!$producto) {
   exit;
 }
 
-$urlProducto  = $basePublic . '/producto.html?id=' . $producto['id'];
-$urlCompartir = $basePublic . '/php/compartir.php?id=' . $producto['id'];
-$urlImagen    = $urlCompartir . '&imagen=1';
+$ref = normalizarCodigoInvitacion($_GET['ref'] ?? '');
+$sufijoRef = $ref !== '' ? '&ref=' . $ref : '';
+
+$urlProducto  = $basePublic . '/producto.html?id=' . $producto['id'] . $sufijoRef;
+$urlCompartir = $basePublic . '/php/compartir.php?id=' . $producto['id'] . $sufijoRef;
+$urlImagen    = $basePublic . '/php/compartir.php?id=' . $producto['id'] . '&imagen=1';
 
 $tieneOferta = (float)$producto['precio_oferta'] > 0 && (float)$producto['precio_oferta'] < (float)$producto['precio'];
 $precio = formatearPrecio($tieneOferta ? $producto['precio_oferta'] : $producto['precio']);
