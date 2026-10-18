@@ -6,6 +6,7 @@
 
 require_once 'config.php';
 require_once 'imagenes-productos.php';
+require_once 'bonos-helpers.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -104,6 +105,13 @@ switch ($action) {
         break;
     
     // Correos enviados por la tienda
+    case 'bonos_listar':
+        listarBonosAdmin($conn);
+        break;
+    case 'bono_actualizar':
+        actualizarBonoAdmin($conn);
+        break;
+
     case 'correos_listar':
         listarCorreosAdmin($conn);
         break;
@@ -1080,6 +1088,130 @@ function actualizarEstadoPedido($conn) {
  * Endpoint: Lista los correos de pedidos enviados (sin el cuerpo).
  * Filtros opcionales: pedido (numero de pedido, parcial), tipo (cliente|tienda).
  */
+// ==================== BONOS POR PUNTOS ====================
+
+/**
+ * Endpoint: reporte de bonos obtenidos (uno cada PUNTOS_POR_BONO puntos) para
+ * el seguimiento de entregas. Filtros: estado (pendiente/entregado), buscar
+ * (nombre, apellido o email). Incluye los asociados proximos a su siguiente bono.
+ */
+function listarBonosAdmin($conn) {
+    sincronizarBonosTodos($conn);
+
+    $estado = isset($_GET['estado']) ? trim($_GET['estado']) : '';
+    $buscar = isset($_GET['buscar']) ? trim($_GET['buscar']) : '';
+
+    $sql = "SELECT b.id, b.usuario_id, b.numero, b.puntos_meta, b.fecha_obtenido, b.estado,
+                   b.fecha_entrega, b.nota, b.entregado_por,
+                   r.nombres, r.apellidos, r.email, r.telefono, r.referente,
+                   COALESCE(s.puntos_acumulados, 0) AS puntos_actuales
+            FROM bonos_puntos b
+            JOIN registros r ON r.id = b.usuario_id
+            LEFT JOIN puntos_saldo s ON s.usuario_id = b.usuario_id
+            WHERE 1 = 1";
+    $tipos = '';
+    $params = [];
+    if (in_array($estado, ['pendiente', 'entregado'], true)) {
+        $sql .= " AND b.estado = ?";
+        $tipos .= 's';
+        $params[] = $estado;
+    }
+    if ($buscar !== '') {
+        $sql .= " AND (r.nombres LIKE ? OR r.apellidos LIKE ? OR r.email LIKE ?)";
+        $tipos .= 'sss';
+        $like = '%' . $buscar . '%';
+        array_push($params, $like, $like, $like);
+    }
+    // Pendientes primero (los mas antiguos arriba), luego entregados recientes
+    $sql .= " ORDER BY b.estado = 'entregado', CASE WHEN b.estado = 'entregado' THEN NULL ELSE b.fecha_obtenido END ASC,
+              b.fecha_entrega DESC LIMIT 500";
+
+    $stmt = $conn->prepare($sql);
+    if ($params) {
+        $stmt->bind_param($tipos, ...$params);
+    }
+    $stmt->execute();
+    $bonos = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+
+    foreach ($bonos as &$b) {
+        $b['id'] = (int)$b['id'];
+        $b['numero'] = (int)$b['numero'];
+        $b['puntos_meta'] = (int)$b['puntos_meta'];
+        $b['puntos_actuales'] = (int)$b['puntos_actuales'];
+        $b['fecha_obtenido_formateada'] = date('d/m/Y', strtotime($b['fecha_obtenido']));
+        $b['fecha_entrega_formateada'] = $b['fecha_entrega'] ? date('d/m/Y H:i', strtotime($b['fecha_entrega'])) : '';
+    }
+    unset($b);
+
+    $resumen = ['pendientes' => 0, 'entregados' => 0, 'asociados' => 0, 'puntos_por_bono' => PUNTOS_POR_BONO];
+    $res = $conn->query("SELECT estado, COUNT(*) AS total, COUNT(DISTINCT usuario_id) AS asociados FROM bonos_puntos GROUP BY estado");
+    while ($fila = $res->fetch_assoc()) {
+        $resumen[$fila['estado'] === 'entregado' ? 'entregados' : 'pendientes'] += (int)$fila['total'];
+    }
+    $resumen['asociados'] = (int)$conn->query("SELECT COUNT(DISTINCT usuario_id) FROM bonos_puntos")->fetch_row()[0];
+
+    // Proximos: les faltan 10 puntos o menos para su siguiente bono
+    $proximos = [];
+    $res = $conn->query("SELECT s.usuario_id, s.puntos_acumulados, r.nombres, r.apellidos, r.email
+                         FROM puntos_saldo s JOIN registros r ON r.id = s.usuario_id
+                         WHERE s.puntos_acumulados > 0
+                           AND " . (int)PUNTOS_POR_BONO . " - MOD(s.puntos_acumulados, " . (int)PUNTOS_POR_BONO . ") <= 10
+                         ORDER BY MOD(s.puntos_acumulados, " . (int)PUNTOS_POR_BONO . ") DESC LIMIT 50");
+    while ($fila = $res->fetch_assoc()) {
+        $r = resumenBonosPuntos((int)$fila['puntos_acumulados']);
+        $proximos[] = [
+            'nombre' => trim($fila['nombres'] . ' ' . $fila['apellidos']),
+            'email' => $fila['email'],
+            'puntos' => (int)$fila['puntos_acumulados'],
+            'puntos_faltantes' => $r['puntos_faltantes'],
+            'siguiente_bono' => $r['siguiente_bono'],
+        ];
+    }
+
+    jsonResponse(['success' => true, 'bonos' => $bonos, 'resumen' => $resumen, 'proximos' => $proximos]);
+}
+
+/**
+ * Endpoint (POST id, estado entregado|pendiente, nota): marca la entrega de un bono
+ * o la deshace si fue un error.
+ */
+function actualizarBonoAdmin($conn) {
+    $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+    $estado = isset($_POST['estado']) ? trim($_POST['estado']) : '';
+    $nota = mb_substr(trim($_POST['nota'] ?? ''), 0, 255);
+    if (!$id || !in_array($estado, ['pendiente', 'entregado'], true)) {
+        jsonResponse(['error' => 'Datos inválidos'], 400);
+    }
+    asegurarTablaBonos($conn);
+
+    if ($estado === 'entregado') {
+        $admin = $_SESSION['email'] ?? '';
+        $stmt = $conn->prepare("UPDATE bonos_puntos
+                                SET estado = 'entregado', fecha_entrega = NOW(), entregado_por = ?, nota = ?
+                                WHERE id = ?");
+        $stmt->bind_param("ssi", $admin, $nota, $id);
+    } else {
+        $stmt = $conn->prepare("UPDATE bonos_puntos
+                                SET estado = 'pendiente', fecha_entrega = NULL, entregado_por = NULL, nota = ?
+                                WHERE id = ?");
+        $stmt->bind_param("si", $nota, $id);
+    }
+    $stmt->execute();
+    $cambio = $stmt->affected_rows;
+    $stmt->close();
+
+    $existe = $conn->query("SELECT 1 FROM bonos_puntos WHERE id = " . $id)->num_rows > 0;
+    if (!$existe) {
+        jsonResponse(['error' => 'Bono no encontrado'], 404);
+    }
+    jsonResponse([
+        'success' => true,
+        'mensaje' => $estado === 'entregado' ? 'Bono marcado como entregado' : 'Bono vuelto a pendiente',
+        'cambio' => $cambio > 0
+    ]);
+}
+
 function listarCorreosAdmin($conn) {
     require_once __DIR__ . '/correo-pedidos.php';
     asegurarTablaCorreos($conn);

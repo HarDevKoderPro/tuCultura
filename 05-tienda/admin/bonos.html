@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bonos por Puntos - Admin Tienda</title>
+
+    <link rel="shortcut icon" href="../../01-principal/imagenes/LogoTCPCircle.png" type="image/x-icon">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/tienda.css">
+    <link rel="stylesheet" href="../../01-principal/css/normalize.css">
+    <style>
+        body { background: #f0f2f5; }
+        .admin-sidebar { background: var(--color-primario); padding: 1rem; position: fixed; top: 0; left: 0; height: 100vh; width: 250px; z-index: 1000; }
+        .admin-sidebar-logo { display: flex; align-items: center; gap: 0.5rem; padding: 1rem; color: #fff; text-decoration: none; margin-bottom: 1rem; }
+        .admin-sidebar-logo img { height: 40px; }
+        .admin-sidebar-logo span { font-weight: bold; }
+        .admin-sidebar-menu { list-style: none; }
+        .admin-sidebar-menu li a { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: rgba(255,255,255,0.8); text-decoration: none; border-radius: var(--radio-borde); transition: var(--transicion); }
+        .admin-sidebar-menu li a:hover, .admin-sidebar-menu li a.activo { background: rgba(255,255,255,0.1); color: #fff; }
+        .admin-main { margin-left: 250px; padding: 1.5rem; min-height: 100vh; }
+        .admin-header-bar { background: #fff; padding: 1rem 1.5rem; margin: -1.5rem -1.5rem 1.5rem; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--sombra); flex-wrap: wrap; gap: 1rem; }
+        .filtros-bonos { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .filtros-bonos select, .filtros-bonos input { padding: 0.5rem; border: 1px solid var(--color-borde); border-radius: var(--radio-borde); }
+        .resumen-bonos { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .resumen-bono { background: #fff; border-radius: var(--radio-borde); box-shadow: var(--sombra); padding: 1rem 1.25rem; border-left: 4px solid var(--color-primario); }
+        .resumen-bono span { display: block; font-size: 0.85rem; color: #666; }
+        .resumen-bono strong { font-size: 1.8rem; color: var(--color-primario); }
+        .resumen-bono.pendiente { border-left-color: #f59e0b; }
+        .resumen-bono.pendiente strong { color: #b45309; }
+        .resumen-bono.entregado { border-left-color: #16a34a; }
+        .resumen-bono.entregado strong { color: #15803d; }
+        .resumen-bono.regla strong { font-size: 1.1rem; }
+        .bono-estado { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
+        .bono-estado.pendiente { background: #fef3c7; color: #92400e; }
+        .bono-estado.entregado { background: #d4edda; color: #155724; }
+        .asociado-email, .entrega-detalle { font-size: 0.8rem; color: #666; word-break: break-word; }
+        .btn-entregar { padding: 0.4rem 0.75rem; border: none; border-radius: var(--radio-borde); background: #16a34a; color: #fff; cursor: pointer; font-size: 0.85rem; white-space: nowrap; }
+        .btn-entregar:hover { background: #15803d; }
+        .btn-deshacer { padding: 0.4rem 0.75rem; border: 1px solid var(--color-borde); border-radius: var(--radio-borde); background: #fff; color: #666; cursor: pointer; font-size: 0.85rem; white-space: nowrap; }
+        .seccion-titulo { font-size: 1.1rem; color: var(--color-primario); margin: 2rem 0 0.75rem; }
+        .seccion-ayuda { font-size: 0.85rem; color: #666; margin: -0.5rem 0 0.75rem; }
+        @media (max-width: 768px) { .admin-sidebar { display: none; } .admin-main { margin-left: 0; } }
+    </style>
+</head>
+<body>
+    <aside class="admin-sidebar">
+        <a href="index.html" class="admin-sidebar-logo">
+            <img src="../../01-principal/imagenes/LogoTCPCircle.png" alt="Logo">
+            <span>Admin Tienda</span>
+        </a>
+        <ul class="admin-sidebar-menu">
+            <li><a href="index.html"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+            <li><a href="productos.html"><i class="fas fa-box"></i> Productos</a></li>
+            <li><a href="categorias.html"><i class="fas fa-tags"></i> Categorías</a></li>
+            <li><a href="pedidos.html"><i class="fas fa-shopping-bag"></i> Pedidos</a></li>
+            <li><a href="correos.html"><i class="fas fa-envelope"></i> Correos</a></li>
+            <li><a href="bonos.html" class="activo"><i class="fas fa-gift"></i> Bonos</a></li>
+            <li><a href="../php/logout_admin.php" onclick="return confirm('¿Desea ir a la tienda? Se cerrará su sesión de administrador.');"><i class="fas fa-store"></i> Ver Tienda</a></li>
+            <li style="margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 1rem;">
+                <a href="../php/logout_admin.php" style="color: #ff6b6b;"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
+            </li>
+        </ul>
+    </aside>
+
+    <main class="admin-main">
+        <div class="admin-header-bar">
+            <h1 style="font-size: 1.5rem; color: var(--color-primario);"><i class="fas fa-gift"></i> Bonos por Puntos</h1>
+            <div class="filtros-bonos">
+                <input type="text" id="filtro-buscar" placeholder="Nombre o email">
+                <select id="filtro-estado" onchange="cargarBonos()">
+                    <option value="pendiente">Pendientes de entrega</option>
+                    <option value="entregado">Entregados</option>
+                    <option value="">Todos</option>
+                </select>
+                <button class="btn-accion editar" onclick="cargarBonos()" title="Actualizar"><i class="fas fa-sync-alt"></i></button>
+                <button class="btn-accion editar" onclick="exportarCsv()" title="Descargar en Excel (CSV)"><i class="fas fa-file-download"></i></button>
+            </div>
+        </div>
+
+        <div class="resumen-bonos">
+            <div class="resumen-bono pendiente"><span>Pendientes de entrega</span><strong id="res-pendientes">-</strong></div>
+            <div class="resumen-bono entregado"><span>Entregados</span><strong id="res-entregados">-</strong></div>
+            <div class="resumen-bono"><span>Asociados con bono</span><strong id="res-asociados">-</strong></div>
+            <div class="resumen-bono regla"><span>Regla</span><strong id="res-regla">1 bono cada 50 puntos</strong></div>
+        </div>
+
+        <div class="admin-tabla-container">
+            <table class="admin-tabla" id="tabla-bonos">
+                <thead>
+                    <tr>
+                        <th>Asociado</th>
+                        <th>Bono</th>
+                        <th>Obtenido</th>
+                        <th>Puntos hoy</th>
+                        <th>Estado</th>
+                        <th>Entrega</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="7"><div class="loading"><div class="spinner"></div></div></td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h2 class="seccion-titulo"><i class="fas fa-hourglass-half"></i> Próximos a obtener bono</h2>
+        <p class="seccion-ayuda">Asociados a los que les faltan 10 puntos o menos para su siguiente bono.</p>
+        <div class="admin-tabla-container">
+            <table class="admin-tabla" id="tabla-proximos">
+                <thead>
+                    <tr>
+                        <th>Asociado</th>
+                        <th>Puntos</th>
+                        <th>Siguiente bono</th>
+                        <th>Le faltan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="4"><div class="loading"><div class="spinner"></div></div></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script src="../../sweetalert2.min.js"></script>
+    <script>
+        const API_BASE = '../php/admin.php';
+        let bonos = [];
+
+        document.addEventListener('DOMContentLoaded', cargarBonos);
+        document.getElementById('filtro-buscar').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') cargarBonos();
+        });
+
+        function escaparHtml(texto) {
+            const div = document.createElement('div');
+            div.textContent = texto == null ? '' : String(texto);
+            return div.innerHTML;
+        }
+
+        async function cargarBonos() {
+            const params = new URLSearchParams({ action: 'bonos_listar' });
+            const estado = document.getElementById('filtro-estado').value;
+            const buscar = document.getElementById('filtro-buscar').value.trim();
+            if (estado) params.append('estado', estado);
+            if (buscar) params.append('buscar', buscar);
+
+            const tbody = document.querySelector('#tabla-bonos tbody');
+            tbody.innerHTML = '<tr><td colspan="7"><div class="loading"><div class="spinner"></div></div></td></tr>';
+
+            try {
+                const response = await fetch(`${API_BASE}?${params}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    bonos = data.bonos;
+                    renderizarResumen(data.resumen);
+                    renderizarBonos();
+                    renderizarProximos(data.proximos);
+                } else {
+                    Swal.fire('Error', data.error, 'error').then(() => window.location.href = '../index.html');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                tbody.innerHTML = '<tr><td colspan="7">Error al cargar los bonos</td></tr>';
+            }
+        }
+
+        function renderizarResumen(r) {
+            document.getElementById('res-pendientes').textContent = r.pendientes;
+            document.getElementById('res-entregados').textContent = r.entregados;
+            document.getElementById('res-asociados').textContent = r.asociados;
+            document.getElementById('res-regla').textContent = `1 bono cada ${r.puntos_por_bono} puntos`;
+        }
+
+        function renderizarBonos() {
+            const tbody = document.querySelector('#tabla-bonos tbody');
+            if (bonos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7">No hay bonos con este filtro</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = bonos.map(b => {
+                const entregado = b.estado === 'entregado';
+                const entrega = entregado
+                    ? `${escaparHtml(b.fecha_entrega_formateada)}
+                       <div class="entrega-detalle">${escaparHtml(b.entregado_por || '')}</div>
+                       ${b.nota ? `<div class="entrega-detalle"><i class="fas fa-sticky-note"></i> ${escaparHtml(b.nota)}</div>` : ''}`
+                    : (b.nota ? `<div class="entrega-detalle"><i class="fas fa-sticky-note"></i> ${escaparHtml(b.nota)}</div>` : '-');
+                return `
+                    <tr>
+                        <td>
+                            <strong>${escaparHtml(`${b.nombres} ${b.apellidos}`)}</strong>
+                            <div class="asociado-email">${escaparHtml(b.email)}</div>
+                            ${b.telefono ? `<div class="asociado-email"><i class="fas fa-phone"></i> ${escaparHtml(b.telefono)}</div>` : ''}
+                        </td>
+                        <td><strong>#${b.numero}</strong><div class="asociado-email">${b.puntos_meta} pts</div></td>
+                        <td>${escaparHtml(b.fecha_obtenido_formateada)}</td>
+                        <td>${b.puntos_actuales}</td>
+                        <td><span class="bono-estado ${entregado ? 'entregado' : 'pendiente'}">${entregado ? '<i class="fas fa-check"></i> Entregado' : '<i class="fas fa-clock"></i> Pendiente'}</span></td>
+                        <td>${entrega}</td>
+                        <td>
+                            ${entregado
+                                ? `<button class="btn-deshacer" onclick="deshacerEntrega(${b.id})" title="Volver a pendiente"><i class="fas fa-undo"></i> Deshacer</button>`
+                                : `<button class="btn-entregar" onclick="marcarEntregado(${b.id})"><i class="fas fa-check"></i> Marcar entregado</button>`}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderizarProximos(proximos) {
+            const tbody = document.querySelector('#tabla-proximos tbody');
+            if (!proximos || proximos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4">Nadie está a 10 puntos o menos de su siguiente bono</td></tr>';
+                return;
+            }
+            tbody.innerHTML = proximos.map(p => `
+                <tr>
+                    <td><strong>${escaparHtml(p.nombre)}</strong><div class="asociado-email">${escaparHtml(p.email)}</div></td>
+                    <td>${p.puntos}</td>
+                    <td>#${p.siguiente_bono}</td>
+                    <td>${p.puntos_faltantes} pts</td>
+                </tr>
+            `).join('');
+        }
+
+        async function marcarEntregado(id) {
+            const b = bonos.find(x => x.id === id);
+            const result = await Swal.fire({
+                title: '¿Marcar bono como entregado?',
+                html: `<p>${escaparHtml(`${b.nombres} ${b.apellidos}`)} - bono #${b.numero}</p>`,
+                input: 'textarea',
+                inputLabel: 'Nota (opcional): cómo se entregó, número de transferencia, etc.',
+                inputAttributes: { maxlength: 255 },
+                showCancelButton: true,
+                confirmButtonText: 'Sí, entregado',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#16a34a'
+            });
+            if (!result.isConfirmed) return;
+            await actualizarBono(id, 'entregado', result.value || '');
+        }
+
+        async function deshacerEntrega(id) {
+            const result = await Swal.fire({
+                icon: 'warning',
+                title: '¿Volver el bono a pendiente?',
+                text: 'Úsalo solo si se marcó como entregado por error.',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, volver a pendiente',
+                cancelButtonText: 'Cancelar'
+            });
+            if (!result.isConfirmed) return;
+            await actualizarBono(id, 'pendiente', '');
+        }
+
+        async function actualizarBono(id, estado, nota) {
+            const formData = new FormData();
+            formData.append('id', id);
+            formData.append('estado', estado);
+            formData.append('nota', nota);
+            try {
+                const response = await fetch(`${API_BASE}?action=bono_actualizar`, { method: 'POST', body: formData });
+                const data = await response.json();
+                if (data.success) {
+                    Swal.fire({ icon: 'success', title: data.mensaje, timer: 1500, showConfirmButton: false });
+                    cargarBonos();
+                } else {
+                    Swal.fire('Error', data.error || 'No se pudo actualizar', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire('Error', 'Error de conexión', 'error');
+            }
+        }
+
+        // CSV con punto y coma (Excel en español) y BOM para tildes
+        function exportarCsv() {
+            if (!bonos.length) {
+                Swal.fire('Sin datos', 'No hay bonos para exportar con este filtro.', 'info');
+                return;
+            }
+            const columnas = ['Nombre', 'Email', 'Teléfono', 'Bono', 'Puntos meta', 'Obtenido', 'Puntos hoy', 'Estado', 'Fecha entrega', 'Entregado por', 'Nota'];
+            const filas = bonos.map(b => [
+                `${b.nombres} ${b.apellidos}`, b.email, b.telefono || '', `#${b.numero}`, b.puntos_meta,
+                b.fecha_obtenido_formateada, b.puntos_actuales, b.estado, b.fecha_entrega_formateada,
+                b.entregado_por || '', b.nota || ''
+            ]);
+            const csv = [columnas, ...filas]
+                .map(f => f.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';'))
+                .join('\r\n');
+            const enlace = document.createElement('a');
+            enlace.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
+            enlace.download = `bonos-${new Date().toISOString().slice(0, 10)}.csv`;
+            enlace.click();
+            setTimeout(() => URL.revokeObjectURL(enlace.href), 1000);
+        }
+    </script>
+</body>
+</html>

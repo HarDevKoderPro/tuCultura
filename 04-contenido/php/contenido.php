@@ -19,6 +19,7 @@ $registrosIniciales = obtenerRegistrosNivel1($conn, $_SESSION['email']);
 // Puntos acumulados por compras aprobadas (propias y de referidos nivel 1 y 2)
 $puntosAcumulados = obtenerPuntosUsuario($conn, (int)$_SESSION['user_id']);
 $valorPunto       = obtenerValorPunto($conn);
+$bonos            = obtenerBonosUsuario($conn, (int)$_SESSION['user_id'], $puntosAcumulados);
 
 // Las cuentas de administrador no pueden comprar en la tienda (el carrito de las tarjetas lo avisa)
 $esCuentaAdmin = isset($_SESSION['rol']) && $_SESSION['rol'] !== 'cliente';
@@ -246,7 +247,7 @@ $esCuentaAdmin = isset($_SESSION['rol']) && $_SESSION['rol'] !== 'cliente';
       <div class="balanceGeneral">
 
         <!-- No clickeable — Puntos por compras aprobadas en la tienda (propias y de referidos nivel 1 y 2) -->
-        <div class="stat-card stat-card--puntos" title="+1 por cada compra tuya o de tus referidos (nivel 1 y 2)">
+        <div class="stat-card stat-card--puntos" title="+1 por cada compra tuya o de tus referidos (nivel 1 y 2). Cada <?php echo $bonos['puntos_por_bono']; ?> puntos obtienes un bono.">
           <h3>⭐ Mis Puntos</h3>
           <p class="stat-value"><?php echo $puntosAcumulados; ?></p>
           <p class="stat-equivalente">
@@ -254,6 +255,23 @@ $esCuentaAdmin = isset($_SESSION['rol']) && $_SESSION['rol'] !== 'cliente';
               ? '≈ $ ' . number_format($puntosAcumulados * $valorPunto, 0, ',', '.') . ' COP'
               : 'Valor por definir'; ?>
           </p>
+          <!-- Bonos: uno cada 50 puntos acumulados (bonos-helpers.php) -->
+          <div class="puntos-bono">
+            <?php if ($bonos['bonos_disponibles'] > 0): ?>
+              <p class="bono-disponible">🎁 ¡Tienes <?php echo $bonos['bonos_disponibles'] === 1 ? 'un bono disponible' : $bonos['bonos_disponibles'] . ' bonos disponibles'; ?>!</p>
+            <?php endif; ?>
+            <div class="bono-barra" role="progressbar" aria-label="Avance al siguiente bono"
+                 aria-valuemin="0" aria-valuemax="100" aria-valuenow="<?php echo $bonos['porcentaje_siguiente']; ?>">
+              <span style="width: <?php echo $bonos['porcentaje_siguiente']; ?>%"></span>
+            </div>
+            <p class="bono-faltan">
+              Te <?php echo $bonos['puntos_faltantes'] === 1 ? 'falta 1 punto' : 'faltan ' . $bonos['puntos_faltantes'] . ' puntos'; ?>
+              para tu <?php echo $bonos['bonos_obtenidos'] > 0 ? 'bono #' . $bonos['siguiente_bono'] : 'primer bono'; ?>
+            </p>
+            <?php if ($bonos['bonos_entregados'] > 0): ?>
+              <p class="bono-entregados"><?php echo $bonos['bonos_entregados'] === 1 ? '1 bono entregado' : $bonos['bonos_entregados'] . ' bonos entregados'; ?></p>
+            <?php endif; ?>
+          </div>
         </div>
 
         <!-- No clickeable — Total del sistema -->
