@@ -739,6 +739,62 @@ body.visor-fotos-abierto { overflow: hidden; }
     .visor-miniatura { width: 50px; height: 50px; }
 }
 
+/* Aviso de invitacion a afiliarse (js/invitacion.js), bajo la cabecera */
+.aviso-invitacion {
+    background: #fff8e1;
+    border-bottom: 1px solid #ffe08a;
+    color: var(--color-texto);
+}
+
+.aviso-invitacion-contenido {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0.7rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.aviso-invitacion-icono { color: var(--color-acento); font-size: 1.3rem; flex: 0 0 auto; }
+.aviso-invitacion p { margin: 0; flex: 1; font-size: 0.95rem; line-height: 1.4; }
+.aviso-invitacion strong { color: var(--color-primario); }
+
+.aviso-invitacion-boton {
+    flex: 0 0 auto;
+    padding: 0.5rem 1rem;
+    background: var(--color-acento);
+    color: #fff;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.aviso-invitacion-boton:hover { background: #e55a2b; }
+
+.aviso-invitacion-cerrar {
+    flex: 0 0 auto;
+    width: 2rem;
+    height: 2rem;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    color: var(--color-texto-claro);
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.aviso-invitacion-cerrar:hover { background: rgba(0, 0, 0, 0.06); }
+
+@media (max-width: 767px) {
+    .aviso-invitacion-contenido { flex-wrap: wrap; padding: 0.6rem 0.75rem; gap: 0.5rem 0.6rem; }
+    .aviso-invitacion p { flex-basis: calc(100% - 5rem); font-size: 0.88rem; }
+    .aviso-invitacion-cerrar { order: 2; }
+    .aviso-invitacion-boton { order: 3; margin-left: 2rem; }
+}
+
 /* Compartir producto con un contacto (catalogo y producto.html, js/compartir.js) */
 .producto-categoria-fila {
     display: flex;

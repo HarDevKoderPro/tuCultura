@@ -26,6 +26,7 @@ Contexto minimo para implementar nuevas funcionalidades sin romper lo existente,
 - `producto.html` - `js/producto.js`; `carrito.html` - `js/carrito.js`; `checkout.html` - `js/checkout.js`.
 - `confirmacion.html`; `mis-pedidos.html` - `js/pedidos.js`; `js/sesion-ui.js` (menu "Mi cuenta" del icono de usuario).
 - `js/compartir.js`: boton "Compartir" (estilo Mercado Libre) en el modal del catalogo (`#btn-modal-compartir`) y en `producto.html`; en celular abre el menu nativo del telefono, en computador una ventana con WhatsApp/Facebook/X/Telegram/Correo y enlace para copiar. Comparte `php/compartir.php?id=N`: pagina con etiquetas Open Graph (nombre, precio, descripcion, foto) que redirige a `producto.html?id=N`; `&imagen=1` entrega la foto en JPEG para la vista previa.
+- `js/invitacion.js` (en todas las paginas con `sesion-ui.js`): guarda `?ref=` 30 dias en localStorage `tcp_invitacion` (gana el ultimo) y, sin sesion, muestra bajo la cabecera el aviso `#aviso-invitacion` "X te invito... Registrate" con boton a `03-registrarse/registrarse.html?ref=&volver=`; cerrarlo lo oculta en esa sesion del navegador. `window.TCPInvitacion.codigo()`.
 - `js/galeria-producto.js` (`montarGaleriaProducto`): foto grande + tira de miniaturas (solo si hay 2 o mas fotos; con mouse, pasar sobre una miniatura cambia la foto; en celular se desliza la foto) y visor a pantalla completa al hacer clic en una miniatura o en la foto grande (flechas, contador, miniaturas, Esc/teclado/deslizar; `.visor-fotos`, z-index 3000) en el modal del catalogo (`#detalle-miniaturas`, fotos de `productos.php?action=imagenes`) y en `producto.html` (`#producto-miniaturas`, de `producto.imagenes` del detalle).
 
 ### Frontend admin
@@ -37,7 +38,7 @@ Contexto minimo para implementar nuevas funcionalidades sin romper lo existente,
 - Pagos/puntos: `pagos.php`, `puntos-pagos-helpers.php`, `migrar_pagos_puntos.php`.
 - `correo-pedidos.php`: correo al comprador + aviso a la tienda (reusa PHPMailer de `02-iniciarSesion/php/PHPMailer`); cada envio queda en `correos_tienda`.
 - `compartir.php`: vista previa para redes sociales de un producto (HTML, no JSON; ver `js/compartir.js`). Acepta `&ref=CODIGO` (invitacion del asociado que comparte) y lo pasa a `producto.html?id=N&ref=CODIGO`.
-- `invitaciones.php` + `invitaciones-helpers.php`: codigos de invitacion de asociados (`action=mi_codigo`: codigo del usuario con sesion, '' sin sesion). `compartir.js` lo agrega a los enlaces que comparte un asociado con sesion.
+- `invitaciones.php` + `invitaciones-helpers.php`: codigos de invitacion de asociados (`action=mi_codigo`: codigo del usuario con sesion, '' sin sesion; `action=resolver&ref=`: `valido`, `nombre` corto, nunca el email). `compartir.js` lo agrega a los enlaces que comparte un asociado con sesion.
 - `cancelar_pedidos_abandonados.php`: solo CLI (por web responde 404), lo ejecuta el cron.
 - `imagenes-productos.php`: `optimizarImagenProducto()` genera un WebP optimizado (lado mayor 1200 px, calidad 82, conserva transparencia) de cada foto subida en el admin; el producto usa el WebP y el original queda en disco. Requiere GD con WebP (Dockerfile). `optimizar_imagenes_productos.php`: solo CLI, aplica lo mismo a las fotos existentes (`--simular` para ver sin cambiar).
 
@@ -206,7 +207,7 @@ Se ejecuta en orden, paso a paso; cada punto se evalua y aprueba con el usuario 
 
 Extra aprobado (2026-10-18): invitacion a afiliarse dentro del enlace de producto. Decisiones del usuario: el invitado solo ve el nombre corto de quien lo invito ("Maria G."), nunca su email; si abre enlaces de dos asociados gana el ultimo; en el registro el patrocinador viene listo pero se puede cambiar ("¿Te invito otra persona?"). Paso a paso con aprobacion:
 - [x] 1. El enlace de "Compartir" lleva `&ref=CODIGO` del asociado con sesion (`codigos_invitacion`, `invitaciones.php?action=mi_codigo`); `compartir.php` lo pasa a `producto.html`.
-- [ ] 2. La tienda guarda el codigo 30 dias (ultimo gana) y, sin sesion, muestra el aviso "X te invito... Registrate para comprar y ganar puntos" con boton Registrarme (`invitaciones.php?action=resolver`).
+- [x] 2. La tienda guarda el codigo 30 dias (ultimo gana) y, sin sesion, muestra el aviso "X te invito... Registrate para comprar y ganar puntos" con boton Registrarme (`invitaciones.php?action=resolver`).
 - [ ] 3. Registro (`03-registrarse`) con "Te invito: X" resuelto por codigo (backend traduce codigo -> email de referente), enlace para cambiarlo y regreso al producto al terminar. El registro normal no cambia.
 - [ ] 4. Verificar puntos: compra aprobada del invitado suma a su patrocinador (nivel 1) y al de este (nivel 2), sin cambios de codigo.
 - [ ] 5. Boton "Mi enlace de invitacion" en `04-contenido` (aprobado para despues de 1-4).
@@ -269,3 +270,4 @@ Actualizar al cerrar cada iteracion que cambie rutas/paginas, endpoints o contra
 - 2026-10-18: compartir producto con un contacto: boton "Compartir" en el modal del catalogo y en `producto.html` (`js/compartir.js`) y vista previa Open Graph con foto JPEG (`php/compartir.php`).
 - 2026-10-18: varias fotos por producto: tabla `producto_imagenes`, seccion "Fotos adicionales" en el admin, tira de miniaturas en el modal del catalogo y en `producto.html` (`js/galeria-producto.js`) y visor ampliado al hacer clic.
 - 2026-10-18: invitacion en enlaces de producto, paso 1: `codigos_invitacion`, `invitaciones.php?action=mi_codigo`, `compartir.php` acepta `ref`.
+- 2026-10-18: invitacion paso 2: `js/invitacion.js` (codigo 30 dias + aviso para visitantes sin sesion), `invitaciones.php?action=resolver`.
