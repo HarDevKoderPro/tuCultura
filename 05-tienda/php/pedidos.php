@@ -179,7 +179,7 @@ function crearPedido($conn) {
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmtPedido->bind_param(
-            "siddddsssssssss",
+            "siddddssssssssss",
             $numero_pedido, $usuario_id, $subtotal, $costo_envio, $impuestos, $total,
             $metodo_pago, $nombre, $apellido, $telefono, $email,
             $direccion, $ciudad, $departamento, $codigo_postal, $notas

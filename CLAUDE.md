@@ -285,3 +285,4 @@ Actualizar al cerrar cada iteracion que cambie rutas/paginas, endpoints o contra
 - 2026-10-18: bonos por puntos (1 cada 50): `bonos-helpers.php`, tabla `bonos_puntos`, card "Mis Puntos" con bonos y faltantes en `04-contenido`, reporte `admin/bonos.html` (`bonos_listar`, `bono_actualizar`).
 - 2026-10-18: reporte de bonos con tarjetas clicables, vista por asociado y eliminar (anular con motivo) / restaurar.
 - 2026-10-18: bonos redimibles en compras: bono = floor(saldo/50), vale 50 x valor del punto, se aplica en el checkout (`usar_bono`), descuenta 50 puntos y queda entregado con el pedido (`pedidos.descuento_bono`); cancelar el pedido lo devuelve; entrega manual/eliminar restan puntos y deshacer/restaurar los devuelven.
+- 2026-10-18: corregido error heredado en `pedidos.php?action=crear` (bind_param con 15 tipos para 16 valores: PHP 8 lanzaba ArgumentCountError). Contraentrega y transferencia nunca habian creado pedidos en el VPS; MercadoPago no estaba afectado.
