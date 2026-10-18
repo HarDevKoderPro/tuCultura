@@ -620,6 +620,125 @@ body {
     background: #f6f7f9;
 }
 
+/* Foto que abre el visor ampliado */
+.galeria-ampliable { cursor: zoom-in; }
+
+/* Visor de fotos ampliadas (pantalla completa, sobre el modal de detalle) */
+body.visor-fotos-abierto { overflow: hidden; }
+
+.visor-fotos {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    display: flex;
+    flex-direction: column;
+    background: rgba(10, 14, 20, 0.94);
+    color: #fff;
+    animation: visor-entrar 0.2s ease-out;
+}
+
+.visor-fotos[hidden] { display: none; }
+
+@keyframes visor-entrar { from { opacity: 0; } to { opacity: 1; } }
+
+.visor-barra {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+}
+
+.visor-contador { font-size: 0.95rem; opacity: 0.85; }
+
+.visor-cerrar {
+    width: 2.75rem;
+    height: 2.75rem;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    font-size: 1.8rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.visor-escenario {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4rem;
+}
+
+.visor-imagen {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    background: #fff;
+    border-radius: 8px;
+    user-select: none;
+}
+
+.visor-flecha {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3rem;
+    height: 3rem;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.visor-flecha:hover,
+.visor-cerrar:hover { background: rgba(255, 255, 255, 0.28); }
+.visor-anterior { left: 0.75rem; }
+.visor-siguiente { right: 0.75rem; }
+
+.visor-miniaturas {
+    display: flex;
+    justify-content: safe center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem 1rem;
+    overflow-x: auto;
+}
+
+.visor-miniatura {
+    flex: 0 0 auto;
+    width: 60px;
+    height: 60px;
+    padding: 2px;
+    background: #fff;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    opacity: 0.55;
+    cursor: pointer;
+    transition: opacity 0.2s, border-color 0.2s;
+}
+
+.visor-miniatura img { width: 100%; height: 100%; object-fit: contain; border-radius: 5px; }
+.visor-miniatura:hover { opacity: 0.85; }
+.visor-miniatura.activa { opacity: 1; border-color: var(--color-acento); }
+
+.visor-fotos.una-foto .visor-flecha,
+.visor-fotos.una-foto .visor-miniaturas { display: none; }
+
+.visor-fotos button:focus-visible { outline: 2px solid var(--color-acento); outline-offset: 2px; }
+
+@media (max-width: 767px) {
+    .visor-escenario { padding: 0 0.5rem; }
+    .visor-flecha { width: 2.5rem; height: 2.5rem; background: rgba(0, 0, 0, 0.35); }
+    .visor-anterior { left: 0.5rem; }
+    .visor-siguiente { right: 0.5rem; }
+    .visor-miniatura { width: 50px; height: 50px; }
+}
+
 /* Compartir producto con un contacto (catalogo y producto.html, js/compartir.js) */
 .producto-categoria-fila {
     display: flex;
