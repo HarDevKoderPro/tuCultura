@@ -128,6 +128,7 @@
             width: 100%; box-sizing: border-box; padding: 0.45rem 0.5rem;
             border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem;
         }
+        .rangos-puntos-tabla input.rango-falta { border-color: #dc3545; background: #fff5f5; }
         .rangos-puntos-tabla .col-puntos { width: 80px; }
         .rangos-puntos-tabla .col-quitar { width: 36px; text-align: center; }
         .btn-quitar-rango { background: none; border: none; color: #dc3545; cursor: pointer; font-size: 1rem; }
@@ -800,9 +801,9 @@
         function filaRangoPuntos(rango = {}) {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><input type="text" inputmode="numeric" class="rango-desde" placeholder="0" aria-label="Desde (COP)"></td>
+                <td><input type="text" inputmode="numeric" class="rango-desde" aria-label="Desde (COP)"></td>
                 <td><input type="text" inputmode="numeric" class="rango-hasta" placeholder="Sin límite" aria-label="Hasta (COP)"></td>
-                <td class="col-puntos"><input type="text" inputmode="numeric" class="rango-puntos" placeholder="1" aria-label="Puntos"></td>
+                <td class="col-puntos"><input type="text" inputmode="numeric" class="rango-puntos" aria-label="Puntos"></td>
                 <td class="col-quitar"><button type="button" class="btn-quitar-rango" title="Quitar rango"><i class="fas fa-times"></i></button></td>
             `;
             tr.querySelector('.rango-desde').value = rango.desde !== undefined ? formatearMiles(rango.desde) : '';
@@ -814,6 +815,7 @@
             tr.querySelector('.rango-puntos').addEventListener('input', e => {
                 e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
             });
+            tr.addEventListener('input', e => e.target.classList.remove('rango-falta'));
             return tr;
         }
 
@@ -890,14 +892,21 @@
                 preConfirm: async () => {
                     const filas = [...document.querySelectorAll('#swal-rangos-cuerpo tr')];
                     const datos = [];
+                    document.querySelectorAll('#swal-rangos-cuerpo .rango-falta').forEach(c => c.classList.remove('rango-falta'));
                     for (const [i, fila] of filas.entries()) {
                         const desde = fila.querySelector('.rango-desde').value.replace(/\D/g, '');
                         const hasta = fila.querySelector('.rango-hasta').value.replace(/\D/g, '');
                         const puntos = fila.querySelector('.rango-puntos').value.replace(/\D/g, '');
                         // Fila totalmente vacía: se ignora
                         if (desde === '' && hasta === '' && puntos === '') continue;
-                        if (desde === '' || puntos === '') {
-                            Swal.showValidationMessage(`Rango ${i + 1}: completa "Desde" y "Puntos"`);
+                        // Casillas obligatorias vacías: se marcan en rojo
+                        const faltan = [];
+                        if (desde === '') faltan.push(['.rango-desde', '"Desde"']);
+                        if (puntos === '') faltan.push(['.rango-puntos', 'los puntos (0 si no da puntos)']);
+                        if (faltan.length > 0) {
+                            faltan.forEach(([clase]) => fila.querySelector(clase).classList.add('rango-falta'));
+                            fila.querySelector(faltan[0][0]).focus();
+                            Swal.showValidationMessage(`Rango ${i + 1}: escribe ${faltan.map(f => f[1]).join(' y ')}`);
                             return false;
                         }
                         datos.push({ desde, hasta, puntos });
