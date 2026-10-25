@@ -120,6 +120,26 @@
             color: #999;
             margin-top: 0.25rem;
         }
+        /* Ventana de puntos por compra (rangos) */
+        .rangos-puntos-tabla { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .rangos-puntos-tabla th { text-align: left; color: #333; font-weight: 600; padding: 0.3rem; }
+        .rangos-puntos-tabla td { padding: 0.3rem; }
+        .rangos-puntos-tabla input {
+            width: 100%; box-sizing: border-box; padding: 0.45rem 0.5rem;
+            border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem;
+        }
+        .rangos-puntos-tabla .col-puntos { width: 80px; }
+        .rangos-puntos-tabla .col-quitar { width: 36px; text-align: center; }
+        .btn-quitar-rango { background: none; border: none; color: #dc3545; cursor: pointer; font-size: 1rem; }
+        .btn-agregar-rango {
+            margin-top: 0.5rem; padding: 0.4rem 0.8rem; border: 1px dashed #023859; border-radius: 4px;
+            background: #fff; color: #023859; cursor: pointer; font-weight: 600;
+        }
+        .btn-agregar-rango:disabled { opacity: 0.5; cursor: not-allowed; }
+        @media (max-width: 480px) {
+            .rangos-puntos-tabla { font-size: 0.8rem; }
+            .rangos-puntos-tabla .col-puntos { width: 56px; }
+        }
         @media (max-width: 768px) {
             .admin-sidebar { display: none; }
             .admin-main { margin-left: 0; }
@@ -196,8 +216,16 @@
                 <div class="stat-label">Puntos Asociados</div>
                 <div class="umbral-info">Valor del punto: <span id="valorPuntoActual">-</span></div>
                 <div class="umbral-info">Equivalente total: <span id="equivalentePuntos">-</span></div>
+                <div class="umbral-info">Puntos por compra: <span id="rangosPuntosResumen">-</span></div>
+                <div class="umbral-info">Bono: cada <span id="puntosPorBonoActual">-</span> puntos</div>
                 <button class="btn-configurar-umbral" onclick="configurarValorPunto();">
                     <i class="fas fa-cog"></i> Valor del punto
+                </button>
+                <button class="btn-configurar-umbral" onclick="configurarRangosPuntos();">
+                    <i class="fas fa-layer-group"></i> Puntos por compra
+                </button>
+                <button class="btn-configurar-umbral" onclick="configurarPuntosPorBono();">
+                    <i class="fas fa-gift"></i> Puntos por bono
                 </button>
             </div>
         </div>
@@ -252,6 +280,7 @@
         const API_BASE = '../php/admin.php';
         let umbralGlobal = 10; // Variable global para el umbral actual
         let valorPuntoGlobal = 0; // Valor en COP de cada punto (0 = sin definir)
+        let puntosPorBonoGlobal = 50; // Puntos que forman un bono
         
         document.addEventListener('DOMContentLoaded', () => {
             cargarDashboard();
@@ -284,6 +313,15 @@
                         document.getElementById('stat-puntos').textContent = d.puntos_emitidos;
                         document.getElementById('valorPuntoActual').textContent = d.valor_punto > 0 ? d.valor_punto_formateado : 'Sin definir';
                         document.getElementById('equivalentePuntos').textContent = d.valor_punto > 0 ? d.puntos_equivalente_formateado : '-';
+                    }
+                    if (d.puntos_rangos_total !== undefined) {
+                        document.getElementById('rangosPuntosResumen').textContent = d.puntos_rangos_total > 0
+                            ? `${d.puntos_rangos_total} ${d.puntos_rangos_total === 1 ? 'rango' : 'rangos'}`
+                            : '1 punto (sin rangos)';
+                    }
+                    if (d.puntos_por_bono !== undefined) {
+                        puntosPorBonoGlobal = d.puntos_por_bono;
+                        document.getElementById('puntosPorBonoActual').textContent = d.puntos_por_bono.toLocaleString('es-CO');
                     }
                     
                     // Últimos pedidos
@@ -747,6 +785,230 @@
                 }
             } catch (error) {
                 console.error('Error al guardar valor del punto:', error);
+                Swal.fire({ icon: 'error', title: 'Error de conexión', text: 'No se pudo conectar con el servidor', confirmButtonColor: '#dc3545' });
+            }
+        }
+
+        // ==================== PUNTOS POR COMPRA (RANGOS) ====================
+
+        // Pesos con separador de miles mientras se escribe ("100000" -> "100.000")
+        function formatearMiles(texto) {
+            const digitos = String(texto ?? '').replace(/\D/g, '').slice(0, 9);
+            return digitos === '' ? '' : Number(digitos).toLocaleString('es-CO');
+        }
+
+        function filaRangoPuntos(rango = {}) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="text" inputmode="numeric" class="rango-desde" placeholder="0" aria-label="Desde (COP)"></td>
+                <td><input type="text" inputmode="numeric" class="rango-hasta" placeholder="Sin límite" aria-label="Hasta (COP)"></td>
+                <td class="col-puntos"><input type="text" inputmode="numeric" class="rango-puntos" placeholder="1" aria-label="Puntos"></td>
+                <td class="col-quitar"><button type="button" class="btn-quitar-rango" title="Quitar rango"><i class="fas fa-times"></i></button></td>
+            `;
+            tr.querySelector('.rango-desde').value = rango.desde !== undefined ? formatearMiles(rango.desde) : '';
+            tr.querySelector('.rango-hasta').value = rango.hasta !== undefined && rango.hasta !== null ? formatearMiles(rango.hasta) : '';
+            tr.querySelector('.rango-puntos').value = rango.puntos !== undefined ? rango.puntos : '';
+            tr.querySelectorAll('.rango-desde, .rango-hasta').forEach(input => {
+                input.addEventListener('input', () => { input.value = formatearMiles(input.value); });
+            });
+            tr.querySelector('.rango-puntos').addEventListener('input', e => {
+                e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
+            });
+            return tr;
+        }
+
+        async function configurarRangosPuntos() {
+            let rangos = [];
+            let maximo = 8;
+            try {
+                const response = await fetch(`${API_BASE}?action=obtenerRangosPuntos`);
+                const data = await response.json();
+                if (!data.success) throw new Error(data.error || 'Respuesta no válida');
+                rangos = data.rangos;
+                maximo = data.maximo_rangos || maximo;
+            } catch (error) {
+                console.error('Error al cargar rangos de puntos:', error);
+                Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudieron cargar los rangos de puntos', confirmButtonColor: '#dc3545' });
+                return;
+            }
+
+            const resultado = await Swal.fire({
+                title: '⭐ Puntos por compra',
+                width: 640,
+                html: `
+                    <p style="color:#555; margin-bottom:0.8rem; text-align:left;">
+                        Según el valor de los productos de la compra (sin envío y antes del bono),
+                        el comprador y sus referidos de nivel 1 y 2 reciben <strong>cada uno</strong>
+                        los puntos del rango. Se aplica al aprobarse el pago.
+                    </p>
+                    <table class="rangos-puntos-tabla">
+                        <thead>
+                            <tr><th>Desde (COP)</th><th>Hasta (COP)</th><th class="col-puntos">Puntos</th><th class="col-quitar"></th></tr>
+                        </thead>
+                        <tbody id="swal-rangos-cuerpo"></tbody>
+                    </table>
+                    <div style="text-align:left;">
+                        <button type="button" class="btn-agregar-rango" id="swal-agregar-rango"><i class="fas fa-plus"></i> Agregar rango</button>
+                    </div>
+                    <p style="font-size:0.8rem; color:#888; margin-top:0.7rem; text-align:left;">
+                        Deja "Hasta" vacío en el último rango para que no tenga límite. Los rangos no se pueden cruzar
+                        (máximo ${maximo}). Una compra que no cae en ningún rango da 1 punto; usa 0 puntos si un rango
+                        no debe dar puntos. Sin rangos, cada compra da 1 punto.
+                    </p>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Guardar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#023859',
+                focusConfirm: false,
+                showLoaderOnConfirm: true,
+                didOpen: () => {
+                    const cuerpo = document.getElementById('swal-rangos-cuerpo');
+                    const botonAgregar = document.getElementById('swal-agregar-rango');
+                    const actualizarBoton = () => { botonAgregar.disabled = cuerpo.children.length >= maximo; };
+
+                    rangos.forEach(r => cuerpo.appendChild(filaRangoPuntos(r)));
+                    if (rangos.length === 0) cuerpo.appendChild(filaRangoPuntos());
+                    actualizarBoton();
+
+                    botonAgregar.addEventListener('click', () => {
+                        // El nuevo rango empieza donde termina el anterior
+                        const ultimo = cuerpo.lastElementChild;
+                        const hastaAnterior = ultimo ? ultimo.querySelector('.rango-hasta').value.replace(/\D/g, '') : '';
+                        const fila = filaRangoPuntos(hastaAnterior !== '' ? { desde: Number(hastaAnterior) + 1 } : {});
+                        cuerpo.appendChild(fila);
+                        fila.querySelector(hastaAnterior !== '' ? '.rango-hasta' : '.rango-desde').focus();
+                        actualizarBoton();
+                    });
+                    cuerpo.addEventListener('click', e => {
+                        const boton = e.target.closest('.btn-quitar-rango');
+                        if (!boton) return;
+                        boton.closest('tr').remove();
+                        actualizarBoton();
+                    });
+                },
+                preConfirm: async () => {
+                    const filas = [...document.querySelectorAll('#swal-rangos-cuerpo tr')];
+                    const datos = [];
+                    for (const [i, fila] of filas.entries()) {
+                        const desde = fila.querySelector('.rango-desde').value.replace(/\D/g, '');
+                        const hasta = fila.querySelector('.rango-hasta').value.replace(/\D/g, '');
+                        const puntos = fila.querySelector('.rango-puntos').value.replace(/\D/g, '');
+                        // Fila totalmente vacía: se ignora
+                        if (desde === '' && hasta === '' && puntos === '') continue;
+                        if (desde === '' || puntos === '') {
+                            Swal.showValidationMessage(`Rango ${i + 1}: completa "Desde" y "Puntos"`);
+                            return false;
+                        }
+                        datos.push({ desde, hasta, puntos });
+                    }
+
+                    try {
+                        const formData = new FormData();
+                        formData.append('rangos', JSON.stringify(datos));
+                        const response = await fetch(`${API_BASE}?action=actualizarRangosPuntos`, { method: 'POST', body: formData });
+                        const data = await response.json();
+                        if (!data.success) {
+                            Swal.showValidationMessage(data.error || 'No se pudieron guardar los rangos');
+                            return false;
+                        }
+                        return data;
+                    } catch (error) {
+                        console.error('Error al guardar rangos de puntos:', error);
+                        Swal.showValidationMessage('No se pudo conectar con el servidor');
+                        return false;
+                    }
+                }
+            });
+
+            if (!resultado.isConfirmed) return;
+            const guardados = resultado.value.rangos || [];
+            Swal.fire({
+                icon: 'success',
+                title: '¡Rangos guardados!',
+                html: guardados.length > 0
+                    ? guardados.map(r => `${r.desde_formateado} – ${r.hasta_formateado}: <strong>${r.puntos} ${r.puntos === 1 ? 'punto' : 'puntos'}</strong>`).join('<br>')
+                    : 'Sin rangos: cada compra da <strong>1 punto</strong>.',
+                confirmButtonColor: '#023859'
+            });
+            cargarDashboard();
+        }
+
+        // ==================== PUNTOS POR BONO ====================
+
+        async function configurarPuntosPorBono() {
+            const { value: nuevoValor } = await Swal.fire({
+                title: '🎁 Puntos por bono',
+                html: `
+                    <p style="color:#555; margin-bottom:1rem;">
+                        Cuántos puntos acumulados forman un bono. El bono vale estos puntos
+                        multiplicados por el valor del punto y se redime en una compra de la tienda.
+                    </p>
+                    <label for="swal-puntos-bono" style="display:block; text-align:left; font-weight:600; margin-bottom:0.3rem; color:#333;">
+                        Puntos por bono:
+                    </label>
+                    <input type="number" id="swal-puntos-bono" class="swal2-input"
+                           min="1" max="10000" step="1" value="${puntosPorBonoGlobal}"
+                           style="width:100%; margin:0; box-sizing:border-box;">
+                    <p id="swal-puntos-bono-valor" style="font-size:0.85rem; color:#023859; margin-top:0.5rem;"></p>
+                    <p style="font-size:0.8rem; color:#888; margin-top:0.5rem; text-align:left;">
+                        Los bonos pendientes de los asociados se recalculan con el nuevo valor
+                        (sus puntos no se pierden). Los bonos ya entregados o usados en compras no cambian.
+                        Rango: 1 - 10.000.
+                    </p>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Guardar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#023859',
+                focusConfirm: false,
+                didOpen: () => {
+                    const input = document.getElementById('swal-puntos-bono');
+                    const aviso = document.getElementById('swal-puntos-bono-valor');
+                    const mostrarValor = () => {
+                        const puntos = parseInt(input.value, 10);
+                        aviso.textContent = valorPuntoGlobal > 0 && puntos > 0
+                            ? `Cada bono valdría ${(puntos * valorPuntoGlobal).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}`
+                            : '';
+                    };
+                    input.addEventListener('input', mostrarValor);
+                    mostrarValor();
+                },
+                preConfirm: () => {
+                    const texto = document.getElementById('swal-puntos-bono').value.trim();
+                    if (!/^\d{1,5}$/.test(texto) || parseInt(texto, 10) < 1 || parseInt(texto, 10) > 10000) {
+                        Swal.showValidationMessage('Ingresa un número entero entre 1 y 10.000');
+                        return false;
+                    }
+                    return String(parseInt(texto, 10));
+                }
+            });
+
+            if (nuevoValor === undefined) return;
+
+            try {
+                const formData = new FormData();
+                formData.append('valor', nuevoValor);
+                const response = await fetch(`${API_BASE}?action=actualizarPuntosPorBono`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Puntos por bono actualizados!',
+                        html: `Cada bono es ahora de <strong>${data.puntos_por_bono} puntos</strong>` +
+                            (data.valor_bono > 0 ? ` y vale <strong>${data.valor_bono_formateado}</strong>.` : '. Define el valor del punto para darle valor en pesos.'),
+                        confirmButtonColor: '#023859'
+                    });
+                    cargarDashboard();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Error', text: data.error || 'No se pudo actualizar', confirmButtonColor: '#dc3545' });
+                }
+            } catch (error) {
+                console.error('Error al guardar puntos por bono:', error);
                 Swal.fire({ icon: 'error', title: 'Error de conexión', text: 'No se pudo conectar con el servidor', confirmButtonColor: '#dc3545' });
             }
         }

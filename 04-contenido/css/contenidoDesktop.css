@@ -479,7 +479,7 @@ body {
   margin-top: 2px;
 }
 
-/* Bonos dentro de la card de puntos (uno cada 50 puntos) */
+/* Bonos dentro de la card de puntos (uno cada puntos_por_bono puntos) */
 .puntos-bono {
   margin-top: 8px;
   padding-top: 8px;

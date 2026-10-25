@@ -247,7 +247,7 @@ $esCuentaAdmin = isset($_SESSION['rol']) && $_SESSION['rol'] !== 'cliente';
       <div class="balanceGeneral">
 
         <!-- No clickeable — Puntos por compras aprobadas en la tienda (propias y de referidos nivel 1 y 2) -->
-        <div class="stat-card stat-card--puntos" title="+1 por cada compra tuya o de tus referidos (nivel 1 y 2). Cada <?php echo $bonos['puntos_por_bono']; ?> puntos obtienes un bono.">
+        <div class="stat-card stat-card--puntos" title="Ganas puntos por cada compra tuya o de tus referidos (nivel 1 y 2), según el valor de la compra. Cada <?php echo $bonos['puntos_por_bono']; ?> puntos obtienes un bono.">
           <h3>⭐ Mis Puntos</h3>
           <p class="stat-value"><?php echo $puntosAcumulados; ?></p>
           <p class="stat-equivalente">
@@ -255,7 +255,7 @@ $esCuentaAdmin = isset($_SESSION['rol']) && $_SESSION['rol'] !== 'cliente';
               ? '≈ $ ' . number_format($puntosAcumulados * $valorPunto, 0, ',', '.') . ' COP'
               : 'Valor por definir'; ?>
           </p>
-          <!-- Bonos: uno cada 50 puntos; se redime en una compra de la tienda y los puntos vuelven a acumular (bonos-helpers.php) -->
+          <!-- Bonos: uno cada puntos_por_bono puntos (configurable en el admin); se redime en una compra de la tienda y los puntos vuelven a acumular (bonos-helpers.php) -->
           <div class="puntos-bono">
             <?php if ($bonos['bonos_disponibles'] > 0): ?>
               <p class="bono-disponible">🎁 ¡Tienes <?php echo $bonos['bonos_disponibles'] === 1 ? 'un bono disponible' : $bonos['bonos_disponibles'] . ' bonos disponibles'; ?>!</p>

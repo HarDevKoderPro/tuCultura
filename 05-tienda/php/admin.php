@@ -7,6 +7,7 @@
 require_once 'config.php';
 require_once 'imagenes-productos.php';
 require_once 'bonos-helpers.php';
+require_once 'puntos-pagos-helpers.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -83,6 +84,18 @@ switch ($action) {
         break;
     case 'actualizarValorPunto':
         actualizarValorPunto($conn);
+        break;
+    case 'obtenerRangosPuntos':
+        obtenerRangosPuntos($conn);
+        break;
+    case 'actualizarRangosPuntos':
+        actualizarRangosPuntos($conn);
+        break;
+    case 'obtenerPuntosPorBono':
+        obtenerPuntosPorBonoAdmin($conn);
+        break;
+    case 'actualizarPuntosPorBono':
+        actualizarPuntosPorBonoAdmin($conn);
         break;
     
     // Bajo Stock
@@ -265,6 +278,109 @@ function actualizarValorPunto($conn) {
     }
 }
 
+/**
+ * Rangos [[desde, hasta, puntos], ...] como filas para el frontend.
+ */
+function formatearRangosPuntos($rangos) {
+    $filas = [];
+    foreach ($rangos as $r) {
+        $filas[] = [
+            'desde' => $r[0],
+            'hasta' => $r[1],
+            'puntos' => $r[2],
+            'desde_formateado' => formatearPrecio($r[0]),
+            'hasta_formateado' => $r[1] === null ? 'Sin límite' : formatearPrecio($r[1])
+        ];
+    }
+    return $filas;
+}
+
+/**
+ * Endpoint: Puntos que reparte una compra segun el valor de sus productos (rangos).
+ * Fuera de los rangos (o sin rangos) cada beneficiario recibe 1 punto (PUNTOS_POR_COMPRA en pagos.php).
+ */
+function obtenerRangosPuntos($conn) {
+    jsonResponse([
+        'success' => true,
+        'rangos' => formatearRangosPuntos(rangosPuntosCompra($conn)),
+        'puntos_por_defecto' => 1,
+        'maximo_rangos' => PUNTOS_RANGOS_MAXIMO
+    ]);
+}
+
+/**
+ * Endpoint: Guardar los rangos (POST rangos = JSON [{desde, hasta, puntos}, ...]; [] los borra).
+ */
+function actualizarRangosPuntos($conn) {
+    $entrada = isset($_POST['rangos']) ? json_decode((string)$_POST['rangos'], true) : null;
+    $validacion = validarRangosPuntos($entrada);
+    if (isset($validacion['error'])) {
+        jsonResponse(['error' => $validacion['error']], 400);
+    }
+
+    $json = json_encode($validacion['rangos']);
+    if (strlen($json) > 255) {
+        jsonResponse(['error' => 'Demasiados rangos para guardar; reduzca la cantidad'], 400);
+    }
+
+    if (actualizarConfiguracion($conn, 'puntos_rangos', $json)) {
+        jsonResponse([
+            'success' => true,
+            'mensaje' => count($validacion['rangos']) > 0 ? 'Rangos de puntos actualizados' : 'Rangos eliminados: cada compra da 1 punto',
+            'rangos' => formatearRangosPuntos($validacion['rangos'])
+        ]);
+    } else {
+        jsonResponse(['error' => 'Error al guardar los rangos de puntos'], 500);
+    }
+}
+
+/**
+ * Endpoint: Puntos que forman un bono y valor del bono en COP.
+ */
+function obtenerPuntosPorBonoAdmin($conn) {
+    $valorBono = valorBonoCop($conn);
+    jsonResponse([
+        'success' => true,
+        'puntos_por_bono' => puntosPorBono($conn),
+        'valor_bono' => $valorBono,
+        'valor_bono_formateado' => $valorBono > 0 ? formatearPrecio($valorBono) : 'Sin definir'
+    ]);
+}
+
+/**
+ * Endpoint: Cambiar los puntos por bono (POST valor, entero 1-10.000).
+ * Recalcula enseguida los bonos pendientes de todos los asociados; los entregados,
+ * usados en pedidos y eliminados conservan sus puntos.
+ */
+function actualizarPuntosPorBonoAdmin($conn) {
+    $entrada = isset($_POST['valor']) ? trim((string)$_POST['valor']) : '';
+    if (!preg_match('/^\d{1,5}$/', $entrada) || intval($entrada) < 1 || intval($entrada) > 10000) {
+        jsonResponse(['error' => 'Los puntos por bono deben ser un número entero entre 1 y 10.000'], 400);
+    }
+    $valor = intval($entrada);
+
+    if (!actualizarConfiguracion($conn, 'puntos_por_bono', strval($valor))) {
+        jsonResponse(['error' => 'Error al actualizar los puntos por bono'], 500);
+    }
+
+    puntosPorBono($conn, true);
+    try {
+        sincronizarBonosTodos($conn);
+    } catch (Throwable $e) {
+        // Se recalculan igual cuando cada asociado abra Mis Puntos o el checkout
+        error_log('admin.php actualizarPuntosPorBono: ' . $e->getMessage());
+    }
+
+    $valorBono = valorBonoCop($conn);
+    jsonResponse([
+        'success' => true,
+        'mensaje' => 'Ahora cada bono es de ' . $valor . ' puntos',
+        'puntos_por_bono' => $valor,
+        'valor_bono' => $valorBono,
+        'valor_bono_formateado' => $valorBono > 0 ? formatearPrecio($valorBono) : 'Sin definir'
+    ]);
+}
+
 // ==================== DASHBOARD ====================
 
 function obtenerDashboard($conn) {
@@ -349,6 +465,8 @@ function obtenerDashboard($conn) {
             'valor_punto_formateado' => formatearPrecio($valorPunto),
             'puntos_emitidos' => $puntosEmitidos,
             'puntos_equivalente_formateado' => formatearPrecio($puntosEmitidos * $valorPunto),
+            'puntos_rangos_total' => count(rangosPuntosCompra($conn)),
+            'puntos_por_bono' => puntosPorBono($conn),
             'ultimos_pedidos' => $ultimosPedidos,
             'productos_populares' => $productosPopulares
         ]
@@ -1106,7 +1224,7 @@ function actualizarEstadoPedido($conn) {
 // ==================== BONOS POR PUNTOS ====================
 
 /**
- * Endpoint: reporte de bonos (uno cada PUNTOS_POR_BONO puntos de saldo, ver
+ * Endpoint: reporte de bonos (uno cada puntosPorBono() puntos de saldo, ver
  * bonos-helpers.php) para el seguimiento. Filtros: estado (pendiente/entregado/anulado;
  * vacio = todos), buscar (nombre, apellido o email). Incluye los asociados proximos
  * a su siguiente bono.
@@ -1168,9 +1286,10 @@ function listarBonosAdmin($conn) {
     unset($b);
 
     $valorBono = valorBonoCop($conn);
+    $porBono = puntosPorBono($conn);
     $resumen = [
         'pendientes' => 0, 'entregados' => 0, 'anulados' => 0, 'asociados' => 0,
-        'puntos_por_bono' => PUNTOS_POR_BONO,
+        'puntos_por_bono' => $porBono,
         'valor_bono' => $valorBono,
         'valor_bono_formateado' => $valorBono > 0 ? formatearPrecio($valorBono) : 'Sin definir'
     ];
@@ -1186,15 +1305,15 @@ function listarBonosAdmin($conn) {
     $res = $conn->query("SELECT s.usuario_id, s.puntos_acumulados, r.nombres, r.apellidos, r.email
                          FROM puntos_saldo s JOIN registros r ON r.id = s.usuario_id
                          WHERE s.puntos_acumulados > 0
-                           AND " . (int)PUNTOS_POR_BONO . " - MOD(s.puntos_acumulados, " . (int)PUNTOS_POR_BONO . ") <= 10
-                         ORDER BY MOD(s.puntos_acumulados, " . (int)PUNTOS_POR_BONO . ") DESC LIMIT 50");
+                           AND " . $porBono . " - MOD(s.puntos_acumulados, " . $porBono . ") <= 10
+                         ORDER BY MOD(s.puntos_acumulados, " . $porBono . ") DESC LIMIT 50");
     while ($fila = $res->fetch_assoc()) {
         $puntos = (int)$fila['puntos_acumulados'];
         $proximos[] = [
             'nombre' => trim($fila['nombres'] . ' ' . $fila['apellidos']),
             'email' => $fila['email'],
             'puntos' => $puntos,
-            'puntos_faltantes' => PUNTOS_POR_BONO - ($puntos % PUNTOS_POR_BONO),
+            'puntos_faltantes' => $porBono - ($puntos % $porBono),
         ];
     }
 
@@ -1294,11 +1413,12 @@ function listarAsociadosConBonoAdmin($conn) {
     $asociados = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
 
+    $porBono = puntosPorBono($conn);
     foreach ($asociados as &$a) {
         foreach (['usuario_id', 'puntos', 'pendientes', 'entregados', 'anulados'] as $campo) {
             $a[$campo] = (int)$a[$campo];
         }
-        $a['puntos_faltantes'] = PUNTOS_POR_BONO - ($a['puntos'] % PUNTOS_POR_BONO);
+        $a['puntos_faltantes'] = $porBono - ($a['puntos'] % $porBono);
         $a['ultimo_bono_formateado'] = date('d/m/Y', strtotime($a['ultimo_bono']));
     }
     unset($a);

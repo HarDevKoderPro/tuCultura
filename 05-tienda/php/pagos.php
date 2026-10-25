@@ -976,14 +976,42 @@ function confirmarPedidoPagado($conn, $pedido)
 }
 
 /**
- * +1 punto al comprador y a sus referentes de nivel 1 y 2.
+ * Puntos que da una compra segun el valor de sus productos (sin envio y antes
+ * del bono) y los rangos del admin. Fuera de los rangos: PUNTOS_POR_COMPRA.
+ * Devuelve ['puntos' => int, 'valor_productos' => float, 'rango' => [desde, hasta, puntos] | null].
+ */
+function puntosPorValorCompra($conn, $pedidoId)
+{
+  $stmt = $conn->prepare("SELECT COALESCE(SUM(subtotal), 0) AS valor FROM detalle_pedido WHERE pedido_id = ?");
+  $stmt->bind_param('i', $pedidoId);
+  $stmt->execute();
+  $valor = (float)$stmt->get_result()->fetch_assoc()['valor'];
+  $stmt->close();
+
+  foreach (rangosPuntosCompra($conn) as $rango) {
+    if ($valor >= $rango[0] && ($rango[1] === null || $valor <= $rango[1])) {
+      return ['puntos' => (int)$rango[2], 'valor_productos' => $valor, 'rango' => $rango];
+    }
+  }
+  return ['puntos' => PUNTOS_POR_COMPRA, 'valor_productos' => $valor, 'rango' => null];
+}
+
+/**
+ * Puntos al comprador y a sus referentes de nivel 1 y 2 (la misma cantidad para
+ * cada uno, segun el rango del valor de la compra; ver puntosPorValorCompra).
  * Cada movimiento tiene clave unica por pedido/usuario/nivel: si ya existe,
- * no se vuelve a sumar al saldo.
+ * no se vuelve a sumar al saldo. Un rango de 0 puntos no registra movimientos.
  */
 function asignarPuntosCompra($conn, $pedido, $pagoLocalId)
 {
   $pedidoId = (int)$pedido['id'];
   $compradorId = (int)$pedido['usuario_id'];
+
+  $calculo = puntosPorValorCompra($conn, $pedidoId);
+  $puntos = $calculo['puntos'];
+  if ($puntos <= 0) {
+    return [];
+  }
 
   $stmt = $conn->prepare("SELECT email FROM registros WHERE id = ? LIMIT 1");
   $stmt->bind_param('i', $compradorId);
@@ -1010,11 +1038,15 @@ function asignarPuntosCompra($conn, $pedido, $pagoLocalId)
     $uid = (int)$b['usuario_id'];
     $nivel = (int)$b['nivel'];
     $tipo = $b['tipo'];
-    $puntos = PUNTOS_POR_COMPRA;
     $descripcion = $nivel === 0
       ? 'Compra propia, pedido ' . $pedido['numero_pedido']
       : 'Compra de referido nivel ' . $nivel . ', pedido ' . $pedido['numero_pedido'];
-    $metadata = json_encode(['comprador_id' => $compradorId, 'numero_pedido' => $pedido['numero_pedido']]);
+    $metadata = json_encode([
+      'comprador_id' => $compradorId,
+      'numero_pedido' => $pedido['numero_pedido'],
+      'valor_productos' => $calculo['valor_productos'],
+      'rango' => $calculo['rango']
+    ]);
     $clave = crearClaveIdempotenciaPuntos($pedidoId, $uid, $nivel, 'compra');
 
     $stmtMov->bind_param('iiiisisss', $uid, $pedidoId, $pagoLocalId, $nivel, $tipo, $puntos, $descripcion, $metadata, $clave);

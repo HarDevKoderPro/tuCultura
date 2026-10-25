@@ -245,7 +245,7 @@ function formatearFecha($fecha)
   return "{$dia}-{$mesNombre}-{$anio}";
 }
 
-// Bonos por puntos (uno cada PUNTOS_POR_BONO puntos acumulados; logica en 05-tienda/php/bonos-helpers.php)
+// Bonos por puntos (uno cada puntosPorBono() puntos acumulados, configurable en el admin; logica en 05-tienda/php/bonos-helpers.php)
 function obtenerBonosUsuario($conn, $usuarioId, $puntos)
 {
   require_once __DIR__ . '/../../05-tienda/php/bonos-helpers.php';
@@ -253,6 +253,6 @@ function obtenerBonosUsuario($conn, $usuarioId, $puntos)
     return bonosDelUsuario($conn, (int)$usuarioId, (int)$puntos);
   } catch (Throwable $e) {
     // Sin las tablas de puntos/bonos: solo el calculo, sin estado de entrega
-    return resumenBonosPuntos((int)$puntos);
+    return resumenBonosPuntos((int)$puntos, puntosPorBono($conn));
   }
 }
