@@ -460,13 +460,17 @@ if (!function_exists('bonosDelUsuario')) {
    */
   function bonosDelUsuario(mysqli $conn, int $usuarioId, int $saldo): array
   {
+    // Saldo negativo (compra cancelada cuyos puntos ya se habian gastado): primero
+    // debe recuperar esos puntos y luego juntar los del bono
+    $deuda = max(0, -$saldo);
     $saldo = max(0, $saldo);
     $porBono = puntosPorBono($conn);
     $resumen = [
-      'puntos' => $saldo,
+      'puntos' => $saldo - $deuda,
       'puntos_por_bono' => $porBono,
-      'puntos_faltantes' => $porBono - ($saldo % $porBono),
-      'porcentaje_siguiente' => (int)round(($saldo % $porBono) * 100 / $porBono),
+      'puntos_faltantes' => $porBono - ($saldo % $porBono) + $deuda,
+      'porcentaje_siguiente' => $deuda > 0 ? 0 : (int)round(($saldo % $porBono) * 100 / $porBono),
+      'puntos_por_recuperar' => $deuda,
       'bonos_disponibles' => 0,
       'bonos_entregados' => 0,
       'valor_bono' => 0,
@@ -503,13 +507,15 @@ if (!function_exists('resumenBonosPuntos')) {
   /** Calculo sin tablas de bonos (respaldo de 04-contenido); $porBono por defecto PUNTOS_POR_BONO. */
   function resumenBonosPuntos(int $saldo, int $porBono = PUNTOS_POR_BONO): array
   {
+    $deuda = max(0, -$saldo);
     $saldo = max(0, $saldo);
     $porBono = max(1, $porBono);
     return [
-      'puntos' => $saldo,
+      'puntos' => $saldo - $deuda,
       'puntos_por_bono' => $porBono,
-      'puntos_faltantes' => $porBono - ($saldo % $porBono),
-      'porcentaje_siguiente' => (int)round(($saldo % $porBono) * 100 / $porBono),
+      'puntos_faltantes' => $porBono - ($saldo % $porBono) + $deuda,
+      'porcentaje_siguiente' => $deuda > 0 ? 0 : (int)round(($saldo % $porBono) * 100 / $porBono),
+      'puntos_por_recuperar' => $deuda,
       'bonos_disponibles' => intdiv($saldo, $porBono),
       'bonos_entregados' => 0,
       'valor_bono' => 0,

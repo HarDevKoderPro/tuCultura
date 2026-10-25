@@ -9,12 +9,15 @@
  *   se descuenta stock, se quitan los productos del carrito y se asignan puntos
  *   (comprador + referente nivel 1 + nivel 2). Todo en una transaccion e idempotente.
  * - estado_pedido: la pagina de confirmacion consulta el resultado al volver de MercadoPago.
+ * - cobrar: enlace de cobro (pagina HTML) de un pedido contra entrega; el cliente o el
+ *   transportista pagan por MercadoPago y el webhook lo registra (sin tocar stock).
  */
 
 require_once 'config.php';
 require_once 'puntos-pagos-helpers.php';
 require_once 'correo-pedidos.php';
 require_once 'bonos-helpers.php';
+require_once 'cobros-helpers.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -26,9 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
   exit;
 }
 
-// Puntos por compra aprobada: comprador (nivel 0) y ascendientes (nivel 1 y 2)
-define('PUNTOS_POR_COMPRA', 1);
-define('PUNTOS_NIVELES_REFERIDOS', 2);
+// PUNTOS_POR_COMPRA y PUNTOS_NIVELES_REFERIDOS: ver puntos-pagos-helpers.php
 
 // La preferencia (y los pagos en efectivo) vencen a las N horas; despues
 // cancelar_pedidos_abandonados.php cancela los pedidos que nunca se pagaron
@@ -45,6 +46,9 @@ switch ($action) {
     break;
   case 'estado_pedido':
     estadoPedidoPago($conn);
+    break;
+  case 'cobrar':
+    paginaCobroPedido($conn);
     break;
   default:
     jsonResponse(['success' => false, 'error' => 'Accion no valida'], 400);
@@ -812,7 +816,7 @@ function procesarPagoMercadoPago($conn, $paymentId, $numeroEsperado = null)
   $conn->begin_transaction();
   try {
     $stmt = $conn->prepare(
-      "SELECT id, numero_pedido, usuario_id, total, estado
+      "SELECT id, numero_pedido, usuario_id, total, estado, metodo_pago
        FROM pedidos WHERE numero_pedido = ? FOR UPDATE"
     );
     $stmt->bind_param('s', $numeroPedido);
@@ -840,7 +844,26 @@ function procesarPagoMercadoPago($conn, $paymentId, $numeroEsperado = null)
       $resultado['alerta'] = 'Pago aprobado para un pedido cancelado; requiere revision manual';
     }
 
-    if ($estadoMP === 'approved' && $pedido['estado'] === 'pendiente') {
+    if ($estadoMP === 'approved' && $pedido['metodo_pago'] === 'contraentrega' && $pedido['estado'] !== 'cancelado') {
+      // Enlace de cobro: el stock ya se desconto al crear el pedido; solo se registra
+      // el pago y se dan los puntos (una vez por pedido)
+      $monto = (float)($pago['transaction_amount'] ?? 0);
+      $moneda = (string)($pago['currency_id'] ?? '');
+      if ($moneda !== TIENDA_MONEDA || $monto + 0.01 < (float)$pedido['total']) {
+        $conn->commit();
+        error_log("pagos.php: cobro $paymentId con monto/moneda distinto al pedido contra entrega $numeroPedido");
+        $resultado['alerta'] = 'El monto o la moneda del pago no coinciden con el pedido';
+        return $resultado;
+      }
+      if ($pedido['estado'] === 'pendiente') {
+        actualizarEstadoPedido($conn, (int)$pedido['id'], 'confirmado');
+        $resultado['estado_pedido'] = 'confirmado';
+      }
+      $resultado['cobro'] = true;
+      $resultado['puntos_cobro'] = asignarPuntosCompra($conn, $pedido, $pagoLocalId);
+    }
+
+    if ($estadoMP === 'approved' && $pedido['estado'] === 'pendiente' && $pedido['metodo_pago'] !== 'contraentrega') {
       $monto = (float)($pago['transaction_amount'] ?? 0);
       $moneda = (string)($pago['currency_id'] ?? '');
 
@@ -976,94 +999,6 @@ function confirmarPedidoPagado($conn, $pedido)
 }
 
 /**
- * Puntos que da una compra segun el valor de sus productos (sin envio y antes
- * del bono) y los rangos del admin. Fuera de los rangos: PUNTOS_POR_COMPRA.
- * Devuelve ['puntos' => int, 'valor_productos' => float, 'rango' => [desde, hasta, puntos] | null].
- */
-function puntosPorValorCompra($conn, $pedidoId)
-{
-  $stmt = $conn->prepare("SELECT COALESCE(SUM(subtotal), 0) AS valor FROM detalle_pedido WHERE pedido_id = ?");
-  $stmt->bind_param('i', $pedidoId);
-  $stmt->execute();
-  $valor = (float)$stmt->get_result()->fetch_assoc()['valor'];
-  $stmt->close();
-
-  foreach (rangosPuntosCompra($conn) as $rango) {
-    if ($valor >= $rango[0] && ($rango[1] === null || $valor <= $rango[1])) {
-      return ['puntos' => (int)$rango[2], 'valor_productos' => $valor, 'rango' => $rango];
-    }
-  }
-  return ['puntos' => PUNTOS_POR_COMPRA, 'valor_productos' => $valor, 'rango' => null];
-}
-
-/**
- * Puntos al comprador y a sus referentes de nivel 1 y 2 (la misma cantidad para
- * cada uno, segun el rango del valor de la compra; ver puntosPorValorCompra).
- * Cada movimiento tiene clave unica por pedido/usuario/nivel: si ya existe,
- * no se vuelve a sumar al saldo. Un rango de 0 puntos no registra movimientos.
- */
-function asignarPuntosCompra($conn, $pedido, $pagoLocalId)
-{
-  $pedidoId = (int)$pedido['id'];
-  $compradorId = (int)$pedido['usuario_id'];
-
-  $calculo = puntosPorValorCompra($conn, $pedidoId);
-  $puntos = $calculo['puntos'];
-  if ($puntos <= 0) {
-    return [];
-  }
-
-  $stmt = $conn->prepare("SELECT email FROM registros WHERE id = ? LIMIT 1");
-  $stmt->bind_param('i', $compradorId);
-  $stmt->execute();
-  $comprador = $stmt->get_result()->fetch_assoc();
-  $stmt->close();
-
-  $beneficiarios = [['nivel' => 0, 'usuario_id' => $compradorId, 'tipo' => 'compra_propia']];
-  if ($comprador) {
-    foreach (obtenerAscendientesVerticales($conn, $comprador['email'], PUNTOS_NIVELES_REFERIDOS) as $asc) {
-      $beneficiarios[] = ['nivel' => $asc['nivel'], 'usuario_id' => $asc['usuario_id'], 'tipo' => 'compra_referido'];
-    }
-  }
-
-  $stmtMov = $conn->prepare(
-    "INSERT INTO puntos_movimientos
-       (usuario_id, pedido_id, pago_id, nivel, tipo, puntos, descripcion, metadata_json, clave_idempotencia)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE id = id"
-  );
-
-  $asignados = [];
-  foreach ($beneficiarios as $b) {
-    $uid = (int)$b['usuario_id'];
-    $nivel = (int)$b['nivel'];
-    $tipo = $b['tipo'];
-    $descripcion = $nivel === 0
-      ? 'Compra propia, pedido ' . $pedido['numero_pedido']
-      : 'Compra de referido nivel ' . $nivel . ', pedido ' . $pedido['numero_pedido'];
-    $metadata = json_encode([
-      'comprador_id' => $compradorId,
-      'numero_pedido' => $pedido['numero_pedido'],
-      'valor_productos' => $calculo['valor_productos'],
-      'rango' => $calculo['rango']
-    ]);
-    $clave = crearClaveIdempotenciaPuntos($pedidoId, $uid, $nivel, 'compra');
-
-    $stmtMov->bind_param('iiiisisss', $uid, $pedidoId, $pagoLocalId, $nivel, $tipo, $puntos, $descripcion, $metadata, $clave);
-    $stmtMov->execute();
-
-    // affected_rows = 1 solo si el movimiento es nuevo
-    if ($stmtMov->affected_rows === 1) {
-      sumarPuntosSaldo($conn, $uid, $puntos);
-      $asignados[] = ['usuario_id' => $uid, 'nivel' => $nivel, 'puntos' => $puntos];
-    }
-  }
-  $stmtMov->close();
-
-  return $asignados;
-}
-
-/**
  * Estado del pedido al volver de MercadoPago (confirmacion.html).
  * Si llega payment_id y el pedido sigue pendiente, se verifica el pago en la API
  * por si la notificacion del webhook aun no ha llegado.
@@ -1125,4 +1060,214 @@ function obtenerPedidoUsuario($conn, $numeroPedido, $usuarioId)
   $pedido = $stmt->get_result()->fetch_assoc();
   $stmt->close();
   return $pedido;
+}
+
+// ==================== ENLACE DE COBRO (CONTRA ENTREGA) ====================
+
+/**
+ * Pagina del enlace de cobro de un pedido contra entrega (HTML, no JSON).
+ * GET pedido + t (token, ver cobros-helpers.php):
+ * - muestra el pedido y el boton "Pagar"; &ir=1 crea la preferencia y redirige a MercadoPago
+ *   (la preferencia se crea al pulsar, no al abrir: las vistas previas de WhatsApp no la crean).
+ * - &retorno=1 (vuelta de MercadoPago con payment_id): verifica el pago y muestra el resultado.
+ * - pedido ya pagado: "Pago recibido", no deja cobrar dos veces.
+ */
+function paginaCobroPedido($conn)
+{
+  header('Content-Type: text/html; charset=utf-8');
+  header('X-Robots-Tag: noindex, nofollow');
+
+  $numero = preg_replace('/[^A-Za-z0-9-]/', '', (string)($_GET['pedido'] ?? ''));
+  $token = (string)($_GET['t'] ?? '');
+  if ($numero === '' || !tokenCobroValido($numero, $token)) {
+    http_response_code(404);
+    mostrarPaginaCobro('Enlace no válido', '<p>Este enlace de pago no es válido. Pide uno nuevo a la tienda.</p>');
+  }
+
+  $pedido = pedidoParaCobro($conn, $numero);
+  if (!$pedido) {
+    http_response_code(404);
+    mostrarPaginaCobro('Enlace no válido', '<p>No encontramos este pedido.</p>');
+  }
+  if ($pedido['metodo_pago'] !== 'contraentrega') {
+    mostrarPaginaCobro('Pedido ' . $numero, '<p>Este pedido no se paga con enlace de cobro.</p>');
+  }
+
+  // Vuelta de MercadoPago: se verifica el pago en la API (por si el webhook aun no llega)
+  $aviso = '';
+  if (!empty($_GET['retorno'])) {
+    $paymentId = (string)($_GET['payment_id'] ?? ($_GET['collection_id'] ?? ''));
+    if (preg_match('/^\d{1,30}$/', $paymentId)) {
+      procesarPagoMercadoPago($conn, $paymentId, $numero);
+      $pedido = pedidoParaCobro($conn, $numero);
+    }
+    $estadoRetorno = (string)($_GET['status'] ?? ($_GET['collection_status'] ?? ''));
+    if (in_array($estadoRetorno, ['pending', 'in_process'], true)) {
+      $aviso = '<p class="aviso">Tu pago quedó <b>en proceso</b>. Cuando MercadoPago lo apruebe, el pedido quedará pagado.</p>';
+    } elseif ($estadoRetorno !== '' && $estadoRetorno !== 'approved') {
+      $aviso = '<p class="aviso error">El pago no se completó. Puedes intentarlo de nuevo.</p>';
+    }
+  }
+
+  $total = formatearPrecio($pedido['total']);
+  $resumen = '<p class="pedido">Pedido <b>' . htmlspecialchars($numero) . '</b><br>'
+    . htmlspecialchars(html_entity_decode((string)$pedido['nombre_envio'], ENT_QUOTES, 'UTF-8')) . '</p>';
+
+  $pago = pagoAprobadoPedido($conn, $numero);
+  if ($pago) {
+    mostrarPaginaCobro('Pago recibido', $resumen
+      . '<p class="ok">✅ Este pedido ya está pagado</p>'
+      . '<p class="total">' . $total . '</p>'
+      . '<p>Medio: ' . htmlspecialchars($pago['medio']) . '</p>');
+  }
+  if ($pedido['estado'] === 'cancelado') {
+    mostrarPaginaCobro('Pedido cancelado', $resumen . '<p>Este pedido fue cancelado; no hay nada que pagar.</p>');
+  }
+  if ((float)$pedido['total'] <= 0) {
+    mostrarPaginaCobro('Pedido ' . $numero, $resumen . '<p>Este pedido no tiene valor por pagar.</p>');
+  }
+
+  if (!empty($_GET['ir'])) {
+    $urlPago = crearPreferenciaCobro($conn, $pedido);
+    if ($urlPago !== '') {
+      header('Location: ' . $urlPago, true, 302);
+      exit;
+    }
+    $aviso = '<p class="aviso error">No pudimos conectar con MercadoPago. Intenta de nuevo en un momento.</p>';
+  }
+
+  $urlIr = urlCobroPedido($numero) . '&ir=1';
+  mostrarPaginaCobro('Pagar pedido ' . $numero, $resumen . $aviso
+    . '<p class="total">' . $total . '</p>'
+    . '<a class="boton" href="' . htmlspecialchars($urlIr) . '">Pagar con MercadoPago</a>'
+    . '<p class="nota">Tarjeta de crédito o débito, PSE o saldo de MercadoPago.</p>');
+}
+
+function pedidoParaCobro($conn, $numero)
+{
+  $stmt = $conn->prepare(
+    "SELECT id, numero_pedido, usuario_id, total, estado, metodo_pago, nombre_envio
+     FROM pedidos WHERE numero_pedido = ? LIMIT 1"
+  );
+  $stmt->bind_param('s', $numero);
+  $stmt->execute();
+  $pedido = $stmt->get_result()->fetch_assoc();
+  $stmt->close();
+  return $pedido;
+}
+
+/**
+ * Crea la preferencia de MercadoPago por el total del pedido contra entrega y devuelve
+ * la URL de pago ('' si falla). Reutiliza el registro de pagos_tienda del enlace si existe.
+ */
+function crearPreferenciaCobro($conn, $pedido)
+{
+  $accessToken = obtenerAccessTokenMercadoPago();
+  if ($accessToken === '') {
+    return '';
+  }
+
+  $numero = (string)$pedido['numero_pedido'];
+  $total = round((float)$pedido['total'], 2);
+  $urlCobro = urlCobroPedido($numero);
+  $vencimiento = date('Y-m-d\TH:i:s.vP', time() + MP_HORAS_EXPIRACION * 3600);
+  $idempotencyKey = construirIdempotencyKey((int)$pedido['usuario_id'], $total);
+
+  $payload = [
+    'items' => [[
+      'id' => 'pedido-' . $numero,
+      'title' => 'Compra Tu Cultura (pedido ' . $numero . ')',
+      'description' => 'Pago del pedido contra entrega',
+      'quantity' => 1,
+      'currency_id' => TIENDA_MONEDA,
+      'unit_price' => $total
+    ]],
+    'external_reference' => $numero,
+    'statement_descriptor' => 'TU CULTURA',
+    'back_urls' => [
+      'success' => $urlCobro . '&retorno=1',
+      'pending' => $urlCobro . '&retorno=1',
+      'failure' => $urlCobro . '&retorno=1'
+    ],
+    'auto_return' => 'approved',
+    'notification_url' => urlPublicaTienda() . '/php/pagos.php?action=webhook_mercadopago',
+    'expires' => true,
+    'expiration_date_to' => $vencimiento,
+    'date_of_expiration' => $vencimiento,
+    'metadata' => [
+      'modulo' => '05-tienda',
+      'numero_pedido' => $numero,
+      'origen' => 'cobro_contraentrega'
+    ]
+  ];
+
+  $stmt = $conn->prepare(
+    "SELECT id FROM pagos_tienda
+     WHERE external_reference = ? AND metodo_pago = 'cobro_mp' AND estado <> 'approved'
+     ORDER BY id DESC LIMIT 1"
+  );
+  $stmt->bind_param('s', $numero);
+  $stmt->execute();
+  $fila = $stmt->get_result()->fetch_assoc();
+  $stmt->close();
+
+  $pagoLocalId = $fila ? (int)$fila['id'] : insertarIntentoPago(
+    $conn,
+    (int)$pedido['id'],
+    (int)$pedido['usuario_id'],
+    'cobro_mp',
+    'pendiente_preferencia',
+    null,
+    $numero,
+    $idempotencyKey,
+    $total,
+    TIENDA_MONEDA,
+    'Enlace de cobro contra entrega',
+    ['preference_payload' => $payload]
+  );
+  if (!$pagoLocalId) {
+    return '';
+  }
+
+  $respuesta = crearPreferenciaMercadoPago($accessToken, $payload, $idempotencyKey);
+  if (!$respuesta['success']) {
+    error_log('pagos.php cobrar ' . $numero . ': ' . $respuesta['error']);
+    return '';
+  }
+  $pref = $respuesta['data'];
+  actualizarIntentoPago(
+    $conn,
+    $pagoLocalId,
+    'preferencia_creada',
+    (string)$pref['id'],
+    'Enlace de cobro: preferencia creada',
+    ['preference_payload' => $payload, 'mercadopago_response' => ['id' => $pref['id'] ?? null]]
+  );
+
+  return (string)($pref['init_point'] ?? ($pref['sandbox_init_point'] ?? ''));
+}
+
+/** Pagina simple (celular primero) para el enlace de cobro; termina la ejecucion. */
+function mostrarPaginaCobro($titulo, $contenido)
+{
+  $logo = rtrim(BASE_URL, '/') . '/../01-principal/imagenes/LogoTCPCircle.png';
+  echo '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
+    . '<meta name="viewport" content="width=device-width, initial-scale=1">'
+    . '<meta name="robots" content="noindex, nofollow">'
+    . '<title>' . htmlspecialchars($titulo) . ' - Tu Cultura</title>'
+    . '<style>'
+    . 'body{margin:0;font-family:Arial,sans-serif;background:#f0f2f5;color:#333}'
+    . '.caja{max-width:420px;margin:24px auto;background:#fff;border-radius:12px;padding:24px 20px;'
+    . 'box-shadow:0 2px 12px rgba(0,0,0,.08);text-align:center}'
+    . 'img{width:64px;height:64px}h1{color:#023859;font-size:1.3rem;margin:.5rem 0 1rem}'
+    . '.total{font-size:2rem;font-weight:bold;color:#023859;margin:.5rem 0 1.2rem}'
+    . '.boton{display:block;background:#009ee3;color:#fff;text-decoration:none;padding:14px;border-radius:8px;font-weight:bold;font-size:1.05rem}'
+    . '.nota{color:#777;font-size:.85rem}.ok{color:#15803d;font-weight:bold;font-size:1.1rem}'
+    . '.aviso{background:#fff7e6;border-radius:6px;padding:10px}.aviso.error{background:#fdecea;color:#b42318}'
+    . '</style></head><body><div class="caja">'
+    . '<img src="' . htmlspecialchars($logo) . '" alt="Tu Cultura">'
+    . '<h1>' . htmlspecialchars($titulo) . '</h1>'
+    . $contenido
+    . '</div></body></html>';
+  exit;
 }

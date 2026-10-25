@@ -23,6 +23,23 @@
         .filtros-pedidos { display: flex; gap: 0.5rem; flex-wrap: wrap; }
         .filtros-pedidos select { padding: 0.5rem; border: 1px solid var(--color-borde); border-radius: var(--radio-borde); }
         @media (max-width: 768px) { .admin-sidebar { display: none; } .admin-main { margin-left: 0; } }
+        /* Pago y enlace de cobro */
+        .medio-pago { display: block; font-size: 0.75rem; color: #777; font-weight: normal; }
+        .medio-pago.pagado { color: #15803d; }
+        .btn-accion.cobro { background: #009ee3; color: #fff; }
+        .cobro-qr { display: flex; justify-content: center; margin: 0.5rem 0 1rem; }
+        .cobro-qr img, .cobro-qr canvas { max-width: 220px; height: auto; }
+        .cobro-enlace { display: flex; gap: 0.4rem; margin-bottom: 0.8rem; }
+        .cobro-enlace input { flex: 1; min-width: 0; padding: 0.45rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.8rem; }
+        .cobro-botones { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+        .cobro-botones a, .cobro-botones button, .cobro-enlace button {
+            display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.55rem 0.7rem;
+            border: none; border-radius: 6px; font-weight: 600; font-size: 0.85rem; cursor: pointer; text-decoration: none; color: #fff;
+        }
+        .cobro-enlace button { background: #023859; }
+        .cobro-whatsapp { background: #25d366; }
+        .cobro-abrir { background: #009ee3; }
+        @media (max-width: 480px) { .cobro-botones { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
@@ -94,6 +111,7 @@
     </div>
     
     <script src="../../sweetalert2.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
         const API_BASE = '../php/admin.php';
         let pedidos = [];
@@ -135,7 +153,7 @@
                     <td>${p.nombres || 'N/A'} ${p.apellidos || ''}</td>
                     <td>${p.email_envio}</td>
                     <td>${p.total_items}</td>
-                    <td><strong>${p.total_formateado}</strong></td>
+                    <td><strong>${p.total_formateado}</strong><span class="medio-pago ${p.pagado_mp ? 'pagado' : ''}">${p.pagado_mp ? '✓ ' : ''}${p.medio_pago_texto || p.metodo_pago}</span></td>
                     <td>
                         <select onchange="cambiarEstado(${p.id}, this.value)" style="padding: 0.25rem; border-radius: 4px;">
                             <option value="pendiente" ${p.estado === 'pendiente' ? 'selected' : ''}>Pendiente</option>
@@ -149,6 +167,7 @@
                     <td>${p.fecha_formateada}</td>
                     <td>
                         <button class="btn-accion editar" onclick="verDetalle(${p.id})"><i class="fas fa-eye"></i></button>
+                        ${p.cobro_disponible ? `<button class="btn-accion cobro" onclick="abrirCobro(${p.id})" title="Enlace de cobro (enlace y QR)"><i class="fas fa-qrcode"></i></button>` : ''}
                     </td>
                 </tr>
             `).join('');
@@ -167,7 +186,19 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    Swal.fire({ icon: 'success', title: 'Estado actualizado', timer: 1500, showConfirmButton: false });
+                    // Puntos dados (entregado) o quitados (cancelado) por el cambio de estado
+                    const asignados = (data.puntos && data.puntos.asignados) || [];
+                    const revertidos = (data.puntos && data.puntos.revertidos) || [];
+                    let detalle = '';
+                    if (asignados.length > 0) {
+                        detalle = `Se dieron ${asignados[0].puntos} ${asignados[0].puntos === 1 ? 'punto' : 'puntos'} a ${asignados.length === 1 ? '1 asociado' : asignados.length + ' asociados'}.`;
+                    } else if (revertidos.length > 0) {
+                        detalle = `Se quitaron los puntos de este pedido a ${revertidos.length === 1 ? '1 asociado' : revertidos.length + ' asociados'}.`;
+                    }
+                    Swal.fire(detalle
+                        ? { icon: 'success', title: 'Estado actualizado', text: detalle, confirmButtonColor: '#023859' }
+                        : { icon: 'success', title: 'Estado actualizado', timer: 1500, showConfirmButton: false });
+                    cargarPedidos();
                 } else {
                     Swal.fire('Error', data.error, 'error');
                     cargarPedidos();
@@ -196,7 +227,8 @@
                                 <p><strong>N\u00famero:</strong> ${p.numero_pedido}</p>
                                 <p><strong>Fecha:</strong> ${p.fecha_formateada}</p>
                                 <p><strong>Estado:</strong> <span class="pedido-estado ${p.estado}">${p.estado_texto}</span></p>
-                                <p><strong>M\u00e9todo de pago:</strong> ${p.metodo_pago}</p>
+                                <p><strong>M\u00e9todo de pago:</strong> ${p.medio_pago_texto || p.metodo_pago}</p>
+                                ${p.cobro_disponible ? `<p><button class="btn-accion cobro" style="width:auto; padding:0.35rem 0.7rem;" onclick="abrirCobro(${p.id})"><i class="fas fa-qrcode"></i> Enlace de cobro</button></p>` : ''}
                             </div>
                             <div>
                                 <h4>Datos de Env\u00edo</h4>
@@ -231,6 +263,71 @@
             }
         }
         
+        // Enlace de cobro de un pedido contra entrega: QR para que el cliente pague al
+        // recibir y enlace para enviarlo por WhatsApp al cliente o al transportista
+        async function abrirCobro(pedidoId) {
+            let datos;
+            try {
+                const response = await fetch(`${API_BASE}?action=pedido_enlace_cobro&id=${pedidoId}`);
+                datos = await response.json();
+                if (!datos.success) throw new Error(datos.error || 'No se pudo generar el enlace');
+            } catch (error) {
+                Swal.fire({ icon: 'error', title: 'Error', text: error.message, confirmButtonColor: '#dc3545' });
+                return;
+            }
+
+            if (datos.pagado) {
+                Swal.fire({ icon: 'success', title: 'Pedido pagado', text: `${datos.numero}: ${datos.medio_pago_texto}`, confirmButtonColor: '#023859' });
+                return;
+            }
+
+            const mensaje = `Hola ${datos.nombre}, este es el enlace para pagar tu pedido ${datos.numero} de Tu Cultura (${datos.total_formateado}) con tarjeta, PSE o MercadoPago: ${datos.url}`;
+            const mensajeTransportista = `Cobro del pedido ${datos.numero} (${datos.nombre}) por ${datos.total_formateado}. Muestra el QR de este enlace al cliente o, si paga en efectivo, paga tú el enlace: ${datos.url}`;
+            // Celulares de Colombia: 10 digitos -> indicativo 57
+            const telefono = datos.telefono.length === 10 ? '57' + datos.telefono : datos.telefono;
+            const urlCliente = telefono ? `https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}` : `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
+            const urlTransportista = `https://wa.me/?text=${encodeURIComponent(mensajeTransportista)}`;
+
+            Swal.fire({
+                title: `Cobro pedido ${datos.numero}`,
+                html: `
+                    <p style="margin-bottom:0.3rem;">Total: <strong>${datos.total_formateado}</strong></p>
+                    <p style="font-size:0.85rem; color:#666;">El cliente escanea el QR o abre el enlace y paga con tarjeta, PSE o saldo de MercadoPago. Al aprobarse, el pedido queda pagado y se dan los puntos.</p>
+                    <div class="cobro-qr" id="cobro-qr"></div>
+                    <div class="cobro-enlace">
+                        <input type="text" id="cobro-url" value="${datos.url}" readonly aria-label="Enlace de cobro">
+                        <button type="button" id="cobro-copiar"><i class="fas fa-copy"></i> Copiar</button>
+                    </div>
+                    <div class="cobro-botones">
+                        <a class="cobro-whatsapp" href="${urlCliente}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> Al cliente</a>
+                        <a class="cobro-whatsapp" href="${urlTransportista}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> Al transportista</a>
+                        <a class="cobro-abrir" href="${datos.url}" target="_blank" rel="noopener" style="grid-column: 1 / -1;"><i class="fas fa-external-link-alt"></i> Abrir página de pago</a>
+                    </div>
+                `,
+                showConfirmButton: false,
+                showCloseButton: true,
+                didOpen: () => {
+                    const contenedor = document.getElementById('cobro-qr');
+                    if (window.QRCode) {
+                        new QRCode(contenedor, { text: datos.url, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M });
+                    } else {
+                        contenedor.textContent = 'No se pudo cargar el código QR; usa el enlace.';
+                    }
+                    document.getElementById('cobro-copiar').addEventListener('click', async () => {
+                        const input = document.getElementById('cobro-url');
+                        try {
+                            await navigator.clipboard.writeText(input.value);
+                        } catch (e) {
+                            input.select();
+                            document.execCommand('copy');
+                        }
+                        document.getElementById('cobro-copiar').innerHTML = '<i class="fas fa-check"></i> Copiado';
+                    });
+                }
+            });
+        }
+
+
         function cerrarModal() {
             document.getElementById('modal-pedido').classList.remove('activo');
         }

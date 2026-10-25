@@ -174,7 +174,7 @@ function renderizarCheckout(usuario, carrito) {
                         <i class="fas fa-money-bill-wave" style="font-size: 1.5rem; color: var(--color-exito);"></i>
                         <div>
                             <strong>Pago Contra Entrega</strong>
-                            <p style="font-size: 0.85rem; color: var(--color-texto-claro);">Paga cuando recibas tu pedido</p>
+                            <p style="font-size: 0.85rem; color: var(--color-texto-claro);">Paga al recibir: en efectivo o con tarjeta/PSE escaneando un código QR</p>
                         </div>
                     </label>
                 </div>

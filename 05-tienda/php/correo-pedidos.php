@@ -18,6 +18,7 @@ use PHPMailer\PHPMailer\PHPMailer;
 require_once __DIR__ . '/../../02-iniciarSesion/php/PHPMailer/src/Exception.php';
 require_once __DIR__ . '/../../02-iniciarSesion/php/PHPMailer/src/PHPMailer.php';
 require_once __DIR__ . '/../../02-iniciarSesion/php/PHPMailer/src/SMTP.php';
+require_once __DIR__ . '/cobros-helpers.php';
 
 if (!function_exists('enviarCorreosPedido')) {
   function enviarCorreosPedido($conn, $pedidoId)
@@ -177,6 +178,14 @@ if (!function_exists('construirCorreoPedido')) {
         break;
       default:
         $mensajePago = 'Elegiste <b>pago contra entrega</b>: pagas cuando recibas tu pedido.';
+        // Enlace de cobro: puede pagar ahora (bajo su responsabilidad) o al recibir
+        $urlCobro = (float)$pedido['total'] > 0 ? urlCobroPedido((string)$pedido['numero_pedido']) : '';
+        if ($urlCobro !== '') {
+          $mensajePago .= '</p><p>Al recibirlo puedes pagar en efectivo o con tarjeta, PSE o saldo de MercadoPago'
+            . ' (el transportista te mostrará un código QR). Si prefieres, también puedes pagar desde ahora:</p>'
+            . '<p style="text-align:center"><a href="' . $e($urlCobro) . '" style="display:inline-block;background:#009ee3;color:#fff;'
+            . 'text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:bold">Pagar ahora con MercadoPago</a>';
+        }
     }
 
     $filas = '';

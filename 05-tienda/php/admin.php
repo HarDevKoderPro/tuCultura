@@ -8,6 +8,7 @@ require_once 'config.php';
 require_once 'imagenes-productos.php';
 require_once 'bonos-helpers.php';
 require_once 'puntos-pagos-helpers.php';
+require_once 'cobros-helpers.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -115,6 +116,9 @@ switch ($action) {
         break;
     case 'pedido_actualizar_estado':
         actualizarEstadoPedido($conn);
+        break;
+    case 'pedido_enlace_cobro':
+        enlaceCobroPedidoAdmin($conn);
         break;
     
     // Correos enviados por la tienda
@@ -297,7 +301,7 @@ function formatearRangosPuntos($rangos) {
 
 /**
  * Endpoint: Puntos que reparte una compra segun el valor de sus productos (rangos).
- * Fuera de los rangos (o sin rangos) cada beneficiario recibe 1 punto (PUNTOS_POR_COMPRA en pagos.php).
+ * Fuera de los rangos (o sin rangos) cada beneficiario recibe 1 punto (PUNTOS_POR_COMPRA en puntos-pagos-helpers.php).
  */
 function obtenerRangosPuntos($conn) {
     jsonResponse([
@@ -1039,6 +1043,7 @@ function listarPedidosAdmin($conn) {
         $row['total_formateado'] = formatearPrecio($row['total']);
         $row['fecha_formateada'] = date('d/m/Y H:i', strtotime($row['fecha_creacion']));
         $row['estado_texto'] = ucfirst($row['estado']);
+        $row = array_merge($row, datosPagoPedido($conn, $row));
         $pedidos[] = $row;
     }
     
@@ -1095,6 +1100,7 @@ function detallePedidoAdmin($conn) {
     $pedido['fecha_formateada'] = date('d/m/Y H:i', strtotime($pedido['fecha_creacion']));
     $pedido['estado_texto'] = ucfirst($pedido['estado']);
     $pedido['detalles'] = $detalles;
+    $pedido = array_merge($pedido, datosPagoPedido($conn, $pedido));
     
     jsonResponse(['success' => true, 'pedido' => $pedido]);
 }
@@ -1201,18 +1207,96 @@ function actualizarEstadoPedido($conn) {
         jsonResponse(['error' => 'ID y estado válido son requeridos'], 400);
     }
     
-    $stmt = $conn->prepare("UPDATE pedidos SET estado = ? WHERE id = ?");
-    $stmt->bind_param("si", $estado, $id);
-
-    if ($stmt->execute()) {
-        // Pedido cancelado: si se pago con bono, el bono y sus puntos vuelven al asociado
-        if ($estado === 'cancelado') {
-            liberarBonosDePedidosCancelados($conn);
+    // Estado y puntos en una transaccion con el pedido bloqueado: contra entrega y
+    // transferencia dan puntos al quedar "entregado"; cancelar quita los que haya dado
+    $conn->begin_transaction();
+    try {
+        $stmt = $conn->prepare("SELECT id, numero_pedido, usuario_id, estado, metodo_pago FROM pedidos WHERE id = ? FOR UPDATE");
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        $pedido = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        if (!$pedido) {
+            $conn->rollback();
+            jsonResponse(['error' => 'Pedido no encontrado'], 404);
         }
-        jsonResponse(['success' => true, 'mensaje' => 'Estado actualizado exitosamente']);
-    } else {
+
+        $stmt = $conn->prepare("UPDATE pedidos SET estado = ? WHERE id = ?");
+        $stmt->bind_param("si", $estado, $id);
+        $stmt->execute();
+        $stmt->close();
+
+        $pedido['estado'] = $estado;
+        $puntos = sincronizarPuntosPedido($conn, $pedido);
+        $conn->commit();
+    } catch (Throwable $e) {
+        $conn->rollback();
+        error_log('admin.php actualizarEstadoPedido: ' . $e->getMessage());
         jsonResponse(['error' => 'Error al actualizar el estado'], 500);
     }
+
+    // Pedido cancelado: si se pago con bono, el bono y sus puntos vuelven al asociado
+    if ($estado === 'cancelado') {
+        liberarBonosDePedidosCancelados($conn);
+    }
+    jsonResponse(['success' => true, 'mensaje' => 'Estado actualizado exitosamente', 'puntos' => $puntos]);
+}
+
+/**
+ * Datos de pago para el admin: pagado (MercadoPago aprobado), medio legible
+ * ("MercadoPago · PSE", "Contra entrega · pagado por enlace (PSE)") y si aplica enlace de cobro.
+ */
+function datosPagoPedido($conn, $pedido) {
+    $nombres = ['contraentrega' => 'Contra entrega', 'transferencia' => 'Transferencia', 'mercadopago' => 'MercadoPago'];
+    $metodo = (string)$pedido['metodo_pago'];
+    $texto = $nombres[$metodo] ?? $metodo;
+    $pago = in_array($metodo, ['mercadopago', 'contraentrega'], true) ? pagoAprobadoPedido($conn, (string)$pedido['numero_pedido']) : null;
+
+    if ($pago) {
+        $texto .= $metodo === 'mercadopago' ? ' · ' . $pago['medio'] : ' · pagado por enlace (' . $pago['medio'] . ')';
+    }
+    return [
+        'pagado_mp' => $pago !== null,
+        'medio_pago_texto' => $texto,
+        'cobro_disponible' => $metodo === 'contraentrega' && !$pago && $pedido['estado'] !== 'cancelado' && (float)$pedido['total'] > 0
+    ];
+}
+
+/**
+ * Endpoint: enlace de cobro (y datos para compartirlo) de un pedido contra entrega.
+ */
+function enlaceCobroPedidoAdmin($conn) {
+    $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+    $stmt = $conn->prepare("SELECT id, numero_pedido, total, estado, metodo_pago, nombre_envio, telefono_envio FROM pedidos WHERE id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $pedido = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if (!$pedido) {
+        jsonResponse(['error' => 'Pedido no encontrado'], 404);
+    }
+    if ($pedido['metodo_pago'] !== 'contraentrega') {
+        jsonResponse(['error' => 'El enlace de cobro es solo para pedidos contra entrega'], 400);
+    }
+    $url = urlCobroPedido($pedido['numero_pedido']);
+    if ($url === '') {
+        jsonResponse(['error' => 'Falta configurar el secreto de los enlaces de cobro'], 500);
+    }
+
+    $datos = datosPagoPedido($conn, $pedido);
+    jsonResponse([
+        'success' => true,
+        'url' => $url,
+        'numero' => $pedido['numero_pedido'],
+        'total' => (float)$pedido['total'],
+        'total_formateado' => formatearPrecio($pedido['total']),
+        'nombre' => html_entity_decode((string)$pedido['nombre_envio'], ENT_QUOTES, 'UTF-8'),
+        'telefono' => preg_replace('/\D/', '', html_entity_decode((string)$pedido['telefono_envio'], ENT_QUOTES, 'UTF-8')),
+        'pagado' => $datos['pagado_mp'],
+        'medio_pago_texto' => $datos['medio_pago_texto'],
+        'estado' => $pedido['estado']
+    ]);
 }
 
 // ==================== CORREOS ====================

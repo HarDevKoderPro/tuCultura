@@ -251,9 +251,15 @@ $esCuentaAdmin = isset($_SESSION['rol']) && $_SESSION['rol'] !== 'cliente';
           <h3>⭐ Mis Puntos</h3>
           <p class="stat-value"><?php echo $puntosAcumulados; ?></p>
           <p class="stat-equivalente">
-            <?php echo $valorPunto > 0
-              ? '≈ $ ' . number_format($puntosAcumulados * $valorPunto, 0, ',', '.') . ' COP'
-              : 'Valor por definir'; ?>
+            <?php
+            // Saldo negativo: puntos de una compra cancelada que ya se habian usado en un bono
+            if ($puntosAcumulados < 0) {
+              echo 'Debes recuperar ' . (-$puntosAcumulados) . ' ' . ($puntosAcumulados === -1 ? 'punto' : 'puntos') . ' de una compra cancelada';
+            } else {
+              echo $valorPunto > 0
+                ? '≈ $ ' . number_format($puntosAcumulados * $valorPunto, 0, ',', '.') . ' COP'
+                : 'Valor por definir';
+            } ?>
           </p>
           <!-- Bonos: uno cada puntos_por_bono puntos (configurable en el admin); se redime en una compra de la tienda y los puntos vuelven a acumular (bonos-helpers.php) -->
           <div class="puntos-bono">
