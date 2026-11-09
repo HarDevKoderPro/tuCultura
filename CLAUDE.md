@@ -200,12 +200,15 @@ Sandbox: el comprador debe ser la cuenta "Buyer Test User" (iniciar sesion en el
 
 Se ejecuta en orden, paso a paso; cada punto se evalua y aprueba con el usuario antes de pasar al siguiente.
 
-**Para retomar (sesion cerrada el 2026-10-12, todo lo de abajo aprobado por el usuario):**
-- Siguiente paso: punto 1 del plan (pruebas ficticias de compra en sandbox). Preguntar al usuario con que asociado y metodo empezar; ventas ya en cero.
+**Para retomar (sesion del 2026-11-09):**
+- Siguiente paso: prueba 3 de proveedores (cambiar el % del referente a 15 con un proveedor al 90%: debe rechazarlo; bajar ese proveedor a 80 y repetir: debe aceptarlo; dejar el referente en 10). Pruebas 1 (crear proveedor) y 2 (limite 90%) aprobadas. Despues: probar eliminar proveedor, luego paso 2 del reparto (investigar MercadoPago Colombia).
+- En pausa por pedido del usuario: la tarjeta "Te invito" del registro no aparece en iPhone (Chrome iOS, incognito) al tocar "Registrarme" en la franja amarilla de la tienda; en Android y escritorio si. No se reprodujo con WebKit (Playwright) contra el VPS. Una captura del iPhone mostro el registro abierto SIN `?ref=` en la direccion. Cambios SIN publicar en el arbol de trabajo (no commit): `05-tienda/js/invitacion.js` guarda tambien el nombre de quien invita en `tcp_invitacion`; `03-registrarse/js/registrarse.js` busca el codigo en `?ref=`, `?volver=`, `document.referrer` y localStorage, y muestra la tarjeta al instante con el nombre guardado. Falta probarlos contra el servidor (la prueba local en file:// no puede llamar a invitaciones.php) y pedir al usuario captura de la barra de direccion del iPhone tras tocar Registrarme.
+- Aprobado en esta sesion: rediseno de Iniciar sesion (enlaces centrados, celular sin bordes redondeados); admin en celular (menu, tarjetas, avisos al 80%); franja fija para etiquetas en las fotos del catalogo; filtro por proveedor en Productos. Registro rediseñado: desplegado, pendiente aprobacion final del usuario.
+- Luego retomar el punto 1 del plan (pruebas ficticias de compra en sandbox). Preguntar al usuario con que asociado y metodo empezar; ventas ya en cero.
 - Pendiente del usuario: probar desde el admin la subida de una foto de producto (debe quedar en WebP automaticamente).
 - Decisiones del usuario: la seccion "Terminos, Ofertas y Condiciones" del home queda como esta (sin fase 2 ni correcciones). En escritorio se conserva el bloque "Productos Destacados" de la tienda (el usuario aprobo escritorio "todo ok").
-- Ideas no pedidas aun: las paginas de login y registro siguen usando `OpenSans.ttf` (se podria pasar a WOFF2 como en el home).
-- Pruebas de interfaz: se hacen con Edge headless controlado por CDP desde Node (scripts en el scratchpad de la sesion, no versionados) y un servidor local en Python que sirve el repo y reenvia `/05-tienda/php/` e `/05-tienda/imagenes/` al VPS.
+- Ideas no pedidas aun: mensaje propio en español para el limite del % de proveedor (hoy el navegador lo muestra en ingles).
+- Pruebas de interfaz: Playwright de `~/.claude/tools` (Edge; WebKit instalado el 2026-11-09 para simular Safari/iPhone) con scripts en el scratchpad; antes: Edge headless controlado por CDP desde Node (scripts en el scratchpad de la sesion, no versionados) y un servidor local en Python que sirve el repo y reenvia `/05-tienda/php/` e `/05-tienda/imagenes/` al VPS.
 
 1. [ ] Pruebas ficticias completas en sandbox con asociados ficticios (cadena de referidos de 3 niveles): contraentrega, transferencia, MercadoPago aprobado y rechazado; verificar puntos, correos (`admin/correos.html`), stock, carrito, pedidos y valor del punto en `04-contenido`. Modo: el usuario elige cada comprador y metodo; se analizan beneficiados, detalle y flujo admin, y se espera su indicacion antes de cada paso. Avance: ventas de prueba reiniciadas en BD el 2026-10-11 (pedidos, pagos, puntos, correos y carritos en cero; stock devuelto; respaldo en `~/backups/tucultura/antes-reset-ventas-*.sql.gz`). Reiniciadas otra vez el 2026-10-18 tras la prueba de la sesion anterior (pedido TCP-20261018-1692F3), para la demostracion desde cero; `valor_punto_cop` (1000) y umbral se conservan.
 2. [ ] Revision del usuario al resumen para el dueno (doc "Tienda TuCultura: pagos, puntos y siguientes pasos"); agregar lo que pida.
@@ -220,7 +223,7 @@ Extra aprobado (2026-10-18): invitacion a afiliarse dentro del enlace de product
 - [ ] 5. Boton "Mi enlace de invitacion" en `04-contenido` (aprobado para despues de 1-4).
 
 Extra aprobado (2026-11-09): reparto del pago entre proveedor, tienda y referente directo en MercadoPago (cada uno recibe al instante en su cuenta MP; nada pasa por la cuenta de Girabienes). Ejemplo del usuario: producto $100, proveedor al 60% -> proveedor $60, referente del comprador $10 (% global configurable, fijo e independiente del proveedor), Girabienes $30 (el resto). Sin referente, su % queda para Girabienes. Cada proveedor recibe su % solo de SUS productos; cambiar un % aplica solo a ventas nuevas. Regla: el proveedor nunca se expone al publico. Modo: un paso a la vez (discutir, implementar, aprobar).
-- [x] Paso 1: proveedores en el admin + desplegable en productos + % del referente (`proveedores-helpers.php`, `admin/proveedores.html`). Pendiente la prueba del usuario.
+- [x] Paso 1: proveedores en el admin + desplegable en productos + % del referente (`proveedores-helpers.php`, `admin/proveedores.html`), filtro por proveedor en Productos y eliminar proveedor (solo sin productos). Pruebas del usuario: 1 y 2 aprobadas; faltan la 3 (cambio del % del referente) y eliminar.
 - [ ] Paso 2 (propuesto): investigar que permite hoy MercadoPago Colombia (Marketplace reparte normalmente entre 2 partes; split a 3 cuentas por confirmar) y cuentas MP vinculadas de proveedores y referentes.
 - Dudas abiertas: envio, nivel 2 y si siguen puntos/bonos, quien asume la comision de MP, contra entrega/transferencia.
 
@@ -310,3 +313,4 @@ Actualizar al cerrar cada iteracion que cambie rutas/paginas, endpoints o contra
 - 2026-11-09: admin en celular: menu ☰, tablas como tarjetas, avisos al 80% (`admin-menu-movil.js`); estilos de SweetAlert agregados a Categorias, Pedidos, Correos, Bonos y Proveedores.
 - 2026-11-09: rediseno de Iniciar sesion (`01-principal/css/acceso.css`, recuperacion de contrasena en 3 pasos dentro de la pagina). Registro pendiente (paso 2).
 - 2026-11-09: rediseno del Registro con el mismo estilo de acceso.
+- 2026-11-09: progreso guardado; en pausa la tarjeta de invitacion en iPhone (cambios sin publicar en invitacion.js y registrarse.js).
