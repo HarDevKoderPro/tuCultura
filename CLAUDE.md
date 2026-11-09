@@ -14,7 +14,7 @@ Contexto minimo para implementar nuevas funcionalidades sin romper lo existente,
 - PHP 8.3 procedural + mysqli/PDO, HTML/CSS/JS vanilla (sin build, sin Composer, sin npm). SweetAlert2 para dialogos.
 - Modulos por carpeta numerada en la raiz:
   - `00-enConstruccion/`, `01-principal/` (assets compartidos), `index.html` (landing).
-  - `02-iniciarSesion/`: login (`php/iniciarSesion.php`), recuperacion de clave (PHPMailer).
+  - `02-iniciarSesion/`: login (`php/iniciarSesion.php`), recuperacion de clave (PHPMailer). Diseno 2026-11: estilo compartido `01-principal/css/acceso.css` (tarjeta dividida en escritorio, app en celular, campos con icono, ojo de contrasena, errores bajo el campo); la recuperacion es una vista de 3 pasos dentro de la pagina (sin SweetAlert); mismos IDs `inputEmail`/`inputPass`/`btnIniciarSesion`/`linkOlvidastePass` y mismo contrato con los PHP. Los CSS `iniciarSesionDesktop/Mobile.css` ya no se usan.
   - `03-registrarse/`: registro con email de referente (arbol de referidos). Con invitacion (`?ref=` o codigo guardado por `05-tienda/js/invitacion.js`) muestra "Te invito: X" en lugar del campo y envia `ref`; `validarEmails.php` y `registrarse.php` traducen el codigo al email (`emailReferentePorCodigo`, incluye `05-tienda/php/invitaciones-helpers.php`). Con `?volver=` (aviso de la tienda) al terminar va al login con `origen=tienda&returnUrl=producto.html?id=N` (permitido en `iniciarSesion.php`).
   - `04-contenido/`: zona de usuarios (`php/contenido.php`), niveles de referidos, video y libros.
   - `05-tienda/`: tienda virtual (ver seccion 3).
@@ -308,3 +308,4 @@ Actualizar al cerrar cada iteracion que cambie rutas/paginas, endpoints o contra
 - 2026-10-25: contra entrega y transferencia dan puntos al marcar "Entregado"; cancelar un pedido revierte sus puntos (saldo puede ser negativo); enlace de cobro con QR para contra entrega (`cobros-helpers.php`, `pagos.php?action=cobrar`, `admin.php?action=pedido_enlace_cobro`) y medio de pago de MercadoPago en el admin; reparto de puntos movido a `puntos-pagos-helpers.php`.
 - 2026-11-09: proveedores (paso 1 del reparto de pagos): tablas `proveedores` y `producto_proveedor`, `porcentaje_referente`, `admin/proveedores.html`, desplegable de proveedor con reparto en el formulario de producto; el proveedor no se expone en la tienda.
 - 2026-11-09: admin en celular: menu ☰, tablas como tarjetas, avisos al 80% (`admin-menu-movil.js`); estilos de SweetAlert agregados a Categorias, Pedidos, Correos, Bonos y Proveedores.
+- 2026-11-09: rediseno de Iniciar sesion (`01-principal/css/acceso.css`, recuperacion de contrasena en 3 pasos dentro de la pagina). Registro pendiente (paso 2).

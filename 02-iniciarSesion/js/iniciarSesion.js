@@ -1,223 +1,274 @@
+/**
+ * Iniciar sesion y recuperar contrasena.
+ * Mismo contrato con el servidor de siempre:
+ * - php/iniciarSesion.php  POST JSON {email, pass, origen, returnUrl} -> {respuesta, redirectUrl}
+ * - php/recuperarPass.php  POST JSON {email} | {email, codigo} | {email, nuevaPass} -> {respuesta, message}
+ * Los errores se muestran bajo cada campo o en un aviso dentro del formulario.
+ */
 document.addEventListener("DOMContentLoaded", () => {
-  const btn = document.getElementById("btnIniciarSesion");
+  const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+  const formLogin = document.getElementById("formLogin");
   const inputEmail = document.getElementById("inputEmail");
   const inputPass = document.getElementById("inputPass");
+  const btnLogin = document.getElementById("btnIniciarSesion");
   const linkOlvido = document.getElementById("linkOlvidastePass");
+  if (!formLogin || !inputEmail || !inputPass || !btnLogin) return;
 
-  if (!btn || !inputEmail || !inputPass) return;
+  // ---------- utilidades ----------
+  function campoDe(input) { return input.closest(".campo"); }
 
-  // Enter para enviar login
-  [inputEmail, inputPass].forEach((el) => {
-    el.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") btn.click();
+  function marcarError(input, mensaje) {
+    const campo = campoDe(input);
+    if (!campo) return;
+    campo.classList.toggle("invalido", !!mensaje);
+    const error = campo.querySelector(".campo-error");
+    if (error) error.textContent = mensaje || "";
+    input.setAttribute("aria-invalid", mensaje ? "true" : "false");
+  }
+
+  function limpiarAlEscribir(input) {
+    input.addEventListener("input", () => marcarError(input, ""));
+  }
+
+  function mostrarAviso(id, mensaje, tipo = "error") {
+    const aviso = document.getElementById(id);
+    if (!aviso) return;
+    aviso.classList.remove("error", "exito");
+    aviso.classList.add(tipo);
+    const icono = aviso.querySelector("svg");
+    if (icono) {
+      icono.innerHTML = tipo === "exito"
+        ? '<circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/>'
+        : '<circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/>';
+    }
+    aviso.querySelector("span").textContent = mensaje || "";
+    aviso.classList.toggle("visible", !!mensaje);
+  }
+
+  /** Pone el boton en "cargando" y devuelve una funcion para restaurarlo. */
+  function cargando(boton, texto) {
+    const original = boton.innerHTML;
+    boton.disabled = true;
+    boton.innerHTML = `<span class="girando" aria-hidden="true"></span>${texto}`;
+    return () => { boton.disabled = false; boton.innerHTML = original; };
+  }
+
+  async function postJson(url, datos) {
+    const respuesta = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(datos),
+    });
+    return respuesta.json();
+  }
+
+  // Mostrar / ocultar contrasena
+  document.querySelectorAll(".btn-ojo").forEach((boton) => {
+    boton.addEventListener("click", () => {
+      const input = document.getElementById(boton.dataset.ojo);
+      if (!input) return;
+      const mostrar = input.type === "password";
+      input.type = mostrar ? "text" : "password";
+      boton.setAttribute("aria-pressed", mostrar ? "true" : "false");
+      boton.setAttribute("aria-label", mostrar ? "Ocultar contraseña" : "Mostrar contraseña");
+      input.focus();
     });
   });
 
-  // --- LÓGICA DE INICIO DE SESIÓN ---
-  btn.addEventListener("click", async () => {
+  // ---------- iniciar sesion ----------
+  [inputEmail, inputPass].forEach(limpiarAlEscribir);
+  [inputEmail, inputPass].forEach((el) => el.addEventListener("input", () => mostrarAviso("avisoLogin", "")));
+  inputEmail.addEventListener("blur", () => {
+    const email = inputEmail.value.trim();
+    if (email && !EMAIL_VALIDO.test(email)) marcarError(inputEmail, "Revisa el correo: parece incompleto.");
+  });
+
+  formLogin.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    mostrarAviso("avisoLogin", "");
     const email = inputEmail.value.trim();
     const pass = inputPass.value.trim();
 
-    if (!email || !pass) {
-      Swal.fire({
-        icon: "warning",
-        title: "Atención",
-        text: "Por favor ingresa tus credenciales.",
-      });
+    let valido = true;
+    if (!email) { marcarError(inputEmail, "Escribe tu correo electrónico."); valido = false; }
+    else if (!EMAIL_VALIDO.test(email)) { marcarError(inputEmail, "Revisa el correo: parece incompleto."); valido = false; }
+    if (!pass) { marcarError(inputPass, "Escribe tu contraseña."); valido = false; }
+    if (!valido) {
+      (campoDe(inputEmail).classList.contains("invalido") ? inputEmail : inputPass).focus();
       return;
     }
 
+    // PHP decide la URL de destino (origen=tienda, returnUrl de un producto, etc.)
+    const params = new URLSearchParams(window.location.search);
+    const origen = params.get("origen") || "";
+    const returnUrl = params.get("returnUrl") || sessionStorage.getItem("returnUrl") || "";
+
+    const restaurar = cargando(btnLogin, "Ingresando…");
     try {
-      // ✅ Recoger parámetros de contexto para enviarlos al PHP
-      // PHP decide la URL de destino (NO dependemos de sessionStorage)
-      const params = new URLSearchParams(window.location.search);
-      const origen = params.get("origen") || "";
-      const returnUrlParam = params.get("returnUrl") || sessionStorage.getItem("returnUrl") || "";
-
-      const response = await fetch("php/iniciarSesion.php", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, pass, origen, returnUrl: returnUrlParam }),
-      });
-
-      const data = await response.json();
-
+      const data = await postJson("php/iniciarSesion.php", { email, pass, origen, returnUrl });
       if (data.respuesta) {
-        // ✅ Limpiar sessionStorage ya que PHP maneja la redirección
         sessionStorage.removeItem("returnUrl");
-
-        Swal.fire({
-          icon: "success",
-          title: "¡Bienvenido!",
-          text: "Inicio de sesión exitoso.",
-          timer: 1500,
-          showConfirmButton: false,
-        }).then(() => {
-          // ✅ PHP devuelve la URL de destino → JS solo redirige
-          // La lógica de redirección está centralizada en el backend
-          if (data.redirectUrl) {
-            window.location.href = data.redirectUrl;
-          } else {
-            // Fallback por si acaso (no debería ocurrir)
-            window.location.href = "../04-contenido/php/contenido.php";
-          }
-        });
-      } else {
-        Swal.fire({
-          icon: "error",
-          title: "Error de acceso",
-          text: "El correo electrónico o la contraseña son incorrectos.",
-        });
+        btnLogin.classList.add("listo");
+        btnLogin.innerHTML = "¡Bienvenido!";
+        setTimeout(() => {
+          window.location.href = data.redirectUrl || "../04-contenido/php/contenido.php";
+        }, 500);
+        return;
       }
+      restaurar();
+      mostrarAviso("avisoLogin", "El correo o la contraseña no son correctos. Revísalos e inténtalo de nuevo.");
+      inputPass.select();
     } catch (error) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "No se pudo conectar con el servidor.",
-      });
+      restaurar();
+      mostrarAviso("avisoLogin", "No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.");
     }
   });
 
-  // --- LÓGICA DE RECUPERAR CONTRASEÑA ---
-  if (linkOlvido) {
-    linkOlvido.addEventListener("click", (e) => {
-      e.preventDefault();
+  // ---------- recuperar contrasena ----------
+  const vistaLogin = document.getElementById("vistaLogin");
+  const vistaRecuperar = document.getElementById("vistaRecuperar");
+  const pasos = {
+    1: document.getElementById("pasoCorreo"),
+    2: document.getElementById("pasoCodigo"),
+    3: document.getElementById("pasoNueva"),
+  };
+  const inputRecEmail = document.getElementById("inputRecEmail");
+  const inputCodigo = document.getElementById("inputCodigo");
+  const inputNueva = document.getElementById("inputNuevaPass");
+  let emailRecuperacion = "";
 
-      // PASO 1: Pedir el correo y enviar código
-      Swal.fire({
-        title: "Recuperar Contraseña",
-        text: "Ingresa tu correo electrónico registrado:",
-        input: "email",
-        inputPlaceholder: "tu-correo@ejemplo.com",
-        showCancelButton: true,
-        confirmButtonText: "Enviar código",
-        cancelButtonText: "Cancelar",
-        preConfirm: (email) => {
-          if (!email) {
-            Swal.showValidationMessage("Debes ingresar un correo válido.");
-            return false;
-          }
-          return fetch("php/recuperarPass.php", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email }),
-          })
-            .then((r) => r.json())
-            .then((data) => {
-              if (!data.respuesta) {
-                Swal.showValidationMessage(
-                  data.message || "No se pudo enviar el código.",
-                );
-                return false;
-              }
-              return { email };
-            })
-            .catch(() => {
-              Swal.showValidationMessage("Error de conexión con el servidor.");
-              return false;
-            });
-        },
-      }).then((result) => {
-        if (!result.isConfirmed || !result.value) return;
+  [inputRecEmail, inputCodigo, inputNueva].forEach((input) => {
+    limpiarAlEscribir(input);
+    input.addEventListener("input", () => mostrarAviso("avisoRecuperar", ""));
+  });
+  // El codigo solo admite numeros
+  inputCodigo.addEventListener("input", () => {
+    inputCodigo.value = inputCodigo.value.replace(/\D/g, "").slice(0, 6);
+  });
 
-        const emailUsuario = result.value.email;
-
-        // PASO 2: Pedir el código de 6 dígitos
-        Swal.fire({
-          title: "Código de verificación",
-          html: `Se envió un código a <b>${emailUsuario}</b>.<br>Ingresa el código de 6 dígitos:`,
-          input: "text",
-          inputPlaceholder: "Ej: 012345",
-          showCancelButton: true,
-          confirmButtonText: "Verificar",
-          cancelButtonText: "Cancelar",
-          inputAttributes: { maxlength: 6 },
-          preConfirm: (codigo) => {
-            if (!codigo || codigo.trim().length !== 6) {
-              Swal.showValidationMessage(
-                "El código debe tener exactamente 6 dígitos.",
-              );
-              return false;
-            }
-            return fetch("php/recuperarPass.php", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                email: emailUsuario,
-                codigo: codigo.trim(),
-              }),
-            })
-              .then((r) => r.json())
-              .then((data) => {
-                if (!data.respuesta) {
-                  Swal.showValidationMessage(
-                    data.message || "Código incorrecto o expirado.",
-                  );
-                  return false;
-                }
-                return { email: emailUsuario };
-              })
-              .catch(() => {
-                Swal.showValidationMessage(
-                  "Error de conexión con el servidor.",
-                );
-                return false;
-              });
-          },
-        }).then((result) => {
-          if (!result.isConfirmed || !result.value) return;
-
-          // PASO 3: Pedir nueva contraseña
-          Swal.fire({
-            title: "Nueva Contraseña",
-            text: "Ingresa tu nueva contraseña (mínimo 6 caracteres):",
-            input: "password",
-            inputPlaceholder: "Nueva contraseña",
-            showCancelButton: true,
-            confirmButtonText: "Guardar",
-            cancelButtonText: "Cancelar",
-            preConfirm: (nuevaPass) => {
-              if (!nuevaPass || nuevaPass.length < 6) {
-                Swal.showValidationMessage(
-                  "La contraseña debe tener al menos 6 caracteres.",
-                );
-                return false;
-              }
-              return fetch("php/recuperarPass.php", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: result.value.email, nuevaPass }),
-              })
-                .then((r) => r.json())
-                .then((data) => {
-                  if (!data.respuesta) {
-                    Swal.showValidationMessage(
-                      data.message || "No se pudo actualizar la contraseña.",
-                    );
-                    return false;
-                  }
-                  return true;
-                })
-                .catch(() => {
-                  Swal.showValidationMessage(
-                    "Error de conexión con el servidor.",
-                  );
-                  return false;
-                });
-            },
-          }).then((result) => {
-            if (result.isConfirmed) {
-              Swal.fire({
-                icon: "success",
-                title: "¡Contraseña actualizada!",
-                text: "Ya puedes iniciar sesión con tu nueva contraseña.",
-                timer: 2500,
-                showConfirmButton: false,
-              });
-            }
-          });
-        });
-      });
+  function irAPaso(n) {
+    Object.entries(pasos).forEach(([num, form]) => { form.hidden = Number(num) !== n; });
+    [1, 2, 3].forEach((num) => {
+      const ind = document.getElementById(`indPaso${num}`);
+      ind.classList.toggle("actual", num === n);
+      ind.classList.toggle("hecho", num < n);
+      ind.querySelector("span").textContent = num < n ? "✓" : String(num);
     });
+    mostrarAviso("avisoRecuperar", "");
+    const primerCampo = pasos[n].querySelector("input");
+    if (primerCampo) setTimeout(() => primerCampo.focus(), 50);
   }
+
+  function abrirRecuperar() {
+    vistaLogin.hidden = true;
+    vistaRecuperar.hidden = false;
+    inputRecEmail.value = inputEmail.value.trim();
+    inputCodigo.value = "";
+    inputNueva.value = "";
+    irAPaso(1);
+  }
+
+  function volverALogin(mensajeExito) {
+    vistaRecuperar.hidden = true;
+    vistaLogin.hidden = false;
+    if (emailRecuperacion) inputEmail.value = emailRecuperacion;
+    inputPass.value = "";
+    // Las contrasenas vuelven a quedar ocultas
+    document.querySelectorAll(".btn-ojo").forEach((boton) => {
+      const input = document.getElementById(boton.dataset.ojo);
+      if (input) input.type = "password";
+      boton.setAttribute("aria-pressed", "false");
+      boton.setAttribute("aria-label", "Mostrar contraseña");
+    });
+    mostrarAviso("avisoLogin", mensajeExito || "", "exito");
+    (mensajeExito ? inputPass : inputEmail).focus();
+  }
+
+  if (linkOlvido) linkOlvido.addEventListener("click", abrirRecuperar);
+  document.querySelectorAll("[data-volver-login]").forEach((b) => b.addEventListener("click", () => volverALogin()));
+
+  async function enviarCodigo(boton) {
+    const email = inputRecEmail.value.trim();
+    if (!EMAIL_VALIDO.test(email)) {
+      marcarError(inputRecEmail, email ? "Revisa el correo: parece incompleto." : "Escribe tu correo electrónico.");
+      inputRecEmail.focus();
+      return false;
+    }
+    const restaurar = cargando(boton, "Enviando…");
+    try {
+      const data = await postJson("php/recuperarPass.php", { email });
+      restaurar();
+      if (!data.respuesta) {
+        mostrarAviso("avisoRecuperar", data.message || "No se pudo enviar el código.");
+        return false;
+      }
+      emailRecuperacion = email;
+      document.getElementById("recEmailMostrado").textContent = email;
+      return true;
+    } catch (error) {
+      restaurar();
+      mostrarAviso("avisoRecuperar", "No pudimos conectar con el servidor. Inténtalo de nuevo.");
+      return false;
+    }
+  }
+
+  pasos[1].addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (await enviarCodigo(pasos[1].querySelector(".btn-acceso"))) irAPaso(2);
+  });
+
+  document.getElementById("btnReenviarCodigo").addEventListener("click", async (e) => {
+    inputRecEmail.value = emailRecuperacion;
+    if (await enviarCodigo(e.currentTarget)) {
+      inputCodigo.value = "";
+      mostrarAviso("avisoRecuperar", `Te enviamos un nuevo código a ${emailRecuperacion}.`, "exito");
+    }
+  });
+
+  pasos[2].addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const codigo = inputCodigo.value.trim();
+    if (codigo.length !== 6) {
+      marcarError(inputCodigo, "El código tiene 6 dígitos.");
+      inputCodigo.focus();
+      return;
+    }
+    const restaurar = cargando(pasos[2].querySelector(".btn-acceso"), "Verificando…");
+    try {
+      const data = await postJson("php/recuperarPass.php", { email: emailRecuperacion, codigo });
+      restaurar();
+      if (!data.respuesta) {
+        marcarError(inputCodigo, data.message || "Código incorrecto o vencido.");
+        return;
+      }
+      irAPaso(3);
+    } catch (error) {
+      restaurar();
+      mostrarAviso("avisoRecuperar", "No pudimos conectar con el servidor. Inténtalo de nuevo.");
+    }
+  });
+
+  pasos[3].addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const nuevaPass = inputNueva.value;
+    if (nuevaPass.length < 6) {
+      marcarError(inputNueva, "Usa al menos 6 caracteres.");
+      inputNueva.focus();
+      return;
+    }
+    const restaurar = cargando(pasos[3].querySelector(".btn-acceso"), "Guardando…");
+    try {
+      const data = await postJson("php/recuperarPass.php", { email: emailRecuperacion, nuevaPass });
+      restaurar();
+      if (!data.respuesta) {
+        mostrarAviso("avisoRecuperar", data.message || "No se pudo actualizar la contraseña.");
+        return;
+      }
+      volverALogin("¡Listo! Tu contraseña se actualizó. Ya puedes ingresar con ella.");
+    } catch (error) {
+      restaurar();
+      mostrarAviso("avisoRecuperar", "No pudimos conectar con el servidor. Inténtalo de nuevo.");
+    }
+  });
 });

@@ -3,48 +3,166 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Iniciar Sesion</title>
-  <link rel="stylesheet" href="./css/normalize.css">
-  <link rel="stylesheet" href="./css/iniciarSesionDesktop.css">
-  <link rel="stylesheet" href="./css/iniciarSesionMobile.css">
-  <link rel="stylesheet" href="./css/sweetalert2.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#023859">
+  <title>Iniciar sesión - Tu Cultura es Progreso</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap">
+  <link rel="stylesheet" href="../01-principal/css/acceso.css">
   <link rel="shortcut icon" href="../01-principal/imagenes/LogoTCPCircle.png" type="image/x-icon">
 </head>
 
-<body>
-  <!-- Contenedor General -->
-  <div class="contenedorGeneral">
-    <!-- Formulario -->
-    <div class="formulario">
-      <div class="tituloPrincipal">Iniciar Sesión</div>
+<body class="acceso-body">
+  <main class="acceso">
+    <!-- Panel de marca -->
+    <section class="acceso-marca" aria-label="Tu Cultura es Progreso">
+      <a class="acceso-logo" href="../index.html">
+        <img src="../01-principal/imagenes/LogoTCPCircle.png" alt="">
+        <span>Tu Cultura es Progreso</span>
+      </a>
+      <h2>Compra, comparte y <span>gana puntos</span></h2>
+      <p>Tu cuenta te da acceso a la tienda, a tus pedidos y a los puntos que acumulas con tu red.</p>
+      <ul class="acceso-beneficios">
+        <li>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+          <span>Compra en la tienda con pago seguro o contra entrega.</span>
+        </li>
+        <li>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 15.1 8.3 22 9.3l-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>
+          <span>Gana puntos con tus compras y con las de las personas que invitas.</span>
+        </li>
+        <li>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13"/><path d="M3 12h18"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C10 3 12 8 12 8s2-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>
+          <span>Canjea tus puntos por bonos de descuento.</span>
+        </li>
+      </ul>
+    </section>
 
-      <!-- Input Email -->
-      <label class="label">
-        <input type="email" class="label__input" id="inputEmail" placeholder=" " autocomplete="off">
-        <span class="label__span">Correo Electrónico</span>
-      </label>
+    <!-- Panel del formulario -->
+    <section class="acceso-panel">
+      <a class="acceso-volver" href="../index.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+        Volver al inicio
+      </a>
 
-      <!-- Input Password -->
-      <label class="label">
-        <input type="password" class="label__input" id="inputPass" placeholder=" " autocomplete="off">
-        <span class="label__span">Contraseña</span>
-      </label>
+      <!-- ===== Vista: iniciar sesion ===== -->
+      <div class="vista" id="vistaLogin">
+        <h1>Bienvenido de nuevo</h1>
+        <p class="acceso-sub">Ingresa con tu correo y tu contraseña.</p>
 
-      <!-- Botón de validación -->
-      <button class="btnIniciarSesion" id="btnIniciarSesion">Ingresar</button>
+        <form class="acceso-form" id="formLogin" novalidate>
+          <div class="campo" id="campoEmail">
+            <div class="campo-caja">
+              <svg class="campo-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>
+              <input type="email" id="inputEmail" name="email" placeholder=" " autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" aria-describedby="errorEmail">
+              <label for="inputEmail">Correo electrónico</label>
+            </div>
+            <span class="campo-error" id="errorEmail" role="alert"></span>
+          </div>
 
-      <!-- Links inferiores -->
-      <div class="contenedorLinksInferiores">
-        <a href="#" id="linkOlvidastePass">¿Olvidaste la contraseña?</a>
-        <a href="../03-registrarse/registrarse.html">Registrarse</a>
-        <a href="../index.html">Salir</a>
+          <div class="campo" id="campoPass">
+            <div class="campo-caja">
+              <svg class="campo-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+              <input type="password" id="inputPass" name="password" placeholder=" " autocomplete="current-password" aria-describedby="errorPass">
+              <label for="inputPass">Contraseña</label>
+              <button type="button" class="btn-ojo" data-ojo="inputPass" aria-label="Mostrar contraseña" aria-pressed="false">
+                <svg class="ojo-abierto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="ojo-cerrado" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.9 17.9A10.4 10.4 0 0 1 12 19c-6.5 0-10-7-10-7a18.5 18.5 0 0 1 5.1-5.9"/><path d="M9.9 4.2A9.6 9.6 0 0 1 12 4c6.5 0 10 7 10 7a18.6 18.6 0 0 1-2.2 3.2"/><path d="M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="m2 2 20 20"/></svg>
+              </button>
+            </div>
+            <span class="campo-error" id="errorPass" role="alert"></span>
+          </div>
+
+          <div class="fila-olvido">
+            <button type="button" class="enlace" id="linkOlvidastePass">¿Olvidaste tu contraseña?</button>
+          </div>
+
+          <div class="acceso-aviso error" id="avisoLogin" role="alert">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+            <span id="avisoLoginTexto"></span>
+          </div>
+
+          <button type="submit" class="btn-acceso" id="btnIniciarSesion">Ingresar</button>
+
+          <p class="acceso-separador">o</p>
+          <p class="acceso-pie">¿No tienes cuenta? <a href="../03-registrarse/registrarse.html" id="linkRegistro">Regístrate</a></p>
+        </form>
       </div>
-    </div>
-  </div>
 
-  <script src="../sweetalert2.min.js"></script>
+      <!-- ===== Vista: recuperar contrasena (3 pasos) ===== -->
+      <div class="vista" id="vistaRecuperar" hidden>
+        <h1>Recuperar contraseña</h1>
+        <p class="acceso-sub">Te enviamos un código a tu correo para crear una nueva.</p>
+
+        <ol class="pasos" aria-label="Pasos">
+          <li id="indPaso1" class="actual"><span>1</span>Correo</li>
+          <li id="indPaso2"><span>2</span>Código</li>
+          <li id="indPaso3"><span>3</span>Nueva</li>
+        </ol>
+
+        <!-- Paso 1: correo -->
+        <form class="acceso-form paso" id="pasoCorreo" novalidate>
+          <p class="paso-texto">Escribe el correo con el que te registraste.</p>
+          <div class="campo" id="campoRecEmail">
+            <div class="campo-caja">
+              <svg class="campo-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>
+              <input type="email" id="inputRecEmail" placeholder=" " autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false">
+              <label for="inputRecEmail">Correo electrónico</label>
+            </div>
+            <span class="campo-error" role="alert"></span>
+          </div>
+          <div class="acciones-paso">
+            <button type="submit" class="btn-acceso">Enviar código</button>
+            <button type="button" class="btn-secundario-acceso" data-volver-login>Volver a iniciar sesión</button>
+          </div>
+        </form>
+
+        <!-- Paso 2: codigo -->
+        <form class="acceso-form paso" id="pasoCodigo" novalidate hidden>
+          <p class="paso-texto">Enviamos un código de 6 dígitos a <strong id="recEmailMostrado"></strong>. Revisa también la carpeta de spam.</p>
+          <div class="campo campo-codigo" id="campoCodigo">
+            <div class="campo-caja">
+              <svg class="campo-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <input type="text" id="inputCodigo" placeholder=" " inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*">
+              <label for="inputCodigo">Código</label>
+            </div>
+            <span class="campo-error" role="alert"></span>
+          </div>
+          <div class="acciones-paso">
+            <button type="submit" class="btn-acceso">Verificar código</button>
+            <button type="button" class="enlace" id="btnReenviarCodigo">¿No llegó? Enviar otro código</button>
+          </div>
+        </form>
+
+        <!-- Paso 3: nueva contrasena -->
+        <form class="acceso-form paso" id="pasoNueva" novalidate hidden>
+          <p class="paso-texto">Crea tu nueva contraseña (mínimo 6 caracteres).</p>
+          <div class="campo" id="campoNueva">
+            <div class="campo-caja">
+              <svg class="campo-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+              <input type="password" id="inputNuevaPass" placeholder=" " autocomplete="new-password">
+              <label for="inputNuevaPass">Nueva contraseña</label>
+              <button type="button" class="btn-ojo" data-ojo="inputNuevaPass" aria-label="Mostrar contraseña" aria-pressed="false">
+                <svg class="ojo-abierto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="ojo-cerrado" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.9 17.9A10.4 10.4 0 0 1 12 19c-6.5 0-10-7-10-7a18.5 18.5 0 0 1 5.1-5.9"/><path d="M9.9 4.2A9.6 9.6 0 0 1 12 4c6.5 0 10 7 10 7a18.6 18.6 0 0 1-2.2 3.2"/><path d="M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="m2 2 20 20"/></svg>
+              </button>
+            </div>
+            <span class="campo-error" role="alert"></span>
+          </div>
+          <div class="acciones-paso">
+            <button type="submit" class="btn-acceso">Guardar contraseña</button>
+          </div>
+        </form>
+
+        <div class="acceso-aviso error" id="avisoRecuperar" role="alert" style="margin-top: 1rem;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+          <span id="avisoRecuperarTexto"></span>
+        </div>
+      </div>
+    </section>
+  </main>
+
   <script src="js/iniciarSesion.js" defer></script>
 </body>
 
