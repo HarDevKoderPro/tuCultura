@@ -90,6 +90,14 @@
                 max-height: 92vh; overflow-y: auto; border-radius: 18px 18px 0 0 !important;
                 padding-bottom: calc(1rem + env(safe-area-inset-bottom)) !important;
             }
+            /* Titulo del formulario fijo arriba, sin dejar ver el contenido que pasa por detras */
+            .modal .modal-contenido { padding: 0 1.25rem 1.25rem !important; }
+            .modal .modal-header {
+                position: sticky; top: 0; z-index: 5; background: var(--color-fondo-claro, #fff);
+                margin: 0 -1.25rem 1rem !important; padding: 1rem 1.25rem !important;
+                border-bottom: 1px solid #eee;
+            }
+            .modal .modal-header h2 { font-size: 1.2rem; margin: 0; }
             .modal .form-fila { display: block; }
             .modal input, .modal select, .modal textarea { font-size: 16px; }
         }
