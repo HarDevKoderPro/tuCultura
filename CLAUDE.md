@@ -64,7 +64,7 @@ Comportamiento heredado conocido: el carrito anonimo (por `session_id`) no se mi
 
 - Login en `02-iniciarSesion/php/iniciarSesion.php`: guarda `$_SESSION['email']`, `nombres`, `apellidos`, `rol` (y `user_id`, que usa `04-contenido`).
 - `esAdmin()`: lista de emails en `config.php`. `esClienteLogueado()`: bloquea compras con sesion admin.
-- `js/sesion-ui.js` convierte el icono de usuario de la cabecera en el menu "Mi cuenta" (todas las paginas de la tienda): sin sesion Mis pedidos / Mi carrito / Iniciar sesion; cliente logueado: saludo, Mis pedidos, Mi carrito y Cerrar sesion (con confirmacion). Si la pagina no tiene `#icono-usuario` (checkout, mis pedidos) lo agrega.
+- `js/sesion-ui.js` convierte el icono de usuario de la cabecera en el menu "Mi cuenta" (todas las paginas de la tienda): sin sesion Mis pedidos / Mi carrito / Iniciar sesion; cliente logueado: saludo, Mi zona de asociado (`04-contenido/php/contenido.php`), Mis pedidos, Mi carrito y Cerrar sesion (con confirmacion). Si la pagina no tiene `#icono-usuario` (checkout, mis pedidos) lo agrega.
 
 ## 6) Integracion `05-tienda` <-> `04-contenido`
 

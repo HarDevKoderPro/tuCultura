@@ -3,7 +3,7 @@
  * Tu Cultura es Progreso
  * 
  * Detecta si hay sesión activa y arma el menú "Mi cuenta" del ícono de
- * usuario (Mis pedidos, Mi carrito, Iniciar / Cerrar sesión).
+ * usuario (Mi zona de asociado, Mis pedidos, Mi carrito, Iniciar / Cerrar sesión).
  * El carrito en localStorage NO se toca al cerrar sesión.
  */
 
@@ -46,7 +46,7 @@
   /**
    * El icono de usuario de la cabecera abre el menu "Mi cuenta":
    * - sin sesion: Mis pedidos, Mi carrito, Iniciar sesion
-   * - cliente con sesion: saludo, Mis pedidos, Mi carrito, Cerrar sesion
+   * - cliente con sesion: saludo, Mi zona de asociado, Mis pedidos, Mi carrito, Cerrar sesion
    * Si la pagina no tiene icono de usuario (checkout, mis pedidos), se agrega.
    */
   function actualizarBotonSesion(data) {
@@ -87,6 +87,10 @@
       saludo.appendChild(crear('strong', '', nombre));
       if (data.email) saludo.appendChild(crear('small', '', data.email));
       menu.appendChild(saludo);
+    }
+    if (logueado) {
+      // Vuelta a la pagina de contenido del asociado (misma sesion)
+      menu.appendChild(opcionMenu('../04-contenido/php/contenido.php', 'fa-th-large', 'Mi zona de asociado'));
     }
     menu.appendChild(opcionMenu('mis-pedidos.html', 'fa-box', 'Mis pedidos'));
     menu.appendChild(opcionMenu('carrito.html', 'fa-shopping-cart', 'Mi carrito'));
