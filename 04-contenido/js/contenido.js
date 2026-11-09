@@ -4,25 +4,129 @@ document.addEventListener("DOMContentLoaded", () => {
   // ─────────────────────────────────────────
   const tarjetas = document.querySelectorAll(".tarjeta");
 
-  if (tarjetas && tarjetas.length > 0) {
-    tarjetas.forEach((tarjeta) => {
-      const inner = tarjeta.querySelector(".tarjeta-inner");
-      const footer = tarjeta.querySelector(".tarjeta-footer");
-      if (!inner || !footer) return;
+  function activarGiro(tarjeta) {
+    const inner = tarjeta.querySelector(".tarjeta-inner");
+    const footer = tarjeta.querySelector(".tarjeta-footer");
+    if (!inner || !footer) return;
 
-      footer.addEventListener("click", (event) => {
-        event.stopPropagation();
-        inner.classList.toggle("is-flipped");
-      });
-
-      const trasera = tarjeta.querySelector(".tarjeta-trasera");
-      if (trasera) {
-        trasera.addEventListener("click", (event) => {
-          event.stopPropagation();
-          inner.classList.remove("is-flipped");
-        });
-      }
+    footer.addEventListener("click", (event) => {
+      event.stopPropagation();
+      inner.classList.toggle("is-flipped");
     });
+
+    const trasera = tarjeta.querySelector(".tarjeta-trasera");
+    if (trasera) {
+      trasera.addEventListener("click", (event) => {
+        event.stopPropagation();
+        inner.classList.remove("is-flipped");
+      });
+    }
+  }
+
+  tarjetas.forEach(activarGiro);
+
+  // ─────────────────────────────────────────
+  // CELULAR: la tarjeta tocada se abre en grande en una ventana
+  // (se puede girar y usar el carrito); al cerrarla vuelve la fila de 3.
+  // ─────────────────────────────────────────
+  const ES_CELULAR = window.matchMedia("(max-width: 768px) and (orientation: portrait)");
+  const contenedorTarjetas = document.querySelector(".contenedorTarjetas");
+  let ventanaTarjeta = null;
+  let tarjetaOrigen = null;
+
+  function cerrarVentanaTarjeta() {
+    if (!ventanaTarjeta) return;
+    const ventana = ventanaTarjeta;
+    ventanaTarjeta = null;
+    ventana.classList.remove("abierta");
+    document.body.classList.remove("con-ventana-tarjeta");
+    setTimeout(() => ventana.remove(), 220);
+    if (tarjetaOrigen) tarjetaOrigen.focus({ preventScroll: true });
+  }
+
+  function abrirVentanaTarjeta(tarjeta) {
+    tarjetaOrigen = tarjeta;
+    const copia = tarjeta.cloneNode(true);
+    copia.classList.add("tarjeta--grande");
+    copia.removeAttribute("tabindex");
+    copia.removeAttribute("role");
+    copia.querySelector(".tarjeta-inner")?.classList.remove("is-flipped");
+    activarGiro(copia);
+
+    // El carrito de la copia usa el boton original (misma logica y avisos)
+    const carritoCopia = copia.querySelector(".tarjeta-carrito");
+    const carritoOriginal = tarjeta.querySelector(".tarjeta-carrito");
+    if (carritoCopia && carritoOriginal) {
+      carritoCopia.addEventListener("click", (event) => {
+        event.stopPropagation();
+        carritoOriginal.click();
+      });
+    }
+
+    const ventana = document.createElement("div");
+    ventana.className = "ventana-tarjeta";
+    ventana.setAttribute("role", "dialog");
+    ventana.setAttribute("aria-modal", "true");
+    const titulo = tarjeta.querySelector(".tarjeta-titulo");
+    ventana.setAttribute("aria-label", titulo ? titulo.textContent.trim() : "Producto destacado");
+
+    const cerrar = document.createElement("button");
+    cerrar.type = "button";
+    cerrar.className = "ventana-tarjeta-cerrar";
+    cerrar.setAttribute("aria-label", "Cerrar");
+    cerrar.innerHTML = "&times;";
+    cerrar.addEventListener("click", cerrarVentanaTarjeta);
+
+    const ayuda = document.createElement("p");
+    ayuda.className = "ventana-tarjeta-ayuda";
+    const TEXTO_FRENTE = "Toca «Ver características» para girarla";
+    ayuda.textContent = TEXTO_FRENTE;
+    const innerCopia = copia.querySelector(".tarjeta-inner");
+    if (innerCopia) {
+      new MutationObserver(() => {
+        ayuda.textContent = innerCopia.classList.contains("is-flipped")
+          ? "Toca la tarjeta para volver a la foto"
+          : TEXTO_FRENTE;
+      }).observe(innerCopia, { attributes: true, attributeFilter: ["class"] });
+    }
+
+    ventana.append(cerrar, copia, ayuda);
+    // Tocar el fondo oscuro cierra
+    ventana.addEventListener("click", (event) => {
+      if (event.target === ventana) cerrarVentanaTarjeta();
+    });
+
+    document.body.appendChild(ventana);
+    document.body.classList.add("con-ventana-tarjeta");
+    ventanaTarjeta = ventana;
+    requestAnimationFrame(() => ventana.classList.add("abierta"));
+    cerrar.focus({ preventScroll: true });
+  }
+
+  if (contenedorTarjetas && tarjetas.length > 0) {
+    tarjetas.forEach((tarjeta) => {
+      tarjeta.setAttribute("tabindex", "0");
+      tarjeta.addEventListener("keydown", (event) => {
+        if (ES_CELULAR.matches && (event.key === "Enter" || event.key === " ")) {
+          event.preventDefault();
+          abrirVentanaTarjeta(tarjeta);
+        }
+      });
+    });
+    // Fase de captura: en celular el toque abre la ventana en vez de girar la tarjeta pequena
+    contenedorTarjetas.addEventListener("click", (event) => {
+      // Con la ventana abierta (p. ej. el carrito reenviado al boton original) no se intercepta
+      if (!ES_CELULAR.matches || ventanaTarjeta) return;
+      const tarjeta = event.target.closest(".tarjeta");
+      if (!tarjeta) return;
+      event.preventDefault();
+      event.stopPropagation();
+      abrirVentanaTarjeta(tarjeta);
+    }, true);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") cerrarVentanaTarjeta();
+    });
+    ES_CELULAR.addEventListener?.("change", (e) => { if (!e.matches) cerrarVentanaTarjeta(); });
   }
 
   // ─────────────────────────────────────────
