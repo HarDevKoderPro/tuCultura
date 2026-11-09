@@ -315,6 +315,14 @@ body {
     transform: scale(1.05);
 }
 
+/* Franja fija arriba para las etiquetas (Destacado, descuento): la foto empieza
+   debajo y nunca queda pegada ni tapada por ellas. */
+.producto-imagen img {
+    top: 2.5rem;
+    height: calc(100% - 2.5rem);
+    padding-top: 0.25rem;
+}
+
 .producto-badge {
     position: absolute;
     top: 10px; left: 10px;
@@ -2180,7 +2188,7 @@ body.visor-fotos-abierto { overflow: hidden; }
     .productos-grid > :not(.producto-card) { grid-column: 1 / -1; }
     .producto-card:hover { transform: none; }
     .producto-card:hover .producto-imagen img { transform: none; }
-    .producto-imagen img { padding: 0.5rem; }
+    .producto-imagen img { padding: 0.25rem 0.5rem 0.5rem; top: 2rem; height: calc(100% - 2rem); }
     .producto-badge { top: 6px; left: 6px; padding: 0.15rem 0.4rem; font-size: 0.65rem; }
     .producto-badge.oferta { left: auto; right: 6px; }
     .producto-info { padding: 0.6rem 0.65rem 0.7rem; }
