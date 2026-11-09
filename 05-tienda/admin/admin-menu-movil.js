@@ -43,9 +43,12 @@
             .tabla-movil .td-valor { display: block; text-align: right; min-width: 0; }
             .tabla-movil .td-valor small, .tabla-movil .td-valor .medio-pago { display: block; }
             /* Tarjeta con foto: foto a la izquierda y nombre a su lado como encabezado */
-            .tabla-movil tr.con-imagen { display: grid; grid-template-columns: 56px 1fr; column-gap: 0.75rem; }
+            /* Espacio fijo entre la foto y el nombre, y entre el encabezado y los datos */
+            .tabla-movil tr.con-imagen { display: grid; grid-template-columns: 56px 1fr; column-gap: 1rem; }
             .tabla-movil tr.con-imagen > td { grid-column: 1 / -1; }
-            .tabla-movil tr.con-imagen > td.td-imagen { grid-column: 1; grid-row: 1; padding: 0 !important; border: none; }
+            .tabla-movil tr.con-imagen > td.td-imagen { grid-column: 1; grid-row: 1; padding: 0 0 0.75rem !important; border: none; align-self: start; }
+            .tabla-movil tr.con-imagen > td.td-titulo { padding: 0 0 0.75rem !important; align-self: center; }
+            .tabla-movil tr.con-imagen > td:nth-child(3) { border-top: 1px solid #f0f0f0; }
             .tabla-movil tr.con-imagen > td.td-imagen::before { display: none; }
             .tabla-movil tr.con-imagen > td.td-imagen img { width: 56px !important; height: 56px !important; border-radius: 10px; object-fit: cover; }
             .tabla-movil tr.con-imagen > td.td-titulo { grid-column: 2; grid-row: 1; border: none; }
