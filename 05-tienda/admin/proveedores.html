@@ -48,6 +48,7 @@
         .contacto-sub { display: block; color: #777; font-size: 0.82rem; }
         .etq-movil { display: none; }
         .col-contacto a { color: inherit; text-decoration: none; }
+        .acciones-prov { display: inline-flex; gap: 0.5rem; }
 
         /* ===== Celular: tarjetas en vez de tabla, boton flotante y formulario como hoja inferior ===== */
         @media (max-width: 768px) {
@@ -90,7 +91,7 @@
             #tabla-proveedores .col-productos { grid-area: productos; color: #555; font-size: 0.9rem; }
             #tabla-proveedores .col-activo { grid-area: activo; display: flex; align-items: center; gap: 0.5rem; justify-self: end; font-size: 0.85rem; color: #555; }
             #tabla-proveedores .col-acciones { grid-area: acciones; justify-self: end; }
-            #tabla-proveedores .col-acciones .btn-accion { width: 40px; height: 40px; }
+            #tabla-proveedores .col-acciones .btn-accion { width: 40px; height: 40px; margin: 0 !important; }
             .etq-movil { display: inline; }
             .reparto-chip { font-size: 0.8rem; padding: 0.25rem 0.6rem; }
 
@@ -299,7 +300,10 @@
                         </label>
                     </td>
                     <td class="col-acciones">
-                        <button class="btn-accion editar" onclick="editarProveedor(${p.id})" title="Editar"><i class="fas fa-edit"></i></button>
+                        <span class="acciones-prov">
+                            <button class="btn-accion editar" onclick="editarProveedor(${p.id})" title="Editar" aria-label="Editar"><i class="fas fa-edit"></i></button>
+                            <button class="btn-accion eliminar" onclick="eliminarProveedor(${p.id})" title="Eliminar" aria-label="Eliminar"><i class="fas fa-trash"></i></button>
+                        </span>
                     </td>
                 </tr>
             `).join('');
@@ -357,6 +361,49 @@
             porcentajeOriginal = Number(p.porcentaje_proveedor);
             actualizarRepartoVivo();
             document.getElementById('modal-proveedor').classList.add('activo');
+        }
+
+        async function eliminarProveedor(id) {
+            const p = proveedores.find(x => x.id === id);
+            if (!p) return;
+            if (p.total_productos > 0) {
+                const r = await Swal.fire({
+                    icon: 'info',
+                    title: 'No se puede eliminar todavía',
+                    html: `<b>${esc(p.nombre)}</b> tiene ${p.total_productos} producto(s). Asígnalos a otro proveedor o a "Tienda (propio)" antes de eliminarlo, o desactívalo si solo quieres dejar de usarlo.`,
+                    showCancelButton: true,
+                    confirmButtonText: 'Ver sus productos',
+                    cancelButtonText: 'Cerrar'
+                });
+                if (r.isConfirmed) verProductos(id);
+                return;
+            }
+            const r = await Swal.fire({
+                icon: 'warning',
+                title: '¿Eliminar proveedor?',
+                html: `Se eliminará <b>${esc(p.nombre)}</b>. Esta acción no se puede deshacer.`,
+                showCancelButton: true,
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#dc3545'
+            });
+            if (!r.isConfirmed) return;
+            const formData = new FormData();
+            formData.append('id', id);
+            try {
+                const response = await fetch(`${API_BASE}?action=proveedor_eliminar`, { method: 'POST', body: formData });
+                const data = await response.json();
+                if (data.success) {
+                    Swal.fire({ icon: 'success', title: data.mensaje, timer: 1600, showConfirmButton: false });
+                    cargarProveedores();
+                } else {
+                    Swal.fire('No se pudo eliminar', data.error, 'warning');
+                    cargarProveedores();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire('Error', 'Error de conexión', 'error');
+            }
         }
 
         async function guardarProveedor(event) {

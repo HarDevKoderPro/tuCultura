@@ -152,6 +152,9 @@ switch ($action) {
     case 'proveedor_estado':
         cambiarEstadoProveedorAdmin($conn);
         break;
+    case 'proveedor_eliminar':
+        eliminarProveedorAdmin($conn);
+        break;
     case 'actualizarPorcentajeReferente':
         actualizarPorcentajeReferenteAdmin($conn);
         break;
@@ -875,6 +878,38 @@ function cambiarEstadoProveedorAdmin($conn) {
         jsonResponse(['error' => 'Error al cambiar el estado del proveedor'], 500);
     }
     jsonResponse(['success' => true, 'mensaje' => $activo ? 'Proveedor activado' : 'Proveedor desactivado']);
+}
+
+/**
+ * Endpoint: eliminar un proveedor (POST id). Solo si no tiene productos asignados:
+ * si los tiene, hay que pasarlos a otro proveedor o a "Tienda (propio)" primero
+ * (asi ningun producto cambia de reparto sin que el admin lo decida).
+ */
+function eliminarProveedorAdmin($conn) {
+    asegurarTablasProveedores($conn);
+    $id = intval($_POST['id'] ?? 0);
+    $proveedor = $id ? proveedorPorId($conn, $id) : null;
+    if (!$proveedor) {
+        jsonResponse(['error' => 'Proveedor no encontrado'], 404);
+    }
+
+    $stmt = $conn->prepare("SELECT COUNT(*) AS total FROM producto_proveedor WHERE proveedor_id = ?");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $total = (int)$stmt->get_result()->fetch_assoc()['total'];
+    if ($total > 0) {
+        jsonResponse([
+            'error' => $proveedor['nombre'] . ' tiene ' . $total . ' producto(s). Asígnalos a otro proveedor o a "Tienda (propio)" antes de eliminarlo, o desactívalo.',
+            'total_productos' => $total
+        ], 400);
+    }
+
+    $stmt = $conn->prepare("DELETE FROM proveedores WHERE id = ?");
+    $stmt->bind_param('i', $id);
+    if (!$stmt->execute()) {
+        jsonResponse(['error' => 'Error al eliminar el proveedor'], 500);
+    }
+    jsonResponse(['success' => true, 'mensaje' => 'Proveedor eliminado']);
 }
 
 /**
