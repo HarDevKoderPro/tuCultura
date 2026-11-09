@@ -331,7 +331,11 @@ body.acceso-body {
   }
   .acceso-marca::after { width: 170px; height: 170px; right: -60px; bottom: -80px; }
   .acceso-marca h2 { font-size: 1.3rem; margin-top: 0.4rem; }
-  .acceso-marca > p, .acceso-beneficios { display: none; }
+  .acceso-marca > p { display: none; }
+  /* Beneficios tambien en celular, compactos */
+  .acceso-beneficios { gap: 0.55rem; margin-top: 0.35rem; }
+  .acceso-beneficios li { font-size: 0.84rem; line-height: 1.35; gap: 0.6rem; align-items: center; }
+  .acceso-beneficios svg { width: 28px; height: 28px; padding: 6px; border-radius: 8px; }
   .acceso-logo img { width: 44px; height: 44px; }
   .acceso-panel {
     padding: 1.6rem 1.25rem calc(1.75rem + env(safe-area-inset-bottom));
