@@ -412,7 +412,9 @@ async function cargarCategorias() {
 // Solo admin: el proveedor nunca se muestra en la tienda (productos de terceros como propios).
 let proveedores = [];
 let porcentajeReferente = 10;
-const filtroProveedor = parseInt(new URLSearchParams(window.location.search).get('proveedor') || '0', 10) || 0;
+// Filtro de la lista: '' = todos, '0' = Tienda (propio), 'N' = proveedor N.
+// Con ?proveedor=N (enlace desde Proveedores) arranca filtrado por ese proveedor.
+let filtroProveedor = (new URLSearchParams(window.location.search).get('proveedor') || '').replace(/\D/g, '');
 
 function escHtml(texto) {
     const div = document.createElement('div');
@@ -428,7 +430,7 @@ async function cargarProveedores() {
             proveedores = data.proveedores;
             porcentajeReferente = Number(data.porcentaje_referente);
             llenarSelectProveedor(0);
-            mostrarAvisoFiltroProveedor();
+            llenarFiltroProveedor();
             actualizarRepartoProducto();
         }
     } catch (error) {
@@ -491,13 +493,28 @@ function actualizarRepartoProducto() {
         + ` (sin referente, la tienda recibe ${pesos(montoTienda + montoRef)})`;
 }
 
-function mostrarAvisoFiltroProveedor() {
-    const aviso = document.getElementById('filtro-proveedor-aviso');
-    if (!aviso || !filtroProveedor) return;
-    const p = proveedores.find(x => x.id === filtroProveedor);
-    document.getElementById('filtro-proveedor-texto').textContent =
-        `Mostrando solo los productos de ${p ? p.nombre : 'este proveedor'}.`;
-    aviso.hidden = false;
+/** Desplegable "Proveedor" junto al buscador para filtrar la lista. */
+function llenarFiltroProveedor() {
+    const select = document.getElementById('filtroProveedor');
+    if (!select) return;
+    select.innerHTML = '<option value="">Todos los proveedores</option><option value="0">Tienda (propio)</option>'
+        + proveedores.map(p => `<option value="${p.id}">${escHtml(p.nombre)}${p.activo ? '' : ' (desactivado)'}</option>`).join('');
+    if (filtroProveedor !== '' && !select.querySelector(`option[value="${filtroProveedor}"]`)) filtroProveedor = '';
+    select.value = filtroProveedor;
+    select.classList.toggle('activo', filtroProveedor !== '');
+    if (!select.dataset.listo) {
+        select.dataset.listo = '1';
+        select.addEventListener('change', () => {
+            filtroProveedor = select.value;
+            select.classList.toggle('activo', filtroProveedor !== '');
+            // La direccion refleja el filtro (al recargar se conserva)
+            const url = new URL(window.location.href);
+            if (filtroProveedor === '') url.searchParams.delete('proveedor');
+            else url.searchParams.set('proveedor', filtroProveedor);
+            history.replaceState(null, '', url);
+            filtrarProductosPorBusqueda();
+        });
+    }
 }
 
 // ==================== PRODUCTOS ====================
@@ -509,10 +526,6 @@ async function cargarProductos() {
         const data = await response.json();
         
         if (data.success) {
-            // Con ?proveedor=N (desde Proveedores) solo se listan los productos de ese proveedor
-            if (filtroProveedor) {
-                data.productos = data.productos.filter(p => Number(p.proveedor_id) === filtroProveedor);
-            }
             todosLosProductos = data.productos; // Guardar copia completa
             productos = data.productos;
             filtrarProductosPorBusqueda(); // Aplicar filtro activo si existe
@@ -536,7 +549,8 @@ function renderizarProductos() {
     const tbody = document.querySelector('#tabla-productos tbody');
     
     if (productos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9">No hay productos registrados</td></tr>';
+        const hayFiltro = todosLosProductos.length > 0;
+        tbody.innerHTML = `<tr><td colspan="9">${hayFiltro ? 'Ningún producto coincide con la búsqueda o el proveedor elegido' : 'No hay productos registrados'}</td></tr>`;
         return;
     }
     
@@ -598,13 +612,10 @@ function filtrarProductosPorBusqueda() {
     const searchInput = document.getElementById('searchProductos');
     const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
 
-    if (searchTerm === '') {
-        productos = todosLosProductos;
-    } else {
-        productos = todosLosProductos.filter(p =>
-            p.nombre.toLowerCase().includes(searchTerm)
-        );
-    }
+    productos = todosLosProductos.filter(p =>
+        (searchTerm === '' || p.nombre.toLowerCase().includes(searchTerm)) &&
+        (filtroProveedor === '' || String(Number(p.proveedor_id) || 0) === filtroProveedor)
+    );
     renderizarProductos();
 }
 
@@ -615,7 +626,7 @@ function abrirModalProducto() {
     document.getElementById('producto-id').value = '';
     document.getElementById('producto-activo').checked = true;
     // Desde "productos de X" el nuevo producto viene con ese proveedor (si esta activo)
-    const provFiltro = proveedores.find(p => p.id === filtroProveedor && p.activo);
+    const provFiltro = proveedores.find(p => String(p.id) === filtroProveedor && p.activo);
     llenarSelectProveedor(provFiltro ? provFiltro.id : 0);
     actualizarRepartoProducto();
     resetearSelectorImagen();

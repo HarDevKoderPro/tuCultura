@@ -187,11 +187,20 @@
         /* Buscador de productos */
         .reparto-producto { margin-top: 0.4rem; font-size: 0.88rem; color: #444; }
         .reparto-producto:empty { display: none; }
-        .filtro-proveedor-aviso { background: #e3f2fd; color: #0d47a1; padding: 0.6rem 1rem; border-radius: var(--radio-borde); margin-bottom: 1rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
-        .filtro-proveedor-aviso[hidden] { display: none; }
-        .filtro-proveedor-aviso a { color: #0d47a1; font-weight: bold; }
         .search-productos-container {
             margin-bottom: 1rem;
+            display: flex; gap: 0.75rem; flex-wrap: wrap;
+        }
+        .search-productos-container .search-productos-input { flex: 1 1 260px; }
+        .filtro-proveedor-select {
+            flex: 0 1 260px; padding: 0.7rem 0.9rem; font-size: 1rem;
+            border: 2px solid #dde1e6; border-radius: 10px; background: #fff; color: #333; cursor: pointer;
+        }
+        .filtro-proveedor-select:focus { border-color: #023859; outline: none; box-shadow: 0 0 0 3px rgba(2, 56, 89, 0.15); }
+        .filtro-proveedor-select.activo { border-color: #023859; background: #eef4f9; font-weight: 600; }
+        @media (max-width: 768px) {
+            .search-productos-container .search-productos-input,
+            .filtro-proveedor-select { flex: 1 1 100%; font-size: 16px; }
         }
         .search-productos-input {
             width: 100%;
@@ -408,11 +417,10 @@
         
         <div class="search-productos-container">
             <input type="text" id="searchProductos" class="search-productos-input" placeholder="🔍 Buscar producto por nombre...">
-        </div>
-
-        <div class="filtro-proveedor-aviso" id="filtro-proveedor-aviso" hidden>
-            <span id="filtro-proveedor-texto"></span>
-            <a href="productos.html">Ver todos</a>
+            <select id="filtroProveedor" class="filtro-proveedor-select" aria-label="Filtrar por proveedor">
+                <option value="">Todos los proveedores</option>
+                <option value="0">Tienda (propio)</option>
+            </select>
         </div>
 
         <div class="admin-tabla-container">
