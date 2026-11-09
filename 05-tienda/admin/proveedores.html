@@ -35,6 +35,11 @@
         .btn-productos { background: none; border: none; color: var(--color-primario); text-decoration: underline; cursor: pointer; font: inherit; padding: 0; }
         .reparto-vivo { margin-top: 0.4rem; font-size: 0.88rem; color: #444; }
         .reparto-vivo.error { color: #dc3545; }
+        /* Reparto, Productos, Activo y Acciones centrados bajo su titulo */
+        #tabla-proveedores th:nth-child(n+3),
+        #tabla-proveedores td:nth-child(n+3) { text-align: center; vertical-align: middle; }
+        #tabla-proveedores td { vertical-align: middle; }
+        #tabla-proveedores td[colspan] { text-align: left; }
         /* Porcentajes: sin flechas de subir/bajar, se escriben directamente */
         .sin-flechas { -moz-appearance: textfield; appearance: textfield; }
         .sin-flechas::-webkit-outer-spin-button,
