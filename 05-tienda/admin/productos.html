@@ -185,6 +185,11 @@
         .fotos-adicionales-acciones small { color: #666; }
 
         /* Buscador de productos */
+        .reparto-producto { margin-top: 0.4rem; font-size: 0.88rem; color: #444; }
+        .reparto-producto:empty { display: none; }
+        .filtro-proveedor-aviso { background: #e3f2fd; color: #0d47a1; padding: 0.6rem 1rem; border-radius: var(--radio-borde); margin-bottom: 1rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
+        .filtro-proveedor-aviso[hidden] { display: none; }
+        .filtro-proveedor-aviso a { color: #0d47a1; font-weight: bold; }
         .search-productos-container {
             margin-bottom: 1rem;
         }
@@ -375,6 +380,7 @@
         <ul class="admin-sidebar-menu">
             <li><a href="index.html"><i class="fas fa-chart-line"></i> Dashboard</a></li>
             <li><a href="productos.html" class="activo"><i class="fas fa-box"></i> Productos</a></li>
+            <li><a href="proveedores.html"><i class="fas fa-truck"></i> Proveedores</a></li>
             <li><a href="categorias.html"><i class="fas fa-tags"></i> Categorías</a></li>
             <li><a href="pedidos.html"><i class="fas fa-shopping-bag"></i> Pedidos</a></li>
             <li><a href="correos.html"><i class="fas fa-envelope"></i> Correos</a></li>
@@ -402,6 +408,11 @@
         
         <div class="search-productos-container">
             <input type="text" id="searchProductos" class="search-productos-input" placeholder="🔍 Buscar producto por nombre...">
+        </div>
+
+        <div class="filtro-proveedor-aviso" id="filtro-proveedor-aviso" hidden>
+            <span id="filtro-proveedor-texto"></span>
+            <a href="productos.html">Ver todos</a>
         </div>
 
         <div class="admin-tabla-container">
@@ -468,6 +479,14 @@
                     </div>
                 </div>
                 
+                <div class="form-grupo">
+                    <label for="producto-proveedor">Proveedor</label>
+                    <select id="producto-proveedor" name="proveedor_id">
+                        <option value="0">Tienda (propio)</option>
+                    </select>
+                    <div class="reparto-producto" id="reparto-producto"></div>
+                </div>
+
                 <div class="form-fila">
                     <div class="form-grupo">
                         <label for="producto-sku">SKU</label>

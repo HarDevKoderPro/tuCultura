@@ -9,6 +9,7 @@ require_once 'imagenes-productos.php';
 require_once 'bonos-helpers.php';
 require_once 'puntos-pagos-helpers.php';
 require_once 'cobros-helpers.php';
+require_once 'proveedores-helpers.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -136,6 +137,23 @@ switch ($action) {
         break;
     case 'bonos_asociados':
         listarAsociadosConBonoAdmin($conn);
+        break;
+
+    // Proveedores y % del referente
+    case 'proveedores_listar':
+        listarProveedoresAdmin($conn);
+        break;
+    case 'proveedor_crear':
+        guardarProveedorAdmin($conn, false);
+        break;
+    case 'proveedor_actualizar':
+        guardarProveedorAdmin($conn, true);
+        break;
+    case 'proveedor_estado':
+        cambiarEstadoProveedorAdmin($conn);
+        break;
+    case 'actualizarPorcentajeReferente':
+        actualizarPorcentajeReferenteAdmin($conn);
         break;
 
     case 'correos_listar':
@@ -561,10 +579,13 @@ function actualizarStockMasivo($conn) {
 
 function listarProductosAdmin($conn) {
     // Ordenar productos alfabéticamente por nombre (A → Z)
+    // proveedor_id solo en el admin (0 = Tienda (propio)); sirve para filtrar por proveedor
+    asegurarTablasProveedores($conn);
     $result = $conn->query("
-        SELECT p.*, c.nombre as categoria_nombre
+        SELECT p.*, c.nombre as categoria_nombre, COALESCE(pp.proveedor_id, 0) AS proveedor_id
         FROM productos p
         LEFT JOIN categorias c ON p.categoria_id = c.id
+        LEFT JOIN producto_proveedor pp ON pp.producto_id = p.id
         ORDER BY p.nombre ASC
     ");
     
@@ -593,6 +614,8 @@ function detalleProductoAdmin($conn) {
     $producto = $stmt->get_result()->fetch_assoc();
     
     if ($producto) {
+        // Solo en el admin: el proveedor nunca se expone en la tienda
+        $producto['proveedor_id'] = proveedorDeProducto($conn, $id);
         jsonResponse(['success' => true, 'producto' => $producto]);
     } else {
         jsonResponse(['error' => 'Producto no encontrado'], 404);
@@ -617,6 +640,12 @@ function crearProducto($conn) {
     $destacado = isset($_POST['destacado']) ? 1 : 0;
     $activo = isset($_POST['activo']) ? 1 : 0;
     
+    // Proveedor (opcional; 0 = Tienda (propio))
+    $proveedorId = validarProveedorParaProducto($conn, $_POST['proveedor_id'] ?? 0);
+    if (is_string($proveedorId)) {
+        jsonResponse(['error' => $proveedorId], 400);
+    }
+
     // Procesar imagen subida
     $imagen = procesarImagenSubida();
     
@@ -632,7 +661,11 @@ function crearProducto($conn) {
     );
     
     if ($stmt->execute()) {
-        jsonResponse(['success' => true, 'mensaje' => 'Producto creado exitosamente', 'id' => $conn->insert_id]);
+        $nuevoId = $conn->insert_id;
+        if ($proveedorId > 0) {
+            asignarProveedorProducto($conn, $nuevoId, $proveedorId);
+        }
+        jsonResponse(['success' => true, 'mensaje' => 'Producto creado exitosamente', 'id' => $nuevoId]);
     } else {
         jsonResponse(['error' => 'Error al crear el producto'], 500);
     }
@@ -661,6 +694,15 @@ function actualizarProducto($conn) {
     $destacado = isset($_POST['destacado']) && $_POST['destacado'] ? 1 : 0;
     $activo = isset($_POST['activo']) && $_POST['activo'] ? 1 : 0;
     
+    // Proveedor: solo se cambia si el formulario lo envia (compatibilidad)
+    $proveedorId = null;
+    if (array_key_exists('proveedor_id', $_POST)) {
+        $proveedorId = validarProveedorParaProducto($conn, $_POST['proveedor_id'], $id);
+        if (is_string($proveedorId)) {
+            jsonResponse(['error' => $proveedorId], 400);
+        }
+    }
+
     // Procesar imagen: nueva subida o mantener actual
     $imagenNueva = procesarImagenSubida();
     if ($imagenNueva) {
@@ -684,6 +726,9 @@ function actualizarProducto($conn) {
     );
     
     if ($stmt->execute()) {
+        if ($proveedorId !== null) {
+            asignarProveedorProducto($conn, $id, $proveedorId);
+        }
         jsonResponse(['success' => true, 'mensaje' => 'Producto actualizado exitosamente']);
     } else {
         jsonResponse(['error' => 'Error al actualizar el producto'], 500);
@@ -706,6 +751,169 @@ function eliminarProducto($conn) {
     } else {
         jsonResponse(['error' => 'Error al eliminar el producto'], 500);
     }
+}
+
+// ==================== PROVEEDORES ====================
+
+/**
+ * Endpoint: lista de proveedores con su reparto y cantidad de productos,
+ * mas el % del referente y el maximo que puede tener un proveedor.
+ */
+function listarProveedoresAdmin($conn) {
+    asegurarTablasProveedores($conn);
+    $referente = porcentajeReferente($conn);
+
+    $result = $conn->query("
+        SELECT pr.*, COUNT(pp.producto_id) AS total_productos
+        FROM proveedores pr
+        LEFT JOIN producto_proveedor pp ON pp.proveedor_id = pr.id
+        GROUP BY pr.id
+        ORDER BY pr.activo DESC, pr.nombre ASC
+    ");
+
+    $proveedores = [];
+    while ($row = $result->fetch_assoc()) {
+        $porcentaje = (float)$row['porcentaje_proveedor'];
+        $proveedores[] = [
+            'id' => (int)$row['id'],
+            'nombre' => $row['nombre'],
+            'documento' => $row['documento'],
+            'contacto' => $row['contacto'],
+            'telefono' => $row['telefono'],
+            'email' => $row['email'],
+            'porcentaje_proveedor' => $porcentaje,
+            'porcentaje_tienda' => round(100 - $porcentaje - $referente, 2),
+            'activo' => (int)$row['activo'],
+            'total_productos' => (int)$row['total_productos']
+        ];
+    }
+
+    jsonResponse([
+        'success' => true,
+        'proveedores' => $proveedores,
+        'porcentaje_referente' => $referente,
+        'maximo_proveedor' => round(100 - $referente, 2)
+    ]);
+}
+
+/**
+ * Endpoint: crear o actualizar un proveedor (POST nombre, documento, contacto,
+ * telefono, email, porcentaje_proveedor, activo; id al actualizar).
+ * El % aplica solo a ventas nuevas.
+ */
+function guardarProveedorAdmin($conn, $esActualizacion) {
+    asegurarTablasProveedores($conn);
+
+    $id = intval($_POST['id'] ?? 0);
+    if ($esActualizacion && (!$id || !proveedorPorId($conn, $id))) {
+        jsonResponse(['error' => 'Proveedor no encontrado'], 404);
+    }
+
+    $limpiar = function ($campo, $max) {
+        $texto = trim(strip_tags((string)($_POST[$campo] ?? '')));
+        return mb_substr($texto, 0, $max);
+    };
+    $nombre = $limpiar('nombre', 150);
+    $documento = $limpiar('documento', 30);
+    $contacto = $limpiar('contacto', 120);
+    $telefono = $limpiar('telefono', 30);
+    $email = $limpiar('email', 150);
+    $activo = !empty($_POST['activo']) ? 1 : 0;
+
+    if ($nombre === '') {
+        jsonResponse(['error' => 'El nombre o razón social es obligatorio'], 400);
+    }
+    if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        jsonResponse(['error' => 'El email del proveedor no es válido'], 400);
+    }
+
+    $porcentaje = normalizarPorcentaje($_POST['porcentaje_proveedor'] ?? '');
+    if ($porcentaje === null) {
+        jsonResponse(['error' => 'El % del proveedor debe ser un número entre 0 y 100'], 400);
+    }
+    $referente = porcentajeReferente($conn);
+    $maximo = round(100 - $referente, 2);
+    if ($porcentaje > $maximo) {
+        jsonResponse(['error' => 'El % del proveedor no puede pasar de ' . $maximo . '% (el referente del comprador recibe ' . $referente . '%)'], 400);
+    }
+
+    if ($esActualizacion) {
+        $stmt = $conn->prepare("UPDATE proveedores SET nombre = ?, documento = ?, contacto = ?, telefono = ?,
+                                email = ?, porcentaje_proveedor = ?, activo = ? WHERE id = ?");
+        $stmt->bind_param('sssssdii', $nombre, $documento, $contacto, $telefono, $email, $porcentaje, $activo, $id);
+    } else {
+        $stmt = $conn->prepare("INSERT INTO proveedores (nombre, documento, contacto, telefono, email, porcentaje_proveedor, activo)
+                                VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param('sssssdi', $nombre, $documento, $contacto, $telefono, $email, $porcentaje, $activo);
+    }
+
+    if (!$stmt->execute()) {
+        jsonResponse(['error' => 'Error al guardar el proveedor'], 500);
+    }
+
+    jsonResponse([
+        'success' => true,
+        'mensaje' => $esActualizacion ? 'Proveedor actualizado' : 'Proveedor creado',
+        'id' => $esActualizacion ? $id : $conn->insert_id
+    ]);
+}
+
+/**
+ * Endpoint: activar o desactivar un proveedor (POST id, activo 0/1). No se borra:
+ * sus productos conservan la asignacion.
+ */
+function cambiarEstadoProveedorAdmin($conn) {
+    $id = intval($_POST['id'] ?? 0);
+    if (!$id || !proveedorPorId($conn, $id)) {
+        jsonResponse(['error' => 'Proveedor no encontrado'], 404);
+    }
+    $activo = !empty($_POST['activo']) ? 1 : 0;
+
+    $stmt = $conn->prepare("UPDATE proveedores SET activo = ? WHERE id = ?");
+    $stmt->bind_param('ii', $activo, $id);
+    if (!$stmt->execute()) {
+        jsonResponse(['error' => 'Error al cambiar el estado del proveedor'], 500);
+    }
+    jsonResponse(['success' => true, 'mensaje' => $activo ? 'Proveedor activado' : 'Proveedor desactivado']);
+}
+
+/**
+ * Endpoint: cambiar el % del referente del comprador (POST valor, 0-100).
+ * No se acepta si algun proveedor (activo o no) dejaria a la tienda en negativo.
+ */
+function actualizarPorcentajeReferenteAdmin($conn) {
+    asegurarTablasProveedores($conn);
+    $valor = normalizarPorcentaje($_POST['valor'] ?? '');
+    if ($valor === null) {
+        jsonResponse(['error' => 'El % del referente debe ser un número entre 0 y 100'], 400);
+    }
+
+    $maximo = round(100 - $valor, 2);
+    $stmt = $conn->prepare("SELECT nombre, porcentaje_proveedor FROM proveedores WHERE porcentaje_proveedor > ? ORDER BY nombre");
+    $stmt->bind_param('d', $maximo);
+    $stmt->execute();
+    $conflictos = [];
+    $res = $stmt->get_result();
+    while ($fila = $res->fetch_assoc()) {
+        $conflictos[] = $fila['nombre'] . ' (' . (float)$fila['porcentaje_proveedor'] . '%)';
+    }
+    if ($conflictos) {
+        jsonResponse([
+            'error' => 'Con ' . $valor . '% para el referente, estos proveedores dejarían a la tienda en negativo: '
+                . implode(', ', $conflictos) . '. Baja primero su %.',
+            'conflictos' => $conflictos
+        ], 400);
+    }
+
+    if (!actualizarConfiguracion($conn, 'porcentaje_referente', strval($valor))) {
+        jsonResponse(['error' => 'Error al guardar el % del referente'], 500);
+    }
+    jsonResponse([
+        'success' => true,
+        'mensaje' => 'El referente del comprador recibe ahora el ' . $valor . '% (aplica a ventas nuevas)',
+        'porcentaje_referente' => $valor,
+        'maximo_proveedor' => $maximo
+    ]);
 }
 
 // ==================== FOTOS ADICIONALES ====================

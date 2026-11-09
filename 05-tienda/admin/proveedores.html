@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proveedores - Admin Tienda</title>
+
+    <link rel="shortcut icon" href="../../01-principal/imagenes/LogoTCPCircle.png" type="image/x-icon">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/tienda.css">
+    <link rel="stylesheet" href="../../01-principal/css/normalize.css">
+    <style>
+        body { background: #f0f2f5; }
+        .admin-sidebar { background: var(--color-primario); padding: 1rem; position: fixed; top: 0; left: 0; height: 100vh; width: 250px; z-index: 1000; }
+        .admin-sidebar-logo { display: flex; align-items: center; gap: 0.5rem; padding: 1rem; color: #fff; text-decoration: none; margin-bottom: 1rem; }
+        .admin-sidebar-logo img { height: 40px; }
+        .admin-sidebar-logo span { font-weight: bold; font-size: 1.1rem; }
+        .admin-sidebar-menu { list-style: none; }
+        .admin-sidebar-menu li a { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: rgba(255,255,255,0.8); text-decoration: none; border-radius: var(--radio-borde); transition: var(--transicion); }
+        .admin-sidebar-menu li a:hover, .admin-sidebar-menu li a.activo { background: rgba(255,255,255,0.1); color: #fff; }
+        .admin-main { margin-left: 250px; padding: 1.5rem; min-height: 100vh; }
+        .admin-header-bar { background: #fff; padding: 1rem 1.5rem; margin: -1.5rem -1.5rem 1.5rem; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--sombra); flex-wrap: wrap; gap: 1rem; }
+        @media (max-width: 768px) { .admin-sidebar { display: none; } .admin-main { margin-left: 0; } }
+
+        .tarjeta-referente { background: #fff; border-radius: var(--radio-borde); box-shadow: var(--sombra); padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.5rem; }
+        .tarjeta-referente h2 { font-size: 1.05rem; margin: 0; color: var(--color-primario); }
+        .tarjeta-referente p { margin: 0; color: #555; font-size: 0.9rem; flex-basis: 100%; }
+        .referente-form { display: flex; align-items: center; gap: 0.5rem; }
+        .referente-form input { width: 90px; padding: 0.45rem 0.6rem; border: 1px solid #ccc; border-radius: var(--radio-borde); font-size: 1rem; }
+        .reparto-chip { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.82rem; white-space: nowrap; }
+        .reparto-chip.proveedor { background: #e3f2fd; color: #0d47a1; }
+        .reparto-chip.tienda { background: #e8f5e9; color: #1b5e20; }
+        .reparto-chip.referente { background: #fff8e1; color: #7a5a00; }
+        .fila-inactiva td { color: #999; }
+        .btn-productos { background: none; border: none; color: var(--color-primario); text-decoration: underline; cursor: pointer; font: inherit; padding: 0; }
+        .reparto-vivo { margin-top: 0.4rem; font-size: 0.88rem; color: #444; }
+        .reparto-vivo.error { color: #dc3545; }
+        .contacto-sub { display: block; color: #777; font-size: 0.82rem; }
+    </style>
+</head>
+<body>
+    <aside class="admin-sidebar">
+        <a href="index.html" class="admin-sidebar-logo">
+            <img src="../../01-principal/imagenes/LogoTCPCircle.png" alt="Logo">
+            <span>Admin Tienda</span>
+        </a>
+        <ul class="admin-sidebar-menu">
+            <li><a href="index.html"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+            <li><a href="productos.html"><i class="fas fa-box"></i> Productos</a></li>
+            <li><a href="proveedores.html" class="activo"><i class="fas fa-truck"></i> Proveedores</a></li>
+            <li><a href="categorias.html"><i class="fas fa-tags"></i> Categorías</a></li>
+            <li><a href="pedidos.html"><i class="fas fa-shopping-bag"></i> Pedidos</a></li>
+            <li><a href="correos.html"><i class="fas fa-envelope"></i> Correos</a></li>
+            <li><a href="bonos.html"><i class="fas fa-gift"></i> Bonos</a></li>
+            <li><a href="../php/logout_admin.php" onclick="return confirm('¿Desea ir a la tienda? Se cerrará su sesión de administrador.');"><i class="fas fa-store"></i> Ver Tienda</a></li>
+            <li style="margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 1rem;">
+                <a href="../php/logout_admin.php" style="color: #ff6b6b;"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
+            </li>
+        </ul>
+    </aside>
+
+    <main class="admin-main">
+        <div class="admin-header-bar">
+            <h1 style="font-size: 1.5rem; color: var(--color-primario);"><i class="fas fa-truck"></i> Proveedores</h1>
+            <button class="btn-primario" onclick="abrirModalProveedor()">
+                <i class="fas fa-plus"></i> Nuevo proveedor
+            </button>
+        </div>
+
+        <section class="tarjeta-referente">
+            <h2><i class="fas fa-user-friends"></i> Referente del comprador</h2>
+            <form class="referente-form" onsubmit="guardarReferente(event)">
+                <input type="number" id="referente-valor" min="0" max="100" step="0.01" required aria-label="Porcentaje del referente">
+                <span>%</span>
+                <button type="submit" class="btn-primario">Guardar</button>
+            </form>
+            <p>Porcentaje fijo de cada venta para el referente del asociado que compra, sin importar el proveedor. Si el comprador no tiene referente, ese porcentaje queda para la tienda. Los cambios aplican solo a ventas nuevas.</p>
+        </section>
+
+        <div class="admin-tabla-container">
+            <table class="admin-tabla" id="tabla-proveedores">
+                <thead>
+                    <tr>
+                        <th>Proveedor</th>
+                        <th>Contacto</th>
+                        <th>Reparto de cada venta</th>
+                        <th>Productos</th>
+                        <th>Activo</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="6"><div class="loading"><div class="spinner"></div></div></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Modal Proveedor -->
+    <div class="modal" id="modal-proveedor">
+        <div class="modal-contenido" style="max-width: 560px;">
+            <div class="modal-header">
+                <h2 id="modal-titulo-prov">Nuevo proveedor</h2>
+                <button class="modal-cerrar" onclick="cerrarModal()">&times;</button>
+            </div>
+            <form id="form-proveedor" onsubmit="guardarProveedor(event)">
+                <input type="hidden" id="proveedor-id" name="id">
+
+                <div class="form-grupo">
+                    <label for="proveedor-nombre">Nombre o razón social *</label>
+                    <input type="text" id="proveedor-nombre" name="nombre" maxlength="150" required>
+                </div>
+
+                <div class="form-fila">
+                    <div class="form-grupo">
+                        <label for="proveedor-documento">NIT o cédula</label>
+                        <input type="text" id="proveedor-documento" name="documento" maxlength="30">
+                    </div>
+                    <div class="form-grupo">
+                        <label for="proveedor-contacto">Persona de contacto</label>
+                        <input type="text" id="proveedor-contacto" name="contacto" maxlength="120">
+                    </div>
+                </div>
+
+                <div class="form-fila">
+                    <div class="form-grupo">
+                        <label for="proveedor-telefono">Teléfono</label>
+                        <input type="tel" id="proveedor-telefono" name="telefono" maxlength="30">
+                    </div>
+                    <div class="form-grupo">
+                        <label for="proveedor-email">Email</label>
+                        <input type="email" id="proveedor-email" name="email" maxlength="150">
+                    </div>
+                </div>
+
+                <div class="form-grupo">
+                    <label for="proveedor-porcentaje">% acordado para el proveedor *</label>
+                    <input type="number" id="proveedor-porcentaje" name="porcentaje_proveedor" min="0" max="100" step="0.01" required>
+                    <div class="reparto-vivo" id="reparto-vivo"></div>
+                    <small id="aviso-ventas-nuevas" style="color:#7a5a00; display:none;">El nuevo % aplica solo a ventas nuevas.</small>
+                </div>
+
+                <div class="form-grupo">
+                    <label>Activo</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="proveedor-activo" name="activo" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="submit" class="btn-primario"><i class="fas fa-save"></i> Guardar</button>
+                    <button type="button" class="btn-secundario" onclick="cerrarModal()">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../../sweetalert2.min.js"></script>
+    <script>
+        const API_BASE = '../php/admin.php';
+        let proveedores = [];
+        let porcentajeReferente = 10;
+        let porcentajeOriginal = null; // % del proveedor al abrir la edicion
+
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarProveedores();
+            document.getElementById('proveedor-porcentaje').addEventListener('input', actualizarRepartoVivo);
+        });
+
+        function esc(texto) {
+            const div = document.createElement('div');
+            div.textContent = texto == null ? '' : String(texto);
+            return div.innerHTML;
+        }
+
+        function num(valor) {
+            return Number(valor).toLocaleString('es-CO', { maximumFractionDigits: 2 });
+        }
+
+        async function cargarProveedores() {
+            try {
+                const response = await fetch(`${API_BASE}?action=proveedores_listar`);
+                const data = await response.json();
+                if (data.success) {
+                    proveedores = data.proveedores;
+                    porcentajeReferente = Number(data.porcentaje_referente);
+                    document.getElementById('referente-valor').value = porcentajeReferente;
+                    renderizarProveedores();
+                } else {
+                    Swal.fire('Error', data.error, 'error').then(() => window.location.href = '../index.html');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        function renderizarProveedores() {
+            const tbody = document.querySelector('#tabla-proveedores tbody');
+            if (proveedores.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6">No hay proveedores. Los productos sin proveedor quedan como "Tienda (propio)".</td></tr>';
+                return;
+            }
+            tbody.innerHTML = proveedores.map(p => `
+                <tr class="${p.activo ? '' : 'fila-inactiva'}">
+                    <td><strong>${esc(p.nombre)}</strong>${p.documento ? `<span class="contacto-sub">${esc(p.documento)}</span>` : ''}</td>
+                    <td>${esc(p.contacto) || '-'}
+                        ${p.telefono ? `<span class="contacto-sub">${esc(p.telefono)}</span>` : ''}
+                        ${p.email ? `<span class="contacto-sub">${esc(p.email)}</span>` : ''}</td>
+                    <td>
+                        <span class="reparto-chip proveedor">Proveedor ${num(p.porcentaje_proveedor)}%</span>
+                        <span class="reparto-chip tienda">Tienda ${num(p.porcentaje_tienda)}%</span>
+                        <span class="reparto-chip referente">Referente ${num(porcentajeReferente)}%</span>
+                    </td>
+                    <td>${p.total_productos > 0
+                        ? `<button type="button" class="btn-productos" onclick="verProductos(${p.id})">${p.total_productos}</button>`
+                        : '0'}</td>
+                    <td>
+                        <label class="toggle-switch" title="${p.activo ? 'Desactivar' : 'Activar'}">
+                            <input type="checkbox" ${p.activo ? 'checked' : ''} onchange="cambiarEstado(${p.id}, this)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </td>
+                    <td>
+                        <button class="btn-accion editar" onclick="editarProveedor(${p.id})" title="Editar"><i class="fas fa-edit"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function verProductos(id) {
+            window.location.href = `productos.html?proveedor=${id}`;
+        }
+
+        function actualizarRepartoVivo() {
+            const caja = document.getElementById('reparto-vivo');
+            const texto = document.getElementById('proveedor-porcentaje').value;
+            const aviso = document.getElementById('aviso-ventas-nuevas');
+            aviso.style.display = (porcentajeOriginal !== null && texto !== '' && Number(texto) !== porcentajeOriginal) ? 'block' : 'none';
+            if (texto === '') {
+                caja.textContent = `Máximo ${num(100 - porcentajeReferente)}% (el referente recibe ${num(porcentajeReferente)}%).`;
+                caja.classList.remove('error');
+                return;
+            }
+            const prov = Number(texto);
+            const tienda = Math.round((100 - prov - porcentajeReferente) * 100) / 100;
+            if (prov < 0 || tienda < 0) {
+                caja.textContent = `No puede pasar de ${num(100 - porcentajeReferente)}%: la tienda quedaría en negativo.`;
+                caja.classList.add('error');
+                return;
+            }
+            caja.classList.remove('error');
+            caja.textContent = `Por cada $100 vendidos: proveedor $${num(prov)} · referente $${num(porcentajeReferente)} · tienda $${num(tienda)} (sin referente, la tienda recibe $${num(tienda + porcentajeReferente)}).`;
+        }
+
+        function abrirModalProveedor() {
+            document.getElementById('modal-titulo-prov').textContent = 'Nuevo proveedor';
+            document.getElementById('form-proveedor').reset();
+            document.getElementById('proveedor-id').value = '';
+            document.getElementById('proveedor-activo').checked = true;
+            document.getElementById('proveedor-porcentaje').max = 100 - porcentajeReferente;
+            porcentajeOriginal = null;
+            actualizarRepartoVivo();
+            document.getElementById('modal-proveedor').classList.add('activo');
+        }
+
+        function editarProveedor(id) {
+            const p = proveedores.find(x => x.id === id);
+            if (!p) return;
+            document.getElementById('modal-titulo-prov').textContent = 'Editar proveedor';
+            document.getElementById('proveedor-id').value = p.id;
+            document.getElementById('proveedor-nombre').value = p.nombre;
+            document.getElementById('proveedor-documento').value = p.documento || '';
+            document.getElementById('proveedor-contacto').value = p.contacto || '';
+            document.getElementById('proveedor-telefono').value = p.telefono || '';
+            document.getElementById('proveedor-email').value = p.email || '';
+            document.getElementById('proveedor-porcentaje').value = p.porcentaje_proveedor;
+            document.getElementById('proveedor-porcentaje').max = 100 - porcentajeReferente;
+            document.getElementById('proveedor-activo').checked = p.activo == 1;
+            porcentajeOriginal = Number(p.porcentaje_proveedor);
+            actualizarRepartoVivo();
+            document.getElementById('modal-proveedor').classList.add('activo');
+        }
+
+        async function guardarProveedor(event) {
+            event.preventDefault();
+            const formData = new FormData(document.getElementById('form-proveedor'));
+            const id = formData.get('id');
+            formData.set('activo', document.getElementById('proveedor-activo').checked ? 1 : 0);
+            const action = id ? 'proveedor_actualizar' : 'proveedor_crear';
+            try {
+                const response = await fetch(`${API_BASE}?action=${action}`, { method: 'POST', body: formData });
+                const data = await response.json();
+                if (data.success) {
+                    Swal.fire({ icon: 'success', title: data.mensaje, timer: 1800, showConfirmButton: false });
+                    cerrarModal();
+                    cargarProveedores();
+                } else {
+                    Swal.fire('Error', data.error, 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire('Error', 'Error de conexión', 'error');
+            }
+        }
+
+        async function cambiarEstado(id, casilla) {
+            const p = proveedores.find(x => x.id === id);
+            const activar = casilla.checked;
+            if (!activar && p && p.total_productos > 0) {
+                const r = await Swal.fire({
+                    icon: 'question',
+                    title: '¿Desactivar proveedor?',
+                    text: `Sus ${p.total_productos} producto(s) conservan la asignación, pero no podrás elegirlo para productos nuevos.`,
+                    showCancelButton: true,
+                    confirmButtonText: 'Sí, desactivar',
+                    cancelButtonText: 'Cancelar'
+                });
+                if (!r.isConfirmed) { casilla.checked = true; return; }
+            }
+            const formData = new FormData();
+            formData.append('id', id);
+            formData.append('activo', activar ? 1 : 0);
+            try {
+                const response = await fetch(`${API_BASE}?action=proveedor_estado`, { method: 'POST', body: formData });
+                const data = await response.json();
+                if (!data.success) {
+                    casilla.checked = !activar;
+                    Swal.fire('Error', data.error, 'error');
+                    return;
+                }
+                cargarProveedores();
+            } catch (error) {
+                casilla.checked = !activar;
+                console.error('Error:', error);
+            }
+        }
+
+        async function guardarReferente(event) {
+            event.preventDefault();
+            const valor = document.getElementById('referente-valor').value;
+            const formData = new FormData();
+            formData.append('valor', valor);
+            try {
+                const response = await fetch(`${API_BASE}?action=actualizarPorcentajeReferente`, { method: 'POST', body: formData });
+                const data = await response.json();
+                if (data.success) {
+                    Swal.fire({ icon: 'success', title: 'Guardado', text: data.mensaje, timer: 2200, showConfirmButton: false });
+                    cargarProveedores();
+                } else {
+                    document.getElementById('referente-valor').value = porcentajeReferente;
+                    Swal.fire('No se pudo cambiar', data.error, 'warning');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire('Error', 'Error de conexión', 'error');
+            }
+        }
+
+        function cerrarModal() {
+            document.getElementById('modal-proveedor').classList.remove('activo');
+        }
+
+        document.getElementById('modal-proveedor').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) cerrarModal();
+        });
+    </script>
+</body>
+</html>

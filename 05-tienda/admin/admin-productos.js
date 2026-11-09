@@ -25,6 +25,8 @@ const MAX_TAMANO = 5 * 1024 * 1024; // 5 MB
 // ==================== INICIALIZACIÓN ====================
 document.addEventListener('DOMContentLoaded', () => {
     cargarCategorias();
+    cargarProveedores();
+    inicializarRepartoProducto();
     cargarVinculados().then(() => cargarProductos());
     inicializarSelectorImagen();
     inicializarFotosAdicionales();
@@ -406,6 +408,98 @@ async function cargarCategorias() {
     }
 }
 
+// ==================== PROVEEDORES ====================
+// Solo admin: el proveedor nunca se muestra en la tienda (productos de terceros como propios).
+let proveedores = [];
+let porcentajeReferente = 10;
+const filtroProveedor = parseInt(new URLSearchParams(window.location.search).get('proveedor') || '0', 10) || 0;
+
+function escHtml(texto) {
+    const div = document.createElement('div');
+    div.textContent = texto == null ? '' : String(texto);
+    return div.innerHTML;
+}
+
+async function cargarProveedores() {
+    try {
+        const response = await fetch(`${API_BASE}?action=proveedores_listar`);
+        const data = await response.json();
+        if (data.success) {
+            proveedores = data.proveedores;
+            porcentajeReferente = Number(data.porcentaje_referente);
+            llenarSelectProveedor(0);
+            mostrarAvisoFiltroProveedor();
+            actualizarRepartoProducto();
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+/**
+ * Llena el desplegable con los proveedores activos; si el producto tiene uno
+ * desactivado, lo agrega para no perder la asignacion.
+ */
+function llenarSelectProveedor(asignado) {
+    const select = document.getElementById('producto-proveedor');
+    if (!select) return;
+    const opciones = proveedores
+        .filter(p => p.activo || p.id === asignado)
+        .map(p => `<option value="${p.id}">${escHtml(p.nombre)} (${p.porcentaje_proveedor}%)${p.activo ? '' : ' - desactivado'}</option>`);
+    select.innerHTML = '<option value="0">Tienda (propio)</option>' + opciones.join('');
+    select.value = String(asignado || 0);
+}
+
+function inicializarRepartoProducto() {
+    ['producto-proveedor', 'producto-precio', 'producto-precio-oferta'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', actualizarRepartoProducto);
+            el.addEventListener('change', actualizarRepartoProducto);
+        }
+    });
+}
+
+function pesos(valor) {
+    return '$' + Math.round(valor).toLocaleString('es-CO');
+}
+
+/**
+ * Linea informativa: cuanto recibe cada uno por una venta de este producto
+ * (precio de oferta si existe). No se guarda.
+ */
+function actualizarRepartoProducto() {
+    const caja = document.getElementById('reparto-producto');
+    if (!caja) return;
+    const select = document.getElementById('producto-proveedor');
+    const oferta = parseFloat(document.getElementById('producto-precio-oferta').value);
+    const precio = parseFloat(document.getElementById('producto-precio').value);
+    const venta = oferta > 0 ? oferta : precio;
+    const proveedor = proveedores.find(p => String(p.id) === select.value);
+
+    if (!(venta > 0)) {
+        caja.textContent = proveedor ? 'Escribe el precio para ver el reparto de cada venta.' : '';
+        return;
+    }
+    const pctProv = proveedor ? Number(proveedor.porcentaje_proveedor) : 0;
+    const montoProv = venta * pctProv / 100;
+    const montoRef = venta * porcentajeReferente / 100;
+    const montoTienda = venta - montoProv - montoRef;
+    caja.textContent = `Por cada venta de ${pesos(venta)}: `
+        + (proveedor ? `proveedor ${pesos(montoProv)} · ` : '')
+        + `tienda ${pesos(montoTienda)} · referente ${pesos(montoRef)}`
+        + ` (sin referente, la tienda recibe ${pesos(montoTienda + montoRef)})`;
+}
+
+function mostrarAvisoFiltroProveedor() {
+    const aviso = document.getElementById('filtro-proveedor-aviso');
+    if (!aviso || !filtroProveedor) return;
+    const p = proveedores.find(x => x.id === filtroProveedor);
+    document.getElementById('filtro-proveedor-texto').textContent =
+        `Mostrando solo los productos de ${p ? p.nombre : 'este proveedor'}.`;
+    aviso.hidden = false;
+}
+
 // ==================== PRODUCTOS ====================
 async function cargarProductos() {
     const tbody = document.querySelector('#tabla-productos tbody');
@@ -415,6 +509,10 @@ async function cargarProductos() {
         const data = await response.json();
         
         if (data.success) {
+            // Con ?proveedor=N (desde Proveedores) solo se listan los productos de ese proveedor
+            if (filtroProveedor) {
+                data.productos = data.productos.filter(p => Number(p.proveedor_id) === filtroProveedor);
+            }
             todosLosProductos = data.productos; // Guardar copia completa
             productos = data.productos;
             filtrarProductosPorBusqueda(); // Aplicar filtro activo si existe
@@ -516,6 +614,10 @@ function abrirModalProducto() {
     document.getElementById('form-producto').reset();
     document.getElementById('producto-id').value = '';
     document.getElementById('producto-activo').checked = true;
+    // Desde "productos de X" el nuevo producto viene con ese proveedor (si esta activo)
+    const provFiltro = proveedores.find(p => p.id === filtroProveedor && p.activo);
+    llenarSelectProveedor(provFiltro ? provFiltro.id : 0);
+    actualizarRepartoProducto();
     resetearSelectorImagen();
     cargarFotosAdicionales(null);
     document.getElementById('modal-producto').classList.add('activo');
@@ -541,7 +643,9 @@ async function editarProducto(id) {
             document.getElementById('producto-marca').value = p.marca || '';
             document.getElementById('producto-destacado').checked = p.destacado == 1;
             document.getElementById('producto-activo').checked = p.activo == 1;
-            
+            llenarSelectProveedor(Number(p.proveedor_id) || 0);
+            actualizarRepartoProducto();
+
             // Mostrar imagen actual si existe
             resetearSelectorImagen();
             if (p.imagen) {
