@@ -112,27 +112,25 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Construir filas de la tabla (sin columna #, con teléfono)
+  // Construir filas de la tabla (asociado y fecha)
   function renderTabla(datos, nivel) {
     tablaBody.innerHTML = "";
     tituloNivel.textContent = `📋 Listado de Registros — Nivel ${nivel}`;
 
     if (!datos || datos.length === 0) {
-      tablaBody.innerHTML = `<tr><td colspan="5" class="tabla-vacia">No hay registros para mostrar.</td></tr>`;
+      tablaBody.innerHTML = `<tr><td colspan="2" class="tabla-vacia">No hay registros para mostrar.</td></tr>`;
       tablaTotalCount.textContent = 0;
       return;
     }
 
     datos.forEach((reg) => {
-      const asociado = `${reg.nombres} ${reg.apellidos}`;
+      // Solo nombre y fecha (proteccion de datos personales)
       const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${asociado}</td>
-        <td>${reg.documento}</td>
-        <td>${reg.email}</td>
-        <td>${reg.telefono ?? "-"}</td>
-        <td>${reg.fecha}</td>
-      `;
+      const tdAsociado = document.createElement("td");
+      tdAsociado.textContent = `${reg.nombres} ${reg.apellidos}`;
+      const tdFecha = document.createElement("td");
+      tdFecha.textContent = reg.fecha;
+      tr.append(tdAsociado, tdFecha);
       tablaBody.appendChild(tr);
     });
 
@@ -141,7 +139,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Fetch al endpoint
   function cargarTabla(nivel) {
-    tablaBody.innerHTML = `<tr><td colspan="5" class="tabla-cargando">Cargando...</td></tr>`;
+    tablaBody.innerHTML = `<tr><td colspan="2" class="tabla-cargando">Cargando...</td></tr>`;
     tablaTotalCount.textContent = "...";
 
     fetch(`./obtener_niveles.php?nivel=${nivel}`)
@@ -154,7 +152,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setNivelActivo(nivel);
       })
       .catch((err) => {
-        tablaBody.innerHTML = `<tr><td colspan="5" class="tabla-vacia">Error al cargar los datos.</td></tr>`;
+        tablaBody.innerHTML = `<tr><td colspan="2" class="tabla-vacia">Error al cargar los datos.</td></tr>`;
         console.error("Error cargando tabla:", err);
       });
   }

@@ -92,10 +92,12 @@ function contarReferidosNivel3($conn, $emailUsuario)
 // ─────────────────────────────────────────────
 
 // Obtener registros NIVEL 1
+// Proteccion de datos personales: el asociado solo ve nombre y fecha de registro
+// de su red (sin documento, email ni telefono).
 function obtenerRegistrosNivel1($conn, $emailUsuario)
 {
   $stmt = $conn->prepare(
-    "SELECT nombres, apellidos, documento, email, telefono, fecha 
+    "SELECT nombres, apellidos, fecha 
      FROM registros 
      WHERE referente = ? AND email <> ? 
      ORDER BY fecha ASC"
@@ -115,7 +117,7 @@ function obtenerRegistrosNivel1($conn, $emailUsuario)
 function obtenerRegistrosNivel2($conn, $emailUsuario)
 {
   $stmt = $conn->prepare(
-    "SELECT nombres, apellidos, documento, email, telefono, fecha 
+    "SELECT nombres, apellidos, fecha 
      FROM registros 
      WHERE referente IN (
        SELECT email FROM registros 
@@ -172,7 +174,7 @@ function obtenerRegistrosNivel3($conn, $emailUsuario)
   $placeholders2 = implode(',', array_fill(0, count($emailsNivel2), '?'));
   $types2 = str_repeat('s', count($emailsNivel2));
   $stmt3 = $conn->prepare(
-    "SELECT nombres, apellidos, documento, email, telefono, fecha 
+    "SELECT nombres, apellidos, fecha 
      FROM registros 
      WHERE referente IN ($placeholders2)
      ORDER BY fecha ASC"

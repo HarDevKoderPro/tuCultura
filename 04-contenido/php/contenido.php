@@ -327,24 +327,18 @@ $esCuentaAdmin = isset($_SESSION['rol']) && $_SESSION['rol'] !== 'cliente';
             <thead>
               <tr>
                 <th>ASOCIADO</th>
-                <th>DOCUMENTO</th>
-                <th>EMAIL</th>
-                <th>TELÉFONO</th>
                 <th>FECHA</th>
               </tr>
             </thead>
             <tbody id="tablaBody">
               <?php if (empty($registrosIniciales)): ?>
                 <tr>
-                  <td colspan="5" class="tabla-vacia">No hay registros para mostrar.</td>
+                  <td colspan="2" class="tabla-vacia">No hay registros para mostrar.</td>
                 </tr>
               <?php else: ?>
                 <?php foreach ($registrosIniciales as $reg): ?>
                   <tr>
                     <td><?php echo htmlspecialchars($reg['nombres'] . ' ' . $reg['apellidos']); ?></td>
-                    <td><?php echo htmlspecialchars($reg['documento']); ?></td>
-                    <td><?php echo htmlspecialchars($reg['email']); ?></td>
-                    <td><?php echo htmlspecialchars($reg['telefono']); ?></td>
                     <td><?php echo formatearFecha($reg['fecha']); ?></td>
                   </tr>
                 <?php endforeach; ?>
@@ -352,7 +346,7 @@ $esCuentaAdmin = isset($_SESSION['rol']) && $_SESSION['rol'] !== 'cliente';
             </tbody>
             <tfoot>
               <tr class="tabla-total">
-                <td colspan="4">Total de registros</td>
+                <td>Total de registros</td>
                 <td id="tablaTotalCount"><?php echo count($registrosIniciales); ?></td>
               </tr>
             </tfoot>
