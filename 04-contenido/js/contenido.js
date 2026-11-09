@@ -53,13 +53,14 @@ document.addEventListener("DOMContentLoaded", () => {
     copia.querySelector(".tarjeta-inner")?.classList.remove("is-flipped");
     activarGiro(copia);
 
-    // El carrito de la copia usa el boton original (misma logica y avisos)
+    // Carrito en la ventana: al agregar, opciones "Ir al carrito" o "Seguir viendo"
     const carritoCopia = copia.querySelector(".tarjeta-carrito");
-    const carritoOriginal = tarjeta.querySelector(".tarjeta-carrito");
-    if (carritoCopia && carritoOriginal) {
-      carritoCopia.addEventListener("click", (event) => {
+    if (carritoCopia) {
+      carritoCopia.addEventListener("click", async (event) => {
         event.stopPropagation();
-        carritoOriginal.click();
+        const r = await agregarAlCarrito(carritoCopia);
+        if (r.ok) mostrarConfirmacionCarrito(ventana, r.mensaje);
+        else mostrarAvisoCarrito(r.mensaje, "error", false);
       });
     }
 
@@ -103,6 +104,30 @@ document.addEventListener("DOMContentLoaded", () => {
     cerrar.focus({ preventScroll: true });
   }
 
+  /** Panel dentro de la ventana tras agregar al carrito */
+  function mostrarConfirmacionCarrito(ventana, mensaje) {
+    ventana.querySelector(".ventana-carrito-ok")?.remove();
+    const panel = document.createElement("div");
+    panel.className = "ventana-carrito-ok";
+    panel.setAttribute("role", "status");
+    panel.innerHTML = `
+      <div class="ventana-carrito-ok-titulo">
+        <span class="ventana-carrito-ok-check" aria-hidden="true">✓</span>
+        <span></span>
+      </div>
+      <p class="ventana-carrito-ok-nota">Tu sesión sigue activa en la tienda: no tienes que volver a ingresar.</p>
+      <div class="ventana-carrito-ok-acciones">
+        <a class="ventana-btn ventana-btn--primario" href="${URL_TIENDA}carrito.html">Ir al carrito</a>
+        <button type="button" class="ventana-btn ventana-btn--secundario">Seguir viendo</button>
+      </div>`;
+    panel.querySelector(".ventana-carrito-ok-titulo span:last-child").textContent = mensaje;
+    panel.querySelector(".ventana-btn--secundario").addEventListener("click", cerrarVentanaTarjeta);
+    const ayuda = ventana.querySelector(".ventana-tarjeta-ayuda");
+    if (ayuda) ayuda.hidden = true;
+    ventana.appendChild(panel);
+    panel.querySelector(".ventana-btn--primario").focus({ preventScroll: true });
+  }
+
   if (contenedorTarjetas && tarjetas.length > 0) {
     tarjetas.forEach((tarjeta) => {
       tarjeta.setAttribute("tabindex", "0");
@@ -115,7 +140,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     // Fase de captura: en celular el toque abre la ventana en vez de girar la tarjeta pequena
     contenedorTarjetas.addEventListener("click", (event) => {
-      // Con la ventana abierta (p. ej. el carrito reenviado al boton original) no se intercepta
       if (!ES_CELULAR.matches || ventanaTarjeta) return;
       const tarjeta = event.target.closest(".tarjeta");
       if (!tarjeta) return;
@@ -159,42 +183,43 @@ document.addEventListener("DOMContentLoaded", () => {
     aviso._timer = setTimeout(() => aviso.classList.remove("visible"), 4000);
   }
 
-  document.querySelectorAll(".tarjeta-carrito").forEach((boton) => {
+  /**
+   * Agrega el producto del boton al carrito de la tienda (misma sesion).
+   * Devuelve {ok, mensaje, admin}.
+   */
+  async function agregarAlCarrito(boton) {
+    if (boton.dataset.admin === "1") {
+      return { ok: false, admin: true, mensaje: "Las cuentas de administrador no pueden comprar. Ingresa como asociado." };
+    }
+    boton.disabled = true;
+    try {
+      const datos = new FormData();
+      datos.append("producto_id", boton.dataset.productoId);
+      datos.append("cantidad", "1");
+      const res = await fetch(`${URL_TIENDA}php/carrito.php?action=agregar`, {
+        method: "POST",
+        body: datos,
+        credentials: "same-origin",
+      });
+      const data = await res.json();
+      if (data.success) {
+        return { ok: true, mensaje: `${data.producto_nombre}: ${data.mensaje.toLowerCase()}` };
+      }
+      return { ok: false, mensaje: data.error || "No se pudo agregar el producto" };
+    } catch (err) {
+      console.error("Error agregando al carrito:", err);
+      return { ok: false, mensaje: "Error de conexión. Intenta de nuevo." };
+    } finally {
+      boton.disabled = false;
+    }
+  }
+
+  document.querySelectorAll(".contenedorTarjetas .tarjeta-carrito").forEach((boton) => {
     boton.addEventListener("click", async (event) => {
       // Evita que el clic gire la tarjeta
       event.stopPropagation();
-
-      if (boton.dataset.admin === "1") {
-        mostrarAvisoCarrito(
-          "Las cuentas de administrador no pueden comprar. Ingresa como asociado.",
-          "error",
-          false,
-        );
-        return;
-      }
-
-      boton.disabled = true;
-      try {
-        const datos = new FormData();
-        datos.append("producto_id", boton.dataset.productoId);
-        datos.append("cantidad", "1");
-        const res = await fetch(`${URL_TIENDA}php/carrito.php?action=agregar`, {
-          method: "POST",
-          body: datos,
-          credentials: "same-origin",
-        });
-        const data = await res.json();
-        if (data.success) {
-          mostrarAvisoCarrito(`${data.producto_nombre}: ${data.mensaje.toLowerCase()}`, "exito", true);
-        } else {
-          mostrarAvisoCarrito(data.error || "No se pudo agregar el producto", "error", false);
-        }
-      } catch (err) {
-        console.error("Error agregando al carrito:", err);
-        mostrarAvisoCarrito("Error de conexión. Intenta de nuevo.", "error", false);
-      } finally {
-        boton.disabled = false;
-      }
+      const r = await agregarAlCarrito(boton);
+      mostrarAvisoCarrito(r.mensaje, r.ok ? "exito" : "error", r.ok);
     });
   });
 
