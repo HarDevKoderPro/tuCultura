@@ -580,9 +580,28 @@ function actualizarStockMasivo($conn) {
 
 // ==================== PRODUCTOS ====================
 
+/**
+ * Tipo de producto: 'fisico' (por defecto) o 'digital'. La columna se agrega sola
+ * a la tabla productos; los productos existentes quedan como fisicos.
+ */
+function asegurarColumnaTipoProducto($conn) {
+    static $verificada = false;
+    if ($verificada) return;
+    $r = $conn->query("SHOW COLUMNS FROM productos LIKE 'tipo_producto'");
+    if ($r && $r->num_rows === 0) {
+        $conn->query("ALTER TABLE productos ADD COLUMN tipo_producto VARCHAR(10) NOT NULL DEFAULT 'fisico'");
+    }
+    $verificada = true;
+}
+
+function normalizarTipoProducto($valor) {
+    return $valor === 'digital' ? 'digital' : 'fisico';
+}
+
 function listarProductosAdmin($conn) {
     // Ordenar productos alfabéticamente por nombre (A → Z)
     // proveedor_id solo en el admin (0 = Tienda (propio)); sirve para filtrar por proveedor
+    asegurarColumnaTipoProducto($conn);
     asegurarTablasProveedores($conn);
     $result = $conn->query("
         SELECT p.*, c.nombre as categoria_nombre, COALESCE(pp.proveedor_id, 0) AS proveedor_id
@@ -611,11 +630,12 @@ function detalleProductoAdmin($conn) {
         jsonResponse(['error' => 'ID requerido'], 400);
     }
     
+    asegurarColumnaTipoProducto($conn);
     $stmt = $conn->prepare("SELECT * FROM productos WHERE id = ?");
     $stmt->bind_param("i", $id);
     $stmt->execute();
     $producto = $stmt->get_result()->fetch_assoc();
-    
+
     if ($producto) {
         // Solo en el admin: el proveedor nunca se expone en la tienda
         $producto['proveedor_id'] = proveedorDeProducto($conn, $id);
@@ -642,7 +662,9 @@ function crearProducto($conn) {
     $marca = sanitizar($_POST['marca'] ?? '');
     $destacado = isset($_POST['destacado']) ? 1 : 0;
     $activo = isset($_POST['activo']) ? 1 : 0;
-    
+    $tipoProducto = normalizarTipoProducto($_POST['tipo_producto'] ?? 'fisico');
+    asegurarColumnaTipoProducto($conn);
+
     // Proveedor (opcional; 0 = Tienda (propio))
     $proveedorId = validarProveedorParaProducto($conn, $_POST['proveedor_id'] ?? 0);
     if (is_string($proveedorId)) {
@@ -654,13 +676,13 @@ function crearProducto($conn) {
     
     $stmt = $conn->prepare("
         INSERT INTO productos (nombre, descripcion, descripcion_corta, precio, precio_oferta, 
-                              categoria_id, stock, sku, marca, destacado, activo, imagen)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                              categoria_id, stock, sku, marca, destacado, activo, imagen, tipo_producto)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
     $stmt->bind_param(
-        "sssddiissiis",
+        "sssddiissiiss",
         $nombre, $descripcion, $descripcion_corta, $precio, $precio_oferta,
-        $categoria_id, $stock, $sku, $marca, $destacado, $activo, $imagen
+        $categoria_id, $stock, $sku, $marca, $destacado, $activo, $imagen, $tipoProducto
     );
     
     if ($stmt->execute()) {
@@ -696,7 +718,12 @@ function actualizarProducto($conn) {
     $marca = sanitizar($_POST['marca'] ?? '');
     $destacado = isset($_POST['destacado']) && $_POST['destacado'] ? 1 : 0;
     $activo = isset($_POST['activo']) && $_POST['activo'] ? 1 : 0;
-    
+    asegurarColumnaTipoProducto($conn);
+    // Tipo: solo se cambia si el formulario lo envia (compatibilidad)
+    $tipoProducto = array_key_exists('tipo_producto', $_POST)
+        ? normalizarTipoProducto($_POST['tipo_producto'])
+        : null;
+
     // Proveedor: solo se cambia si el formulario lo envia (compatibilidad)
     $proveedorId = null;
     if (array_key_exists('proveedor_id', $_POST)) {
@@ -729,6 +756,11 @@ function actualizarProducto($conn) {
     );
     
     if ($stmt->execute()) {
+        if ($tipoProducto !== null) {
+            $stmtTipo = $conn->prepare("UPDATE productos SET tipo_producto = ? WHERE id = ?");
+            $stmtTipo->bind_param("si", $tipoProducto, $id);
+            $stmtTipo->execute();
+        }
         if ($proveedorId !== null) {
             asignarProveedorProducto($conn, $id, $proveedorId);
         }

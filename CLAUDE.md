@@ -75,7 +75,7 @@ Comportamiento heredado conocido: el carrito anonimo (por `session_id`) no se mi
 ## 7) Modelo de datos en uso (no romper)
 
 - `categorias` (id, nombre, descripcion, imagen, activo).
-- `productos` (id, nombre, descripcion, descripcion_corta, precio, precio_oferta, categoria_id, stock, sku, marca, destacado, activo, imagen, vistas).
+- `productos` (id, nombre, descripcion, descripcion_corta, precio, precio_oferta, categoria_id, stock, sku, marca, destacado, activo, imagen, vistas, tipo_producto `fisico`/`digital`, por defecto `fisico`; la columna se agrega sola con `asegurarColumnaTipoProducto` en `admin.php`; por ahora solo es una etiqueta del admin: no cambia stock, envio ni checkout).
 - `carrito` (id, usuario_id/session_id, producto_id, cantidad, fecha_agregado).
 - `pedidos` (id, numero_pedido, usuario_id, subtotal, costo_envio, impuestos, total, estado, metodo_pago, datos de envio, notas, fecha_creacion).
 - `detalle_pedido` (pedido_id, producto_id, nombre_producto, cantidad, precio_unitario, subtotal).
@@ -316,3 +316,4 @@ Actualizar al cerrar cada iteracion que cambie rutas/paginas, endpoints o contra
 - 2026-11-09: rediseno del Registro con el mismo estilo de acceso.
 - 2026-11-09: progreso guardado; en pausa la tarjeta de invitacion en iPhone (cambios sin publicar en invitacion.js y registrarse.js).
 - 2026-11-09: 04-contenido: tabla de referidos solo con asociado y fecha (sin documento, email ni telefono, tampoco en el JSON); tarjetas giratorias en 3 columnas en celular.
+- 2026-11-15: admin Productos: selector "Tipo de producto" (Fisico/Digital) en el formulario; `productos.tipo_producto`, POST opcional `tipo_producto` en `producto_crear`/`producto_actualizar` (sin el campo no se cambia); etiqueta bajo el nombre en la tabla.

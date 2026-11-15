@@ -565,7 +565,7 @@ function renderizarProductos() {
                      style="width:50px; height:50px; object-fit:cover; border-radius:6px;"
                      onerror="this.src='../../01-principal/imagenes/fondo-producto.png'">
             </td>
-            <td><strong>${p.nombre}</strong><br><small>${p.sku || ''}</small></td>
+            <td><strong>${p.nombre}</strong><br><small>${p.sku || ''}</small><br><small style="color:#666;"><i class="fas ${p.tipo_producto === 'digital' ? 'fa-cloud' : 'fa-box'}"></i> ${p.tipo_producto === 'digital' ? 'Digital' : 'Físico'}</small></td>
             <td>${p.categoria_nombre || '-'}</td>
             <td>
                 ${p.precio_oferta ? `
@@ -650,6 +650,7 @@ async function editarProducto(id) {
             document.getElementById('producto-precio-oferta').value = p.precio_oferta || '';
             document.getElementById('producto-categoria').value = p.categoria_id || '';
             document.getElementById('producto-stock').value = p.stock;
+            document.getElementById('producto-tipo').value = p.tipo_producto === 'digital' ? 'digital' : 'fisico';
             document.getElementById('producto-sku').value = p.sku || '';
             document.getElementById('producto-marca').value = p.marca || '';
             document.getElementById('producto-destacado').checked = p.destacado == 1;
