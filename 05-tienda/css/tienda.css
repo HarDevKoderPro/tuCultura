@@ -898,8 +898,24 @@ body.visor-fotos-abierto { overflow: hidden; }
     text-align: left;
 }
 .ayuda-lector p { margin: 0.25rem 0 0; }
-.ayuda-lector-enlaces { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; }
-.ayuda-lector-enlaces a { color: #1d4f9c; font-weight: 600; text-decoration: underline; }
+.ayuda-lector-iconos { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.5rem; }
+.ayuda-lector-iconos a {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    min-width: 4.6rem;
+    padding: 0.55rem 0.8rem;
+    background: #fff;
+    border: 1px solid #c7d8f3;
+    border-radius: 10px;
+    color: #1d4f9c;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+.ayuda-lector-iconos a i { font-size: 1.7rem; }
+.ayuda-lector-iconos a:hover { background: #e3efff; border-color: #1d4f9c; }
 
 /* El aviso y los botones de descarga ocupan una fila propia, a todo el ancho de la tarjeta
    (antes quedaban dentro de la columna del nombre y se veian como una tira estrecha) */

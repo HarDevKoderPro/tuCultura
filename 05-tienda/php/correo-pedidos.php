@@ -247,9 +247,9 @@ if (!function_exists('construirCorreoPedido')) {
           . 'text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:bold">Ir a mis descargas</a></p>'
           . (!empty($pedido['hay_epub'])
             ? '<p style="margin:14px 0 0;font-size:13px"><b>¿No puedes abrir el EPUB?</b> Instala un lector gratis (el PDF se abre sin instalar nada): '
-              . '<a href="https://play.google.com/store/apps/details?id=com.foobnix.pdf.reader" style="color:#1d4f9c">Android: Librera Reader</a> · '
-              . '<a href="https://apps.apple.com/app/apple-books/id364709193" style="color:#1d4f9c">iPhone / iPad: Apple Libros</a> · '
-              . '<a href="https://calibre-ebook.com/download" style="color:#1d4f9c">Computador: Calibre</a></p>'
+              . '<a href="https://play.google.com/store/apps/details?id=com.foobnix.pdf.reader" style="color:#1d4f9c;font-weight:bold">Android</a> · '
+              . '<a href="https://apps.apple.com/app/apple-books/id364709193" style="color:#1d4f9c;font-weight:bold">iOS</a> · '
+              . '<a href="https://calibre-ebook.com/download_windows" style="color:#1d4f9c;font-weight:bold">Windows</a></p>'
             : '')
           . '</div>';
       } else {

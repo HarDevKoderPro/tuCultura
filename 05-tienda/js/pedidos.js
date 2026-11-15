@@ -131,10 +131,10 @@ function renderizarDetallePedido(pedido) {
         <div class="ayuda-lector">
             <strong><i class="fas fa-book-reader"></i> ¿No puedes abrir el EPUB?</strong>
             <p>Instala un lector gratis (el PDF se abre sin instalar nada):</p>
-            <p class="ayuda-lector-enlaces">
-                <a href="https://play.google.com/store/apps/details?id=com.foobnix.pdf.reader" target="_blank" rel="noopener">Android: Librera Reader</a>
-                <a href="https://apps.apple.com/app/apple-books/id364709193" target="_blank" rel="noopener">iPhone / iPad: Apple Libros</a>
-                <a href="https://calibre-ebook.com/download" target="_blank" rel="noopener">Computador: Calibre</a>
+            <p class="ayuda-lector-iconos">
+                <a href="https://play.google.com/store/apps/details?id=com.foobnix.pdf.reader" target="_blank" rel="noopener" title="Android: Librera Reader" aria-label="Instalar Librera Reader para Android"><i class="fab fa-android"></i><span>Android</span></a>
+                <a href="https://apps.apple.com/app/apple-books/id364709193" target="_blank" rel="noopener" title="iPhone / iPad: Apple Libros" aria-label="Instalar Apple Libros para iPhone o iPad"><i class="fab fa-apple"></i><span>iOS</span></a>
+                <a href="https://calibre-ebook.com/download_windows" target="_blank" rel="noopener" title="Windows: Calibre" aria-label="Instalar Calibre para Windows"><i class="fab fa-windows"></i><span>Windows</span></a>
             </p>
         </div>` : '';
 
