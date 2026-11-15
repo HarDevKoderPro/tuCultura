@@ -112,37 +112,81 @@
   });
 
   // ---------- invitacion por enlace ----------
-  function codigoGuardado() {
+  /** Invitacion guardada en este telefono por 05-tienda/js/invitacion.js: {codigo, nombre} */
+  function invitacionGuardada() {
     try {
       const guardada = JSON.parse(localStorage.getItem("tcp_invitacion") || "null");
       if (guardada && FORMATO_CODIGO.test(guardada.codigo) && Date.now() - guardada.fecha < 30 * 864e5) {
-        return guardada.codigo;
+        return { codigo: guardada.codigo, nombre: guardada.nombre || "" };
       }
     } catch (e) {
-      // Sin almacenamiento: registro normal
+      // Sin almacenamiento
     }
-    return "";
+    return { codigo: "", nombre: "" };
+  }
+
+  /** ref=CODIGO dentro de una direccion (volver, pagina anterior); '' si no hay */
+  function codigoEnDireccion(texto) {
+    try {
+      const url = new URL(texto, window.location.href);
+      const codigo = (url.searchParams.get("ref") || "").toUpperCase();
+      return FORMATO_CODIGO.test(codigo) ? codigo : "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  /**
+   * El codigo puede llegar por varias vias (algunos navegadores de celular
+   * pierden parte de la direccion): ?ref=, el ?volver= (pagina de la tienda),
+   * la pagina anterior o lo guardado en el telefono al ver el aviso.
+   */
+  function detectarCodigo() {
+    const candidatos = [
+      (paramsUrl.get("ref") || "").toUpperCase(),
+      codigoEnDireccion(paramsUrl.get("volver") || ""),
+      document.referrer ? codigoEnDireccion(document.referrer) : "",
+      invitacionGuardada().codigo,
+    ];
+    return candidatos.find((c) => FORMATO_CODIGO.test(c)) || "";
+  }
+
+  function mostrarTarjeta(codigo, nombre) {
+    codigoInvitacion = codigo;
+    getEl("invitacionNombre").textContent = nombre || "Un asociado de Tu Cultura";
+    getEl("invitacionInicial").textContent = (nombre || "?").trim().charAt(0).toUpperCase();
+    invitacionRegistro.hidden = false;
+    campoReferente.hidden = true;
   }
 
   async function prepararInvitacion() {
-    const codigoUrl = (paramsUrl.get("ref") || "").toUpperCase();
-    const codigo = FORMATO_CODIGO.test(codigoUrl) ? codigoUrl : codigoGuardado();
+    const codigo = detectarCodigo();
     if (!codigo) return;
+
+    // 1. Al instante, con el nombre guardado en el telefono (si es el mismo codigo)
+    const guardada = invitacionGuardada();
+    if (guardada.codigo === codigo && guardada.nombre) mostrarTarjeta(codigo, guardada.nombre);
+
+    // 2. Confirmar con el servidor (el codigo se valida de nuevo al crear la cuenta)
     try {
-      const res = await fetch(`../05-tienda/php/invitaciones.php?action=resolver&ref=${encodeURIComponent(codigo)}`);
+      const res = await fetch(`../05-tienda/php/invitaciones.php?action=resolver&ref=${encodeURIComponent(codigo)}`, { cache: "no-store" });
       const data = await res.json();
-      if (!data.success || !data.valido) return;
-      codigoInvitacion = codigo;
-      getEl("invitacionNombre").textContent = data.nombre;
-      getEl("invitacionInicial").textContent = (data.nombre || "?").trim().charAt(0).toUpperCase();
-      invitacionRegistro.hidden = false;
-      campoReferente.hidden = true;
+      if (data.success && data.valido) {
+        if (!getEl("btnCambiarReferente").dataset.usado) mostrarTarjeta(codigo, data.nombre);
+      } else if (data.success && !data.valido && codigoInvitacion === codigo) {
+        // Codigo que ya no existe: registro normal con el correo del referente
+        codigoInvitacion = "";
+        invitacionRegistro.hidden = true;
+        campoReferente.hidden = false;
+      }
     } catch (e) {
-      // Sin conexion con la tienda: registro normal con email del referente
+      // Sin respuesta del servidor: si no se mostro la tarjeta, se usa igual el codigo
+      if (!codigoInvitacion) mostrarTarjeta(codigo, guardada.codigo === codigo ? guardada.nombre : "");
     }
   }
 
-  getEl("btnCambiarReferente").addEventListener("click", () => {
+  getEl("btnCambiarReferente").addEventListener("click", (e) => {
+    e.currentTarget.dataset.usado = "1";
     codigoInvitacion = "";
     invitacionRegistro.hidden = true;
     campoReferente.hidden = false;

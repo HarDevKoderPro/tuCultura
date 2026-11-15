@@ -36,6 +36,18 @@
     } catch (e) { /* sin almacenamiento */ }
   }
 
+  // Guarda tambien el nombre corto de quien invita (el registro lo muestra al
+  // instante aunque la consulta al servidor tarde o falle)
+  function guardarNombre(codigo, nombre) {
+    try {
+      var guardada = JSON.parse(localStorage.getItem(CLAVE) || 'null');
+      if (guardada && guardada.codigo === codigo) {
+        guardada.nombre = nombre;
+        localStorage.setItem(CLAVE, JSON.stringify(guardada));
+      }
+    } catch (e) { /* sin almacenamiento */ }
+  }
+
   // 1) Guardar el codigo que trae la URL (el ultimo enlace gana)
   var refUrl = (new URLSearchParams(window.location.search).get('ref') || '').toUpperCase();
   if (FORMATO.test(refUrl)) guardar(refUrl);
@@ -56,7 +68,10 @@
           .then(function (res) { return res.json(); });
       })
       .then(function (data) {
-        if (data && data.success && data.valido) mostrarAviso(codigo, data.nombre);
+        if (data && data.success && data.valido) {
+          guardarNombre(codigo, data.nombre);
+          mostrarAviso(codigo, data.nombre);
+        }
       })
       .catch(function () { /* sin aviso */ });
   });
