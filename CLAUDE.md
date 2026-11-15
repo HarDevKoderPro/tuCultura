@@ -327,6 +327,7 @@ Actualizar al cerrar cada iteracion que cambie rutas/paginas, endpoints o contra
 - 2026-11-15: "Comprar Ahora" (`producto.js`) sin sesion guarda la compra pendiente (`tcp_pendiente` con cantidad y `comprar`) y manda al login; al entrar va a `carrito.html?agregar=N&cantidad=Q&comprar=1` (agrega y sigue al checkout), porque el carrito anonimo no se migra al iniciar sesion.
 - 2026-11-15: filtro "Productos digitales" en las categorias de la tienda (valor especial -1 en `tienda.js`; `productos.php?action=listar&tipo=digital`).
 - 2026-11-15: buscador de la tienda en tiempo real (`tienda.js`: desde 2 letras, 250 ms de espera, ignora respuestas viejas; la lupa y Enter siguen).
+- 2026-11-15: carrito en celular: el control "- cantidad +" va en su propia fila y se ajusta al ancho (`tienda.css`, `.carrito-item` bajo 768 px).
 - 2026-11-15: productos digitales, paso 3 (descarga): `php/descargar.php`, `php/descargas-helpers.php`, `detalle` de `pedidos.php` con archivos, botones en `mis-pedidos` (`pedidos.js`) y `confirmacion.html`, bloque de descarga en `correo-pedidos.php`.
 - 2026-11-15: productos digitales, paso 2 (checkout): `tipos-producto-helpers.php`; `carrito.php`, `pedidos.php`, `pagos.php`, `productos.php` y `checkout.js`/`carrito.js` distinguen digitales de fisicos (sin contra entrega, sin direccion/envio si todo es digital, sin stock).
 - 2026-11-15: varios archivos por producto digital (p. ej. PDF y EPUB), cada uno con etiqueta; `producto_archivo` pasa a una fila por archivo; endpoints devuelven `archivos[]`.

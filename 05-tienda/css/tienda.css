@@ -1072,6 +1072,38 @@ body.visor-fotos-abierto { overflow: hidden; }
     color: var(--color-primario);
 }
 
+/* Celular: la foto y el nombre arriba; abajo, en filas propias, el control "- cantidad +"
+   (siempre completo, aunque la letra del telefono sea grande) y el subtotal con Eliminar */
+@media (max-width: 767px) {
+    .carrito-item {
+        grid-template-columns: 80px minmax(0, 1fr);
+        gap: 0.6rem 0.8rem;
+        align-items: start;
+    }
+    .carrito-item-imagen { width: 80px; height: 80px; }
+    .carrito-item-info { min-width: 0; }
+    .carrito-item-info h3 { overflow-wrap: anywhere; }
+    .carrito-item .cantidad-control {
+        grid-column: 1 / -1;
+        justify-self: start;
+        max-width: 100%;
+    }
+    .carrito-item .cantidad-control button { padding: 0.6rem 1rem; flex: 0 0 auto; }
+    .carrito-item .cantidad-control input {
+        width: clamp(3rem, 16vw, 4.5rem);
+        min-width: 0;
+        padding: 0.6rem 0.25rem;
+    }
+    .carrito-item-acciones {
+        grid-column: 1 / -1;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+}
+
 .btn-eliminar-item {
     background: none;
     border: none;
