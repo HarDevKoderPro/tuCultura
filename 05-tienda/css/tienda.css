@@ -886,7 +886,32 @@ body.visor-fotos-abierto { overflow: hidden; }
     border-radius: 6px;
     font-size: 0.82rem;
 }
-.checkout-item-con-descargas { align-items: flex-start; }
+/* El aviso y los botones de descarga ocupan una fila propia, a todo el ancho de la tarjeta
+   (antes quedaban dentro de la columna del nombre y se veian como una tira estrecha) */
+.checkout-item-con-descargas { align-items: flex-start; flex-wrap: wrap; }
+.checkout-item-con-descargas > .descarga-bloqueada,
+.checkout-item-con-descargas > .descargas-lista {
+    flex: 0 0 100%;
+    box-sizing: border-box;
+    width: 100%;
+    margin-top: 0.25rem;
+}
+.checkout-item-con-descargas > .descarga-bloqueada {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.7rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+.checkout-item-con-descargas > .descarga-bloqueada i { flex: 0 0 auto; }
+.checkout-item-con-descargas .btn-descargar {
+    width: 100%;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: 0.7rem 1rem;
+}
 
 /* Aviso de productos digitales en el checkout (js/checkout.js) */
 .checkout-aviso-digital {

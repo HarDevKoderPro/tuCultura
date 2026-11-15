@@ -132,9 +132,9 @@ function renderizarDetallePedido(pedido) {
             <div class="checkout-item-info">
                 <p class="checkout-item-nombre">${item.nombre_producto}${item.es_digital ? ' <span class="producto-tipo digital"><i class="fas fa-cloud"></i> Digital</span>' : ''}</p>
                 <p class="checkout-item-cantidad">${item.cantidad} x ${item.precio_unitario_formateado}</p>
-                ${descargasHtml(item)}
             </div>
             <span class="checkout-item-precio">${item.subtotal_formateado}</span>
+            ${descargasHtml(item)}
         </div>
     `).join('');
     
