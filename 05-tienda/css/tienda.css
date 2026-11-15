@@ -913,7 +913,7 @@ body.visor-fotos-abierto { overflow: hidden; }
     flex-direction: column;
     align-items: center;
     gap: 0.2rem;
-    padding: 0.55rem 0.2rem;
+    padding: 0.75rem 0.2rem 0.6rem;
     background: #fff;
     border: 1px solid #c7d8f3;
     border-radius: 10px;
@@ -924,7 +924,7 @@ body.visor-fotos-abierto { overflow: hidden; }
     box-sizing: border-box;
 }
 .ayuda-lector-iconos a span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ayuda-lector-iconos a i { font-size: clamp(1.3rem, 6vw, 1.7rem); }
+.ayuda-lector-iconos a i { font-size: clamp(2rem, 11vw, 2.8rem); line-height: 1; }
 .ayuda-lector-iconos a:hover { background: #e3efff; border-color: #1d4f9c; }
 
 /* El aviso y los botones de descarga ocupan una fila propia, a todo el ancho de la tarjeta
