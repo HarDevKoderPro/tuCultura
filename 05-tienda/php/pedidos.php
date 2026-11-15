@@ -6,6 +6,7 @@
 
 require_once 'config.php';
 require_once 'bonos-helpers.php';
+require_once 'tipos-producto-helpers.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -61,8 +62,13 @@ function verificarCheckout($conn) {
     // Bono por puntos que el asociado puede redimir en esta compra (bonos-helpers.php)
     $bono = bonoDisponibleCheckout($conn, (int)$usuario_id);
 
+    // Productos digitales en el carrito: sin direccion ni envio si todo es digital, y solo pago anticipado
+    $tipos = resumenTiposCarritoUsuario($conn, (int)$usuario_id);
+
     jsonResponse([
         'success' => true,
+        'tiene_digitales' => $tipos['digitales'] > 0,
+        'solo_digital' => $tipos['solo_digital'],
         'usuario' => [
             'nombres' => $usuario['nombres'] ?? '',
             'apellidos' => $usuario['apellidos'] ?? '',
@@ -93,25 +99,46 @@ function crearPedido($conn) {
     
     $usuario_id = obtenerUsuarioId($conn, $_SESSION['email']);
     
+    // Productos digitales: un pedido solo digital no pide direccion ni tiene envio,
+    // y con cualquier digital solo se aceptan pagos anticipados (no contra entrega)
+    $tipos = resumenTiposCarritoUsuario($conn, (int)$usuario_id);
+    $metodo_pago = sanitizar($_POST['metodo_pago'] ?? 'contraentrega');
+    if ($tipos['digitales'] > 0 && $metodo_pago === 'contraentrega') {
+        jsonResponse([
+            'error' => 'Tu carrito tiene productos digitales: elige transferencia bancaria o MercadoPago (el pago contra entrega no aplica).',
+            'metodo_no_disponible' => true
+        ], 400);
+    }
+
     // Validar datos de envío
-    $campos_requeridos = ['nombre', 'apellido', 'telefono', 'email', 'direccion', 'ciudad', 'departamento'];
+    $campos_requeridos = ['nombre', 'apellido', 'telefono', 'email'];
+    if (!$tipos['solo_digital']) {
+        $campos_requeridos = array_merge($campos_requeridos, ['direccion', 'ciudad', 'departamento']);
+    }
     foreach ($campos_requeridos as $campo) {
         if (empty($_POST[$campo])) {
             jsonResponse(['error' => "El campo '$campo' es requerido"], 400);
         }
     }
-    
+
     // Sanitizar datos
     $nombre = sanitizar($_POST['nombre']);
     $apellido = sanitizar($_POST['apellido']);
     $telefono = sanitizar($_POST['telefono']);
     $email = sanitizar($_POST['email']);
-    $direccion = sanitizar($_POST['direccion']);
-    $ciudad = sanitizar($_POST['ciudad']);
-    $departamento = sanitizar($_POST['departamento']);
-    $codigo_postal = sanitizar($_POST['codigo_postal'] ?? '');
+    if ($tipos['solo_digital']) {
+        $envioDigital = datosEnvioDigital();
+        $direccion = $envioDigital['direccion'];
+        $ciudad = $envioDigital['ciudad'];
+        $departamento = $envioDigital['departamento'];
+        $codigo_postal = $envioDigital['codigo_postal'];
+    } else {
+        $direccion = sanitizar($_POST['direccion']);
+        $ciudad = sanitizar($_POST['ciudad']);
+        $departamento = sanitizar($_POST['departamento']);
+        $codigo_postal = sanitizar($_POST['codigo_postal'] ?? '');
+    }
     $notas = sanitizar($_POST['notas'] ?? '');
-    $metodo_pago = sanitizar($_POST['metodo_pago'] ?? 'contraentrega');
     $usar_bono = !empty($_POST['usar_bono']);
     
     // Validar email
@@ -120,8 +147,11 @@ function crearPedido($conn) {
     }
     
     // Obtener items del carrito
+    $stockEf = exprStockEfectivo($conn, 'p.');
+    $tipoSql = exprTipoProducto($conn, 'p.');
     $stmt = $conn->prepare("
-        SELECT c.id, c.cantidad, c.producto_id, p.nombre, p.precio, p.precio_oferta, p.stock
+        SELECT c.id, c.cantidad, c.producto_id, p.nombre, p.precio, p.precio_oferta,
+               $stockEf AS stock, $tipoSql AS tipo_producto
         FROM carrito c
         JOIN productos p ON c.producto_id = p.id
         WHERE c.usuario_id = ? AND p.activo = 1
@@ -129,10 +159,11 @@ function crearPedido($conn) {
     $stmt->bind_param("i", $usuario_id);
     $stmt->execute();
     $result = $stmt->get_result();
-    
+
     $items = [];
     $subtotal = 0;
-    
+    $subtotalFisico = 0;
+
     while ($row = $result->fetch_assoc()) {
         // Verificar stock
         if ($row['cantidad'] > $row['stock']) {
@@ -146,15 +177,18 @@ function crearPedido($conn) {
         $row['precio_final'] = $precio;
         $row['subtotal_item'] = $precio * $row['cantidad'];
         $subtotal += $row['subtotal_item'];
+        if ($row['tipo_producto'] !== 'digital') {
+            $subtotalFisico += $row['subtotal_item'];
+        }
         $items[] = $row;
     }
-    
+
     if (empty($items)) {
         jsonResponse(['error' => 'El carrito está vacío'], 400);
     }
-    
-    // Calcular totales
-    $costo_envio = $subtotal >= TIENDA_ENVIO_GRATIS_MINIMO ? 0 : TIENDA_COSTO_ENVIO_BASE;
+
+    // Calcular totales: el envio solo cuenta los productos fisicos
+    $costo_envio = costoEnvioFisicos((float)$subtotalFisico);
     $impuestos = $subtotal * TIENDA_IVA;
     $total = $subtotal + $costo_envio + $impuestos;
     
@@ -211,9 +245,11 @@ function crearPedido($conn) {
             );
             $stmtDetalle->execute();
             
-            // Actualizar stock
-            $stmtStock->bind_param("ii", $item['cantidad'], $item['producto_id']);
-            $stmtStock->execute();
+            // Actualizar stock (los digitales no usan stock)
+            if ($item['tipo_producto'] !== 'digital') {
+                $stmtStock->bind_param("ii", $item['cantidad'], $item['producto_id']);
+                $stmtStock->execute();
+            }
         }
         
         // Vaciar carrito

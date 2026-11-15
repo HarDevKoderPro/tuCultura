@@ -5,6 +5,7 @@
  */
 
 require_once 'config.php';
+require_once 'tipos-producto-helpers.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -51,10 +52,13 @@ function getCarritoIdentifier() {
  */
 function verCarrito($conn) {
     $identifier = getCarritoIdentifier();
-    
+    // Digitales: stock ilimitado y su tipo (tipos-producto-helpers.php)
+    $stockEf = exprStockEfectivo($conn, 'p.');
+    $tipoSql = exprTipoProducto($conn, 'p.');
+
     if ($identifier['tipo'] === 'usuario') {
-        $sql = "SELECT c.id, c.cantidad, p.id as producto_id, p.nombre, p.precio, 
-                       p.precio_oferta, p.imagen, p.stock, cat.nombre as categoria
+        $sql = "SELECT c.id, c.cantidad, p.id as producto_id, p.nombre, p.precio,
+                       p.precio_oferta, p.imagen, $stockEf AS stock, $tipoSql AS tipo_producto, cat.nombre as categoria
                 FROM carrito c
                 JOIN productos p ON c.producto_id = p.id
                 LEFT JOIN categorias cat ON p.categoria_id = cat.id
@@ -63,8 +67,8 @@ function verCarrito($conn) {
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("i", $identifier['id']);
     } else {
-        $sql = "SELECT c.id, c.cantidad, p.id as producto_id, p.nombre, p.precio, 
-                       p.precio_oferta, p.imagen, p.stock, cat.nombre as categoria
+        $sql = "SELECT c.id, c.cantidad, p.id as producto_id, p.nombre, p.precio,
+                       p.precio_oferta, p.imagen, $stockEf AS stock, $tipoSql AS tipo_producto, cat.nombre as categoria
                 FROM carrito c
                 JOIN productos p ON c.producto_id = p.id
                 LEFT JOIN categorias cat ON p.categoria_id = cat.id
@@ -79,8 +83,13 @@ function verCarrito($conn) {
     
     $items = [];
     $subtotal = 0;
-    
+    $subtotalFisico = 0;
+    $cantidadDigitales = 0;
+    $cantidadFisicos = 0;
+
     while ($row = $result->fetch_assoc()) {
+        $esDigital = ($row['tipo_producto'] === 'digital');
+        $row['es_digital'] = $esDigital;
         $precio = $row['precio_oferta'] ?? $row['precio'];
         $row['precio_final'] = $precio;
         $row['precio_formateado'] = formatearPrecio($row['precio']);
@@ -95,11 +104,17 @@ function verCarrito($conn) {
         $row['disponible'] = $row['cantidad'] <= $row['stock'];
         
         $subtotal += $row['subtotal_item'];
+        if ($esDigital) {
+            $cantidadDigitales++;
+        } else {
+            $cantidadFisicos++;
+            $subtotalFisico += $row['subtotal_item'];
+        }
         $items[] = $row;
     }
-    
-    // Calcular totales
-    $costo_envio = $subtotal >= TIENDA_ENVIO_GRATIS_MINIMO ? 0 : TIENDA_COSTO_ENVIO_BASE;
+
+    // Calcular totales: el envio (y el envio gratis) solo cuentan los productos fisicos
+    $costo_envio = costoEnvioFisicos((float)$subtotalFisico);
     $impuestos = $subtotal * TIENDA_IVA;
     $total = $subtotal + $costo_envio + $impuestos;
     
@@ -114,8 +129,11 @@ function verCarrito($conn) {
             'costo_envio_formateado' => formatearPrecio($costo_envio),
             'envio_gratis_minimo' => TIENDA_ENVIO_GRATIS_MINIMO,
             'envio_gratis_minimo_formateado' => formatearPrecio(TIENDA_ENVIO_GRATIS_MINIMO),
-            'falta_envio_gratis' => max(0, TIENDA_ENVIO_GRATIS_MINIMO - $subtotal),
-            'falta_envio_gratis_formateado' => formatearPrecio(max(0, TIENDA_ENVIO_GRATIS_MINIMO - $subtotal)),
+            'falta_envio_gratis' => $cantidadFisicos > 0 ? max(0, TIENDA_ENVIO_GRATIS_MINIMO - $subtotalFisico) : 0,
+            'falta_envio_gratis_formateado' => formatearPrecio($cantidadFisicos > 0 ? max(0, TIENDA_ENVIO_GRATIS_MINIMO - $subtotalFisico) : 0),
+            'tiene_fisicos' => $cantidadFisicos > 0,
+            'tiene_digitales' => $cantidadDigitales > 0,
+            'solo_digital' => $cantidadDigitales > 0 && $cantidadFisicos === 0,
             'impuestos' => $impuestos,
             'impuestos_formateado' => formatearPrecio($impuestos),
             'total' => $total,
@@ -136,7 +154,7 @@ function agregarAlCarrito($conn) {
     }
     
     // Verificar que el producto existe y está activo
-    $stmtProd = $conn->prepare("SELECT id, nombre, stock FROM productos WHERE id = ? AND activo = 1");
+    $stmtProd = $conn->prepare("SELECT p.id, p.nombre, " . exprStockEfectivo($conn, 'p.') . " AS stock FROM productos p WHERE p.id = ? AND p.activo = 1");
     $stmtProd->bind_param("i", $producto_id);
     $stmtProd->execute();
     $producto = $stmtProd->get_result()->fetch_assoc();
@@ -212,10 +230,10 @@ function actualizarCantidad($conn) {
     
     // Verificar que el item pertenece al usuario
     if ($identifier['tipo'] === 'usuario') {
-        $stmtCheck = $conn->prepare("SELECT c.id, p.stock FROM carrito c JOIN productos p ON c.producto_id = p.id WHERE c.id = ? AND c.usuario_id = ?");
+        $stmtCheck = $conn->prepare("SELECT c.id, " . exprStockEfectivo($conn, 'p.') . " AS stock FROM carrito c JOIN productos p ON c.producto_id = p.id WHERE c.id = ? AND c.usuario_id = ?");
         $stmtCheck->bind_param("ii", $item_id, $identifier['id']);
     } else {
-        $stmtCheck = $conn->prepare("SELECT c.id, p.stock FROM carrito c JOIN productos p ON c.producto_id = p.id WHERE c.id = ? AND c.session_id = ?");
+        $stmtCheck = $conn->prepare("SELECT c.id, " . exprStockEfectivo($conn, 'p.') . " AS stock FROM carrito c JOIN productos p ON c.producto_id = p.id WHERE c.id = ? AND c.session_id = ?");
         $stmtCheck->bind_param("is", $item_id, $identifier['id']);
     }
     $stmtCheck->execute();

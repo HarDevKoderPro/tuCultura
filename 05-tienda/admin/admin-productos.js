@@ -201,6 +201,11 @@ function actualizarSeccionDigital(cargar) {
     const grupo = document.getElementById('archivo-digital-grupo');
     const esDigital = document.getElementById('producto-tipo').value === 'digital';
     grupo.hidden = !esDigital;
+    // Los digitales no usan stock: se oculta el campo (la tienda los trata como ilimitados)
+    const stock = document.getElementById('producto-stock');
+    stock.closest('.form-grupo').style.display = esDigital ? 'none' : '';
+    stock.required = !esDigital;
+    if (esDigital && stock.value === '') stock.value = 0;
     if (esDigital && cargar) cargarArchivosDigitales(productoEnEdicionId());
 }
 

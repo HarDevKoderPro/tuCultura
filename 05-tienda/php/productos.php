@@ -226,7 +226,8 @@ function formatearProducto($p)
     'imagen' => $p['imagen'],
     'categoria_id' => (int)$p['categoria_id'],
     'categoria_nombre' => $p['categoria_nombre'],
-    'stock' => (int)$p['stock'],
+    // Los digitales no usan stock: nunca salen agotados ni "quedan N unidades"
+    'stock' => (($p['tipo_producto'] ?? 'fisico') === 'digital') ? 999999 : (int)$p['stock'],
     'sku' => $p['sku'],
     'destacado' => (bool)$p['destacado'],
     // 'fisico' (por defecto) o 'digital'; la columna puede no existir aun en tablas viejas

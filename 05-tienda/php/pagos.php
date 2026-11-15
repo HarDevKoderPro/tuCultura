@@ -18,6 +18,7 @@ require_once 'puntos-pagos-helpers.php';
 require_once 'correo-pedidos.php';
 require_once 'bonos-helpers.php';
 require_once 'cobros-helpers.php';
+require_once 'tipos-producto-helpers.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -99,8 +100,15 @@ function crearPreferenciaSandbox($conn)
   $input = obtenerEntradaCheckout();
   $usarBono = !empty($_POST['usar_bono']);
 
-  // Mismos campos obligatorios que pedidos.php?action=crear
-  foreach (['nombre', 'apellido', 'telefono', 'email', 'direccion', 'ciudad', 'departamento'] as $campo) {
+  // Mismos campos obligatorios que pedidos.php?action=crear (un pedido solo digital no pide direccion)
+  $tiposCarrito = resumenTiposCarritoUsuario($conn, (int)$usuarioId);
+  $camposRequeridos = ['nombre', 'apellido', 'telefono', 'email'];
+  if (!$tiposCarrito['solo_digital']) {
+    $camposRequeridos = array_merge($camposRequeridos, ['direccion', 'ciudad', 'departamento']);
+  } else {
+    $input = array_merge($input, datosEnvioDigital());
+  }
+  foreach ($camposRequeridos as $campo) {
     if ($input[$campo] === '') {
       jsonResponse(['success' => false, 'error' => "El campo '$campo' es requerido"], 400);
     }
@@ -126,7 +134,9 @@ function crearPreferenciaSandbox($conn)
     if ($valorBono > 0 && $valorBono >= (float)$carrito['total']) {
       jsonResponse([
         'success' => false,
-        'error' => 'Tu bono cubre toda la compra: elige Pago Contra Entrega (no tendrás que pagar nada).',
+        'error' => $tiposCarrito['digitales'] > 0
+          ? 'Tu bono cubre toda la compra: elige Transferencia Bancaria (no tendrás que pagar nada).'
+          : 'Tu bono cubre toda la compra: elige Pago Contra Entrega (no tendrás que pagar nada).',
         'bono_cubre_total' => true
       ], 400);
     }
@@ -308,8 +318,12 @@ function crearPreferenciaSandbox($conn)
 
 function obtenerCarritoParaPago($conn, $usuarioId)
 {
+  // Digitales: stock ilimitado y sin envio (tipos-producto-helpers.php)
+  $stockEf = exprStockEfectivo($conn, 'p.');
+  $tipoSql = exprTipoProducto($conn, 'p.');
   $stmt = $conn->prepare(
-    "SELECT c.producto_id, c.cantidad, p.nombre, p.descripcion_corta, p.precio, p.precio_oferta, p.imagen, p.stock
+    "SELECT c.producto_id, c.cantidad, p.nombre, p.descripcion_corta, p.precio, p.precio_oferta, p.imagen,
+            $stockEf AS stock, $tipoSql AS tipo_producto
      FROM carrito c
      JOIN productos p ON c.producto_id = p.id
      WHERE c.usuario_id = ? AND p.activo = 1"
@@ -321,6 +335,7 @@ function obtenerCarritoParaPago($conn, $usuarioId)
   $items = [];
   $itemsMP = [];
   $subtotal = 0.0;
+  $subtotalFisico = 0.0;
 
   while ($row = $result->fetch_assoc()) {
     $cantidad = max(1, (int)$row['cantidad']);
@@ -341,6 +356,9 @@ function obtenerCarritoParaPago($conn, $usuarioId)
 
     $subtotalItem = $precioUnitario * $cantidad;
     $subtotal += $subtotalItem;
+    if (($row['tipo_producto'] ?? 'fisico') !== 'digital') {
+      $subtotalFisico += $subtotalItem;
+    }
 
     $items[] = [
       'producto_id' => (int)$row['producto_id'],
@@ -362,7 +380,8 @@ function obtenerCarritoParaPago($conn, $usuarioId)
 
   $stmt->close();
 
-  $costoEnvio = $subtotal >= TIENDA_ENVIO_GRATIS_MINIMO ? 0.0 : (float)TIENDA_COSTO_ENVIO_BASE;
+  // El envio solo cuenta los productos fisicos
+  $costoEnvio = costoEnvioFisicos($subtotalFisico);
   $impuestos = $subtotal * (float)TIENDA_IVA;
   $total = $subtotal + $costoEnvio + $impuestos;
 
@@ -978,11 +997,12 @@ function confirmarPedidoPagado($conn, $pedido)
 
   actualizarEstadoPedido($conn, $pedidoId, 'confirmado');
 
+  // Los digitales no usan stock (sin DDL aqui: estamos dentro de una transaccion)
   $stmt = $conn->prepare(
     "UPDATE productos p
      JOIN detalle_pedido d ON d.producto_id = p.id
      SET p.stock = GREATEST(CAST(p.stock AS SIGNED) - d.cantidad, 0)
-     WHERE d.pedido_id = ?"
+     WHERE d.pedido_id = ? AND " . exprTipoProducto($conn, 'p.') . " <> 'digital'"
   );
   $stmt->bind_param('i', $pedidoId);
   $stmt->execute();

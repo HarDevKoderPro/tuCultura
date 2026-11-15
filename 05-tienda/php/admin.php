@@ -11,6 +11,7 @@ require_once 'puntos-pagos-helpers.php';
 require_once 'cobros-helpers.php';
 require_once 'proveedores-helpers.php';
 require_once 'archivos-digitales.php';
+require_once 'tipos-producto-helpers.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -449,7 +450,8 @@ function obtenerDashboard($conn) {
     ")->fetch_assoc()['total'];
     
     // Productos con bajo stock (umbral dinámico)
-    $stmtBajoStock = $conn->prepare("SELECT COUNT(*) as total FROM productos WHERE activo = 1 AND stock < ?");
+    // (los digitales no usan stock)
+    $stmtBajoStock = $conn->prepare("SELECT COUNT(*) as total FROM productos WHERE activo = 1 AND stock < ? AND " . exprTipoProducto($conn, '') . " <> 'digital'");
     $stmtBajoStock->bind_param("i", $umbralBajoStock);
     $stmtBajoStock->execute();
     $productosBajoStock = $stmtBajoStock->get_result()->fetch_assoc()['total'];
@@ -521,7 +523,7 @@ function listarProductosBajoStock($conn) {
         SELECT p.id, p.nombre, p.stock, p.precio, p.imagen, c.nombre as categoria_nombre
         FROM productos p
         LEFT JOIN categorias c ON p.categoria_id = c.id
-        WHERE p.activo = 1 AND p.stock < ?
+        WHERE p.activo = 1 AND p.stock < ? AND " . exprTipoProducto($conn, 'p.') . " <> 'digital'
         ORDER BY p.nombre ASC
     ");
     $stmt->bind_param("i", $umbral);
@@ -591,23 +593,8 @@ function actualizarStockMasivo($conn) {
 
 // ==================== PRODUCTOS ====================
 
-/**
- * Tipo de producto: 'fisico' (por defecto) o 'digital'. La columna se agrega sola
- * a la tabla productos; los productos existentes quedan como fisicos.
- */
-function asegurarColumnaTipoProducto($conn) {
-    static $verificada = false;
-    if ($verificada) return;
-    $r = $conn->query("SHOW COLUMNS FROM productos LIKE 'tipo_producto'");
-    if ($r && $r->num_rows === 0) {
-        $conn->query("ALTER TABLE productos ADD COLUMN tipo_producto VARCHAR(10) NOT NULL DEFAULT 'fisico'");
-    }
-    $verificada = true;
-}
-
-function normalizarTipoProducto($valor) {
-    return $valor === 'digital' ? 'digital' : 'fisico';
-}
+// Tipo de producto ('fisico' por defecto o 'digital'): asegurarColumnaTipoProducto() y
+// normalizarTipoProducto() estan en tipos-producto-helpers.php
 
 function listarProductosAdmin($conn) {
     // Ordenar productos alfabéticamente por nombre (A → Z)

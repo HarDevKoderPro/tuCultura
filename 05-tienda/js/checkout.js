@@ -91,18 +91,37 @@ async function verificarYCargarCheckout() {
   }
 }
 
+// Aviso de productos digitales (se descargan tras el pago; no hay envio ni contra entrega)
+function htmlAvisoDigital(carrito) {
+  if (!carrito.tiene_digitales) return "";
+  const mezcla = carrito.tiene_fisicos
+    ? "Tu pedido mezcla productos digitales y físicos, por eso solo se acepta pago anticipado (transferencia o MercadoPago). Los digitales se descargan desde Mis pedidos cuando tu pago esté aprobado y los físicos se envían después."
+    : "Tu pedido es solo de productos digitales: no necesita dirección ni envío. Se descargan desde Mis pedidos cuando tu pago esté aprobado.";
+  return `
+        <div class="checkout-aviso-digital">
+            <i class="fas fa-cloud-download-alt"></i>
+            <div>
+                <strong>Productos digitales</strong>
+                <p>${mezcla}</p>
+                <p class="checkout-aviso-digital-legal">Los productos digitales no tienen devolución una vez descargados.</p>
+            </div>
+        </div>`;
+}
+
 function renderizarCheckout(usuario, carrito) {
   const container = document.getElementById("checkout-contenido");
+  const soloDigital = !!carrito.solo_digital;
+  const hayDigitales = !!carrito.tiene_digitales;
 
   const itemsHtml = carrito.items
     .map(
       (item) => `
         <div class="checkout-item">
-            <img src="imagenes/productos/${item.imagen || "../01-principal/imagenes/fondo-producto.png"}" 
+            <img src="imagenes/productos/${item.imagen || "../01-principal/imagenes/fondo-producto.png"}"
                  alt="${item.nombre}" class="checkout-item-imagen"
                  onerror="this.src='../01-principal/imagenes/fondo-producto.png'">
             <div class="checkout-item-info">
-                <p class="checkout-item-nombre">${item.nombre}</p>
+                <p class="checkout-item-nombre">${item.nombre}${item.es_digital ? ' <span class="producto-tipo digital"><i class="fas fa-cloud"></i> Digital</span>' : ""}</p>
                 <p class="checkout-item-cantidad">Cantidad: ${item.cantidad}</p>
             </div>
             <span class="checkout-item-precio">${item.subtotal_item_formateado}</span>
@@ -113,8 +132,9 @@ function renderizarCheckout(usuario, carrito) {
 
   container.innerHTML = `
         <div class="checkout-formulario">
-            <h2><i class="fas fa-truck"></i> Datos de Envío</h2>
-            
+            ${htmlAvisoDigital(carrito)}
+            <h2><i class="fas ${soloDigital ? "fa-user" : "fa-truck"}"></i> ${soloDigital ? "Tus Datos" : "Datos de Envío"}</h2>
+
             <form id="form-checkout" onsubmit="procesarPedido(event)">
                 <div class="form-fila">
                     <div class="form-grupo">
@@ -138,11 +158,12 @@ function renderizarCheckout(usuario, carrito) {
                     </div>
                 </div>
                 
+                ${soloDigital ? "" : `
                 <div class="form-grupo">
                     <label for="direccion">Dirección de Envío *</label>
                     <input type="text" id="direccion" name="direccion" placeholder="Calle, número, apartamento..." required>
                 </div>
-                
+
                 <div class="form-fila">
                     <div class="form-grupo">
                         <label for="ciudad">Ciudad *</label>
@@ -153,21 +174,23 @@ function renderizarCheckout(usuario, carrito) {
                         <input type="text" id="departamento" name="departamento" required>
                     </div>
                 </div>
-                
+
                 <div class="form-grupo">
                     <label for="codigo_postal">Código Postal</label>
                     <input type="text" id="codigo_postal" name="codigo_postal">
                 </div>
-                
+
                 <div class="form-grupo">
                     <label for="notas">Notas del pedido (opcional)</label>
                     <textarea id="notas" name="notas" rows="3" placeholder="Instrucciones especiales para la entrega..."></textarea>
                 </div>
-                
+                `}
+
                 ${htmlBono(carrito)}
 
                 <h2 style="margin-top: 2rem;"><i class="fas fa-credit-card"></i> Método de Pago</h2>
-                
+
+                ${hayDigitales ? "" : `
                 <div class="form-grupo">
                     <label style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--color-fondo); border-radius: var(--radio-borde); cursor: pointer;">
                         <input type="radio" name="metodo_pago" value="contraentrega" checked>
@@ -178,10 +201,11 @@ function renderizarCheckout(usuario, carrito) {
                         </div>
                     </label>
                 </div>
-                
+                `}
+
                 <div class="form-grupo">
                     <label style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--color-fondo); border-radius: var(--radio-borde); cursor: pointer;">
-                        <input type="radio" name="metodo_pago" value="transferencia">
+                        <input type="radio" name="metodo_pago" value="transferencia"${hayDigitales ? " checked" : ""}>
                         <i class="fas fa-university" style="font-size: 1.5rem; color: var(--color-primario);"></i>
                         <div>
                             <strong>Transferencia Bancaria</strong>
@@ -226,7 +250,7 @@ function renderizarCheckout(usuario, carrito) {
             
             <div class="resumen-linea">
                 <span>Envío</span>
-                <span>${carrito.costo_envio === 0 ? "GRATIS" : carrito.costo_envio_formateado}</span>
+                <span>${soloDigital ? "No aplica" : carrito.costo_envio === 0 ? "GRATIS" : carrito.costo_envio_formateado}</span>
             </div>
             
             <div class="resumen-linea resumen-linea-bono" id="resumen-bono" hidden>
@@ -298,7 +322,11 @@ function actualizarResumenBono() {
     radioMP.disabled = usar && total <= 0;
     radioMP.closest("label").style.opacity = radioMP.disabled ? "0.5" : "";
     if (radioMP.disabled && radioMP.checked) {
-      document.querySelector('input[name="metodo_pago"][value="contraentrega"]').checked = true;
+      // Con productos digitales no hay contra entrega: queda la transferencia
+      const alternativa =
+        document.querySelector('input[name="metodo_pago"][value="contraentrega"]') ||
+        document.querySelector('input[name="metodo_pago"][value="transferencia"]');
+      if (alternativa) alternativa.checked = true;
     }
   }
 }

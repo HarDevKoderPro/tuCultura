@@ -86,7 +86,7 @@ function renderizarCarrito(carrito) {
                  onerror="this.src='../01-principal/imagenes/fondo-producto.png'">
             
             <div class="carrito-item-info">
-                <h3><a href="producto.html?id=${item.producto_id}">${item.nombre}</a></h3>
+                <h3><a href="producto.html?id=${item.producto_id}">${item.nombre}</a>${item.es_digital ? ' <span class="producto-tipo digital"><i class="fas fa-cloud"></i> Digital</span>' : ""}</h3>
                 <p class="carrito-item-precio">${item.precio_final_formateado}</p>
                 ${!item.disponible ? '<p class="mensaje error" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">Stock insuficiente</p>' : ""}
             </div>
@@ -109,8 +109,10 @@ function renderizarCarrito(carrito) {
     )
     .join("");
 
-  const envioMensaje =
-    carrito.costo_envio === 0
+  const soloDigital = !!carrito.solo_digital;
+  const envioMensaje = soloDigital
+    ? '<div class="envio-gratis-mensaje"><i class="fas fa-cloud-download-alt"></i> Producto digital: sin envío, se descarga tras el pago</div>'
+    : carrito.costo_envio === 0
       ? '<div class="envio-gratis-mensaje"><i class="fas fa-truck"></i> ¡Envío GRATIS!</div>'
       : `<div class="envio-gratis-mensaje" style="background: #fff3cd; color: #856404;">
              <i class="fas fa-truck"></i> Te faltan ${carrito.falta_envio_gratis_formateado} para envío gratis
@@ -131,7 +133,7 @@ function renderizarCarrito(carrito) {
             
             <div class="resumen-linea">
                 <span>Envío</span>
-                <span>${carrito.costo_envio === 0 ? "GRATIS" : carrito.costo_envio_formateado}</span>
+                <span>${soloDigital ? "No aplica" : carrito.costo_envio === 0 ? "GRATIS" : carrito.costo_envio_formateado}</span>
             </div>
             
             ${envioMensaje}
