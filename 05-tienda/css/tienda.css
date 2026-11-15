@@ -891,10 +891,10 @@ body.visor-fotos-abierto { overflow: hidden; }
 .checkout-item-con-descargas { align-items: flex-start; flex-wrap: wrap; }
 .checkout-item-con-descargas > .descarga-bloqueada,
 .checkout-item-con-descargas > .descargas-lista {
-    flex: 0 0 100%;
+    flex: 0 0 98%;
     box-sizing: border-box;
-    width: 100%;
-    margin-top: 0.25rem;
+    width: 98%;
+    margin: 0.25rem auto 0;
 }
 .checkout-item-con-descargas > .descarga-bloqueada {
     display: flex;
