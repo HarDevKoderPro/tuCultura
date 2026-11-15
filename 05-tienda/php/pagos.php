@@ -110,7 +110,7 @@ function crearPreferenciaSandbox($conn)
   }
   foreach ($camposRequeridos as $campo) {
     if ($input[$campo] === '') {
-      jsonResponse(['success' => false, 'error' => "El campo '$campo' es requerido"], 400);
+      jsonResponse(['success' => false, 'error' => "El campo '$campo' es requerido [diag: items={$tiposCarrito['total']} digitales={$tiposCarrito['digitales']} columna=" . (existeColumnaTipoProducto($conn) ? 'si' : 'no') . " usuario={$usuarioId}]"], 400);
     }
   }
   if (!filter_var($input['email'], FILTER_VALIDATE_EMAIL)) {

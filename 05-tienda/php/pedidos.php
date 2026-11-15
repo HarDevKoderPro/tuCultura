@@ -119,7 +119,7 @@ function crearPedido($conn) {
     }
     foreach ($campos_requeridos as $campo) {
         if (empty($_POST[$campo])) {
-            jsonResponse(['error' => "El campo '$campo' es requerido"], 400);
+            jsonResponse(['error' => "El campo '$campo' es requerido [diag: items={$tipos['total']} digitales={$tipos['digitales']} columna=" . (existeColumnaTipoProducto($conn) ? 'si' : 'no') . " usuario={$usuario_id}]"], 400);
         }
     }
 
