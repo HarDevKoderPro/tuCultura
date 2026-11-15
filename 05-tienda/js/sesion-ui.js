@@ -88,9 +88,21 @@
       if (data.email) saludo.appendChild(crear('small', '', data.email));
       menu.appendChild(saludo);
     }
-    if (logueado) {
-      // Vuelta a la pagina de contenido del asociado (misma sesion)
-      menu.appendChild(opcionMenu('../04-contenido/php/contenido.php', 'fa-th-large', 'Mi zona de asociado'));
+    var sesionAdmin = !!(data.logueado && data.esAdmin);
+    if (logueado || sesionAdmin) {
+      // Vuelta a la pagina de contenido del asociado (misma sesion); se recuerda la
+      // pagina actual de la tienda para que la zona pueda devolver al mismo sitio
+      var zona = opcionMenu('../04-contenido/php/contenido.php', 'fa-th-large', 'Mi zona de asociado');
+      zona.addEventListener('click', function () {
+        try {
+          var actual = window.location.pathname.split('/').pop() || 'index.html';
+          sessionStorage.setItem('tcp_ultima_tienda', actual + window.location.search);
+        } catch (e) { /* sin almacenamiento */ }
+      });
+      menu.appendChild(zona);
+    }
+    if (sesionAdmin) {
+      menu.appendChild(opcionMenu('admin/index.html', 'fa-tools', 'Panel administrativo'));
     }
     menu.appendChild(opcionMenu('mis-pedidos.html', 'fa-box', 'Mis pedidos'));
     menu.appendChild(opcionMenu('carrito.html', 'fa-shopping-cart', 'Mi carrito'));
@@ -104,7 +116,7 @@
         confirmarCerrarSesion();
       });
       menu.appendChild(salir);
-    } else {
+    } else if (!sesionAdmin) {
       menu.appendChild(opcionMenu('../02-iniciarSesion/iniciarSesion.html?origen=tienda', 'fa-sign-in-alt', 'Iniciar sesión'));
     }
     envoltura.appendChild(menu);

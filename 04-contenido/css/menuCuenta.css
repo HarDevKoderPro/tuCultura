@@ -1,0 +1,56 @@
+/* Menu "Mi cuenta" de la Zona de Usuarios (js/menu-cuenta.js):
+   ir a la tienda (o volver donde se estaba), panel administrativo (solo admin) y cerrar sesion */
+.cuenta-zona { position: relative; z-index: 50; }
+
+.cuenta-zona-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid rgba(254, 243, 199, 0.5);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fef3c7;
+  font: inherit;
+  font-size: 0.9em;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cuenta-zona-boton:hover { background: rgba(255, 255, 255, 0.22); }
+.cuenta-zona-boton svg { width: 18px; height: 18px; color: #4ade80; flex: 0 0 auto; }
+
+.cuenta-zona-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 210px;
+  padding: 6px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cuenta-zona-menu[hidden] { display: none; }
+
+.cuenta-zona-menu a {
+  display: block;
+  padding: 9px 12px;
+  border-radius: 6px;
+  color: #1e3a8a;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.cuenta-zona-menu a:hover { background: #eff6ff; }
+.cuenta-zona-menu a.cuenta-zona-salir { color: #b91c1c; border-top: 1px solid #e5e7eb; border-radius: 0 0 6px 6px; margin-top: 4px; }
+
+@media (max-width: 768px) {
+  .cuenta-zona-boton { font-size: 0.8em; padding: 4px 8px; }
+  .cuenta-zona-menu { min-width: 190px; }
+}
