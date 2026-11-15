@@ -898,23 +898,33 @@ body.visor-fotos-abierto { overflow: hidden; }
     text-align: left;
 }
 .ayuda-lector p { margin: 0.25rem 0 0; }
-.ayuda-lector-iconos { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.5rem; }
+/* Tres iconos siempre en una sola fila (sin saltar de linea), repartidos en partes iguales:
+   en pantallas muy angostas se achican el icono, el texto y el relleno */
+.ayuda-lector-iconos {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: clamp(0.3rem, 2vw, 0.6rem);
+    margin-top: 0.5rem;
+}
 .ayuda-lector-iconos a {
-    display: inline-flex;
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
     flex-direction: column;
     align-items: center;
     gap: 0.2rem;
-    min-width: 4.6rem;
-    padding: 0.55rem 0.8rem;
+    padding: 0.55rem 0.2rem;
     background: #fff;
     border: 1px solid #c7d8f3;
     border-radius: 10px;
     color: #1d4f9c;
-    font-size: 0.78rem;
+    font-size: clamp(0.62rem, 2.8vw, 0.78rem);
     font-weight: 600;
     text-decoration: none;
+    box-sizing: border-box;
 }
-.ayuda-lector-iconos a i { font-size: 1.7rem; }
+.ayuda-lector-iconos a span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ayuda-lector-iconos a i { font-size: clamp(1.3rem, 6vw, 1.7rem); }
 .ayuda-lector-iconos a:hover { background: #e3efff; border-color: #1d4f9c; }
 
 /* El aviso y los botones de descarga ocupan una fila propia, a todo el ancho de la tarjeta
