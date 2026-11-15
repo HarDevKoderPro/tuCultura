@@ -828,6 +828,15 @@ body.visor-fotos-abierto { overflow: hidden; }
 
 .aviso-invitacion-boton:hover { background: #e55a2b; }
 
+.aviso-invitacion-login {
+    flex: 0 0 auto;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-primario);
+    text-decoration: underline;
+    white-space: nowrap;
+}
+
 .aviso-invitacion-cerrar {
     flex: 0 0 auto;
     width: 2rem;
@@ -848,6 +857,7 @@ body.visor-fotos-abierto { overflow: hidden; }
     .aviso-invitacion p { flex-basis: calc(100% - 5rem); font-size: 0.88rem; }
     .aviso-invitacion-cerrar { order: 2; }
     .aviso-invitacion-boton { order: 3; margin-left: 2rem; }
+    .aviso-invitacion-login { order: 4; }
 }
 
 /* Bono por puntos en el checkout (js/checkout.js) */

@@ -102,13 +102,25 @@ document.addEventListener("DOMContentLoaded", () => {
     // PHP decide la URL de destino (origen=tienda, returnUrl de un producto, etc.)
     const params = new URLSearchParams(window.location.search);
     const origen = params.get("origen") || "";
-    const returnUrl = params.get("returnUrl") || sessionStorage.getItem("returnUrl") || "";
+    let returnUrl = params.get("returnUrl") || sessionStorage.getItem("returnUrl") || "";
+
+    // Producto de un enlace compartido (lo guarda 05-tienda/js/invitacion.js): al entrar
+    // va al carrito con ese producto, salvo que venga de otro destino (p. ej. el checkout)
+    const pendiente = productoPendiente();
+    if (pendiente && origen !== "homepage" &&
+        (!returnUrl || returnUrl === `producto.html?id=${pendiente}`)) {
+      returnUrl = `carrito.html?agregar=${pendiente}`;
+    }
 
     const restaurar = cargando(btnLogin, "Ingresando…");
     try {
       const data = await postJson("php/iniciarSesion.php", { email, pass, origen, returnUrl });
       if (data.respuesta) {
         sessionStorage.removeItem("returnUrl");
+        try {
+          localStorage.removeItem("tcp_pendiente");
+          localStorage.setItem("tcp_conocido", "1"); // este navegador ya es de un asociado
+        } catch (e) { /* sin almacenamiento */ }
         btnLogin.classList.add("listo");
         btnLogin.innerHTML = "¡Bienvenido!";
         setTimeout(() => {
@@ -124,6 +136,15 @@ document.addEventListener("DOMContentLoaded", () => {
       mostrarAviso("avisoLogin", "No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.");
     }
   });
+
+  // Id del producto de un enlace compartido guardado en este navegador (24 h), o ""
+  function productoPendiente() {
+    try {
+      const p = JSON.parse(localStorage.getItem("tcp_pendiente") || "null");
+      if (p && /^\d+$/.test(String(p.id)) && Date.now() - p.fecha < 864e5) return String(p.id);
+    } catch (e) { /* sin almacenamiento */ }
+    return "";
+  }
 
   // ---------- recuperar contrasena ----------
   const vistaLogin = document.getElementById("vistaLogin");

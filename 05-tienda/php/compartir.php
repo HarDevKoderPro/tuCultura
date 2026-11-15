@@ -48,7 +48,10 @@ $sufijoRef = $ref !== '' ? '&ref=' . $ref : '';
 
 $urlProducto  = $basePublic . '/producto.html?id=' . $producto['id'] . $sufijoRef;
 $urlCompartir = $basePublic . '/php/compartir.php?id=' . $producto['id'] . $sufijoRef;
-$urlImagen    = $basePublic . '/php/compartir.php?id=' . $producto['id'] . '&imagen=1';
+// Destino real de quien abre el enlace: la marca "compartido" permite a la tienda llevarlo
+// al carrito con este producto si ya tiene cuenta (js/invitacion.js)
+$urlDestino   = $urlProducto . '&compartido=1';
+$urlImagen    =$basePublic . '/php/compartir.php?id=' . $producto['id'] . '&imagen=1';
 
 $tieneOferta = (float)$producto['precio_oferta'] > 0 && (float)$producto['precio_oferta'] < (float)$producto['precio'];
 $precio = formatearPrecio($tieneOferta ? $producto['precio_oferta'] : $producto['precio']);
@@ -94,11 +97,11 @@ header('Cache-Control: public, max-age=300');
     <meta name="twitter:description" content="<?= h($descripcion) ?>">
     <meta name="twitter:image" content="<?= h($urlImagen) ?>">
 
-    <meta http-equiv="refresh" content="0; url=<?= h($urlProducto) ?>">
-    <script>location.replace(<?= json_encode($urlProducto) ?>);</script>
+    <meta http-equiv="refresh" content="0; url=<?= h($urlDestino) ?>">
+    <script>location.replace(<?= json_encode($urlDestino) ?>);</script>
 </head>
 <body>
-    <p><a href="<?= h($urlProducto) ?>">Ver <?= h($producto['nombre']) ?> en la tienda</a></p>
+    <p><a href="<?= h($urlDestino) ?>">Ver<?= h($producto['nombre']) ?> en la tienda</a></p>
 </body>
 </html>
 <?php

@@ -5,9 +5,42 @@
 
 const API_BASE = "php/";
 
-document.addEventListener("DOMContentLoaded", () => {
-  cargarCarrito();
+document.addEventListener("DOMContentLoaded", async () => {
+  const errorAgregar = await agregarProductoDeEnlace();
+  await cargarCarrito();
+  if (errorAgregar) {
+    const aviso = document.createElement("p");
+    aviso.className = "mensaje error";
+    aviso.textContent = errorAgregar;
+    document.getElementById("carrito-contenido").prepend(aviso);
+  }
 });
+
+/**
+ * Llegada desde un enlace compartido tras iniciar sesion: carrito.html?agregar=N
+ * agrega ese producto al carrito una sola vez (se quita el parametro de la URL).
+ * Devuelve un texto de error si no se pudo agregar, o "".
+ */
+async function agregarProductoDeEnlace() {
+  const id = new URLSearchParams(window.location.search).get("agregar") || "";
+  if (!/^\d+$/.test(id)) return "";
+  history.replaceState(null, "", window.location.pathname);
+
+  try {
+    const formData = new FormData();
+    formData.append("producto_id", id);
+    formData.append("cantidad", 1);
+    const response = await fetch(`${API_BASE}carrito.php?action=agregar`, {
+      method: "POST",
+      body: formData,
+    });
+    const data = await response.json();
+    return data.success ? "" : data.error || "No se pudo agregar el producto del enlace";
+  } catch (error) {
+    console.error("Error al agregar el producto del enlace:", error);
+    return "No se pudo agregar el producto del enlace";
+  }
+}
 
 async function cargarCarrito() {
   const container = document.getElementById("carrito-contenido");

@@ -54,16 +54,39 @@
 
   window.TCPInvitacion = { codigo: leer };
 
+  // Producto del enlace compartido: si el receptor ya tiene cuenta, al iniciar sesion
+  // va a su carrito con este producto (lo lee 02-iniciarSesion/js/iniciarSesion.js)
+  var CLAVE_PENDIENTE = 'tcp_pendiente';
+  var CLAVE_CONOCIDO = 'tcp_conocido';
+
+  function guardarPendiente() {
+    var params = new URLSearchParams(window.location.search);
+    var id = params.get('id') || '';
+    var esEnlaceCompartido = params.get('compartido') === '1' || FORMATO.test(refUrl);
+    if (!/\/producto\.html$/.test(window.location.pathname) || !/^\d+$/.test(id) || !esEnlaceCompartido) return;
+    try { localStorage.setItem(CLAVE_PENDIENTE, JSON.stringify({ id: id, fecha: Date.now() })); } catch (e) { /* sin almacenamiento */ }
+  }
+
+  // Este navegador ya inicio sesion alguna vez: ya es asociado, no se le invita a registrarse
+  function yaEsConocido() {
+    try { return localStorage.getItem(CLAVE_CONOCIDO) === '1'; } catch (e) { return false; }
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     var codigo = leer();
-    if (!codigo) return;
-    try { if (sessionStorage.getItem(CLAVE_OCULTO) === codigo) return; } catch (e) { /* seguir */ }
+    var oculto = false;
+    try { oculto = sessionStorage.getItem(CLAVE_OCULTO) === codigo; } catch (e) { /* seguir */ }
 
     // 2) Solo a visitantes sin sesion
     fetch('php/sesion.php')
       .then(function (res) { return res.json(); })
       .then(function (sesion) {
-        if (sesion && sesion.logueado) return null;
+        if (sesion && sesion.logueado) {
+          try { localStorage.setItem(CLAVE_CONOCIDO, '1'); } catch (e) { /* sin almacenamiento */ }
+          return null;
+        }
+        guardarPendiente();
+        if (!codigo || oculto || yaEsConocido()) return null;
         return fetch('php/invitaciones.php?action=resolver&ref=' + encodeURIComponent(codigo))
           .then(function (res) { return res.json(); });
       })
@@ -94,6 +117,7 @@
         '<p><strong></strong> te invitó a Tu Cultura es Progreso. ' +
         'Regístrate para comprar y ganar puntos.</p>' +
         '<a class="aviso-invitacion-boton"></a>' +
+        '<a class="aviso-invitacion-login" href="../02-iniciarSesion/iniciarSesion.html?origen=tienda">¿Ya tienes cuenta? Inicia sesión</a>' +
         '<button type="button" class="aviso-invitacion-cerrar" aria-label="Cerrar aviso">&times;</button>' +
       '</div>';
     aviso.querySelector('strong').textContent = nombre;
