@@ -195,9 +195,12 @@
             font-size: 0.9rem;
             word-break: break-all;
         }
-        .archivo-digital-actual[hidden] { display: none; }
-        .archivo-digital-actual i { color: #1d4f9c; font-size: 1.3rem; }
+        .archivo-digital-actual i.fa-file-download { color: #1d4f9c; font-size: 1.3rem; }
         .archivo-digital-actual small { color: #666; display: block; }
+        .archivo-digital-actual > div { flex: 1; min-width: 0; }
+        .archivo-digital-actual .btn-foto-quitar-archivo {
+            border: none; background: none; color: #dc3545; cursor: pointer; font-size: 1rem; padding: 4px 6px;
+        }
 
         /* Buscador de productos */
         .reparto-producto { margin-top: 0.4rem; font-size: 0.88rem; color: #444; }
@@ -574,14 +577,11 @@
                 </div>
 
                 <div class="form-grupo" id="archivo-digital-grupo" hidden>
-                    <label>Archivo descargable <small style="font-weight:normal; color:#666;">(el cliente lo descarga desde Mis pedidos cuando su pago está aprobado)</small></label>
-                    <div class="archivo-digital-actual" id="archivo-digital-actual"></div>
+                    <label>Archivos descargables <small style="font-weight:normal; color:#666;">(el cliente los descarga desde Mis pedidos cuando su pago está aprobado)</small></label>
+                    <div id="archivo-digital-lista"></div>
                     <div class="fotos-adicionales-acciones">
                         <button type="button" class="btn-secundario" id="btn-subir-archivo-digital" onclick="document.getElementById('archivo-digital-input').click()">
-                            <i class="fas fa-file-upload"></i> <span id="btn-subir-archivo-digital-texto">Subir archivo</span>
-                        </button>
-                        <button type="button" class="btn-secundario" id="btn-quitar-archivo-digital" onclick="quitarArchivoDigital()" hidden>
-                            <i class="fas fa-trash"></i> Quitar
+                            <i class="fas fa-file-upload"></i> Agregar archivo
                         </button>
                         <small id="archivo-digital-info"></small>
                     </div>

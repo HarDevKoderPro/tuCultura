@@ -1165,7 +1165,8 @@ function infoArchivoProductoAdmin($pdo) {
     $id = productoDigitalDelRequest($pdo, $_GET);
     jsonResponse([
         'success' => true,
-        'archivo' => infoArchivoDigital($pdo, $id),
+        'archivos' => listarArchivosDigitales($pdo, $id),
+        'maximo' => ARCHIVOS_DIGITALES_MAX_POR_PRODUCTO,
         'maximo_texto' => textoTamanoArchivo(ARCHIVO_DIGITAL_MAX_BYTES)
     ]);
 }
@@ -1181,17 +1182,24 @@ function subirArchivoProductoAdmin($pdo) {
         jsonResponse(['error' => 'No se recibió el archivo'], 400);
     }
 
-    $resultado = guardarArchivoDigital($pdo, $id, $_FILES['archivo']);
+    $resultado = guardarArchivoDigital($pdo, $id, $_FILES['archivo'], (string)($_POST['etiqueta'] ?? ''));
     if (!$resultado['ok']) {
         jsonResponse(['error' => $resultado['error']], 400);
     }
-    jsonResponse(['success' => true, 'mensaje' => 'Archivo guardado', 'archivo' => $resultado['info']]);
+    jsonResponse(['success' => true, 'mensaje' => 'Archivo guardado', 'archivos' => $resultado['archivos']]);
 }
 
+/** POST id = id del ARCHIVO (no del producto). */
 function eliminarArchivoProductoAdmin($pdo) {
-    $id = productoDigitalDelRequest($pdo, $_POST);
-    eliminarArchivoDigital($pdo, $id);
-    jsonResponse(['success' => true, 'mensaje' => 'Archivo quitado', 'archivo' => null]);
+    $archivoId = intval($_POST['id'] ?? 0);
+    if (!$archivoId) {
+        jsonResponse(['error' => 'ID requerido'], 400);
+    }
+    $productoId = eliminarArchivoDigital($pdo, $archivoId);
+    if (!$productoId) {
+        jsonResponse(['error' => 'Archivo no encontrado'], 404);
+    }
+    jsonResponse(['success' => true, 'mensaje' => 'Archivo quitado', 'archivos' => listarArchivosDigitales($pdo, $productoId)]);
 }
 
 function eliminarImagenProducto($pdo) {

@@ -187,7 +187,8 @@ function productoEnEdicionId() {
 const EXTENSIONES_ARCHIVO_DIGITAL = ['.pdf', '.zip', '.rar', '.7z', '.epub', '.mobi', '.doc', '.docx',
     '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.csv', '.mp3', '.mp4'];
 const MAX_TAMANO_ARCHIVO_DIGITAL = 45 * 1024 * 1024; // ARCHIVO_DIGITAL_MAX_BYTES en el servidor
-let archivoDigital = null;
+let archivosDigitales = [];
+let maxArchivosDigitales = 10;
 
 function escaparTexto(texto) {
     const d = document.createElement('div');
@@ -195,57 +196,61 @@ function escaparTexto(texto) {
     return d.innerHTML;
 }
 
-// Se muestra solo si el producto es digital; carga el archivo actual al editar
+// Se muestra solo si el producto es digital; carga los archivos actuales al editar
 function actualizarSeccionDigital(cargar) {
     const grupo = document.getElementById('archivo-digital-grupo');
     const esDigital = document.getElementById('producto-tipo').value === 'digital';
     grupo.hidden = !esDigital;
-    if (esDigital && cargar) cargarArchivoDigital(productoEnEdicionId());
+    if (esDigital && cargar) cargarArchivosDigitales(productoEnEdicionId());
 }
 
-async function cargarArchivoDigital(id) {
-    archivoDigital = null;
-    renderizarArchivoDigital();
+async function cargarArchivosDigitales(id) {
+    archivosDigitales = [];
+    renderizarArchivosDigitales();
     if (!id) return;
     try {
         const response = await fetch(`${API_BASE}?action=producto_archivo&id=${id}`);
         const data = await response.json();
         if (data.success && productoEnEdicionId() == id) {
-            archivoDigital = data.archivo || null;
-            renderizarArchivoDigital();
+            archivosDigitales = data.archivos || [];
+            maxArchivosDigitales = data.maximo || maxArchivosDigitales;
+            renderizarArchivosDigitales();
         }
     } catch (error) {
-        console.error('Error al cargar el archivo digital:', error);
+        console.error('Error al cargar los archivos digitales:', error);
     }
 }
 
-function renderizarArchivoDigital() {
-    const actual = document.getElementById('archivo-digital-actual');
+function renderizarArchivosDigitales() {
+    const lista = document.getElementById('archivo-digital-lista');
     const info = document.getElementById('archivo-digital-info');
     const botonSubir = document.getElementById('btn-subir-archivo-digital');
-    const botonQuitar = document.getElementById('btn-quitar-archivo-digital');
     const id = productoEnEdicionId();
 
-    if (archivoDigital) {
-        actual.hidden = false;
-        actual.innerHTML = `<i class="fas fa-file-download"></i>
-            <div><strong>${escaparTexto(archivoDigital.nombre)}</strong>
-            <small>${escaparTexto(archivoDigital.tamano_texto)} · subido ${escaparTexto(archivoDigital.fecha || '')}</small></div>`;
+    lista.innerHTML = archivosDigitales.map(a => `
+        <div class="archivo-digital-actual">
+            <i class="fas fa-file-download"></i>
+            <div>
+                <strong>${escaparTexto(a.etiqueta || a.nombre)}</strong>
+                <small>${a.etiqueta ? escaparTexto(a.nombre) + ' · ' : ''}${escaparTexto(a.tamano_texto)}</small>
+            </div>
+            <button type="button" class="btn-foto-quitar-archivo" onclick="quitarArchivoDigital(${a.id})" title="Quitar archivo">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    `).join('');
+
+    if (!id) {
+        botonSubir.disabled = true;
+        info.textContent = 'Guarda el producto para poder subir sus archivos.';
     } else {
-        actual.hidden = true;
-        actual.innerHTML = '';
+        botonSubir.disabled = archivosDigitales.length >= maxArchivosDigitales;
+        info.textContent = `${archivosDigitales.length} de ${maxArchivosDigitales}. Puedes subir varios (p. ej. PDF y EPUB). PDF, ZIP, RAR, 7Z, EPUB, MOBI, Word, Excel, PowerPoint, TXT, CSV, MP3 o MP4; máx. 45 MB cada uno. Se guardan en un lugar privado.`;
     }
-    document.getElementById('btn-subir-archivo-digital-texto').textContent = archivoDigital ? 'Reemplazar archivo' : 'Subir archivo';
-    botonQuitar.hidden = !archivoDigital;
-    botonSubir.disabled = !id;
-    botonQuitar.disabled = !id;
-    info.textContent = id
-        ? 'PDF, ZIP, RAR, 7Z, EPUB, MOBI, Word, Excel, PowerPoint, TXT, CSV, MP3 o MP4. Máx. 45 MB. Se guarda en un lugar privado.'
-        : 'Guarda el producto para poder subir su archivo.';
 }
 
-// Se sube con XMLHttpRequest para mostrar el avance
-function subirArchivoDigital(archivo) {
+// Pide una etiqueta opcional (para distinguir las versiones) y sube el archivo
+async function subirArchivoDigital(archivo) {
     const id = productoEnEdicionId();
     if (!id) return;
 
@@ -259,8 +264,22 @@ function subirArchivoDigital(archivo) {
         return;
     }
 
+    const respuesta = await Swal.fire({
+        title: 'Nombre para el cliente',
+        text: archivo.name,
+        input: 'text',
+        inputValue: `Versión ${extension.slice(1).toUpperCase()}`,
+        inputPlaceholder: 'Ej.: Versión PDF (opcional)',
+        inputAttributes: { maxlength: 80 },
+        showCancelButton: true,
+        confirmButtonText: 'Subir',
+        cancelButtonText: 'Cancelar'
+    });
+    if (!respuesta.isConfirmed) return;
+
     const formData = new FormData();
     formData.append('id', id);
+    formData.append('etiqueta', (respuesta.value || '').trim());
     formData.append('archivo', archivo);
 
     const progreso = document.getElementById('archivo-digital-progreso');
@@ -272,6 +291,7 @@ function subirArchivoDigital(archivo) {
     texto.textContent = 'Subiendo archivo... 0%';
     botonSubir.disabled = true;
 
+    // XMLHttpRequest para mostrar el avance (fetch no lo informa)
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `${API_BASE}?action=producto_archivo_subir`);
     xhr.upload.onprogress = (e) => {
@@ -285,30 +305,30 @@ function subirArchivoDigital(archivo) {
         let data = {};
         try { data = JSON.parse(xhr.responseText); } catch (e) { /* respuesta no JSON */ }
         if (data.success) {
-            archivoDigital = data.archivo || null;
+            archivosDigitales = data.archivos || [];
             Swal.fire({ icon: 'success', title: data.mensaje, timer: 1500, showConfirmButton: false });
         } else {
             const error = data.error || (xhr.status === 413 ? 'El archivo es demasiado pesado.' : 'No se pudo subir el archivo.');
             Swal.fire('Error', error, 'error');
         }
-        renderizarArchivoDigital();
+        renderizarArchivosDigitales();
     };
     xhr.onerror = () => {
         progreso.hidden = true;
         Swal.fire('Error', 'Error de conexión al subir el archivo', 'error');
-        renderizarArchivoDigital();
+        renderizarArchivosDigitales();
     };
     xhr.send(formData);
 }
 
-async function quitarArchivoDigital() {
-    const id = productoEnEdicionId();
-    if (!id || !archivoDigital) return;
+async function quitarArchivoDigital(archivoId) {
+    const archivo = archivosDigitales.find(a => a.id === archivoId);
+    if (!archivo) return;
 
     const confirmacion = await Swal.fire({
         icon: 'warning',
-        title: '¿Quitar el archivo?',
-        text: 'Los clientes que ya compraron este producto no podrán descargarlo hasta que subas otro archivo.',
+        title: '¿Quitar este archivo?',
+        text: `"${archivo.etiqueta || archivo.nombre}": los clientes que ya compraron no podrán descargarlo.`,
         showCancelButton: true,
         confirmButtonText: 'Sí, quitar',
         cancelButtonText: 'Cancelar',
@@ -317,12 +337,12 @@ async function quitarArchivoDigital() {
     if (!confirmacion.isConfirmed) return;
 
     const formData = new FormData();
-    formData.append('id', id);
+    formData.append('id', archivoId);
     try {
         const response = await fetch(`${API_BASE}?action=producto_archivo_eliminar`, { method: 'POST', body: formData });
         const data = await response.json();
         if (data.success) {
-            archivoDigital = null;
+            archivosDigitales = data.archivos || [];
         } else {
             Swal.fire('Error', data.error || 'No se pudo quitar el archivo', 'error');
         }
@@ -330,7 +350,7 @@ async function quitarArchivoDigital() {
         console.error('Error:', error);
         Swal.fire('Error', 'Error de conexión', 'error');
     }
-    renderizarArchivoDigital();
+    renderizarArchivosDigitales();
 }
 
 async function cargarFotosAdicionales(id) {
@@ -788,8 +808,8 @@ function abrirModalProducto() {
     actualizarRepartoProducto();
     resetearSelectorImagen();
     cargarFotosAdicionales(null);
-    archivoDigital = null;
-    renderizarArchivoDigital();
+    archivosDigitales = [];
+    renderizarArchivosDigitales();
     actualizarSeccionDigital(false);
     document.getElementById('modal-producto').classList.add('activo');
 }
