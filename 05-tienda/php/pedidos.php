@@ -7,6 +7,8 @@
 require_once 'config.php';
 require_once 'bonos-helpers.php';
 require_once 'tipos-producto-helpers.php';
+require_once 'archivos-digitales.php';
+require_once 'descargas-helpers.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -356,12 +358,25 @@ function detallePedido($conn) {
     $stmtDetalles->execute();
     $resultDetalles = $stmtDetalles->get_result();
     
+    // Productos digitales del pedido y sus archivos (solo con el pago aprobado)
+    global $pdo;
+    $digitales = archivosDigitalesDePedido($pdo, (int)$pedido_id);
+    $permiteDescargas = pedidoPermiteDescargas((string)$pedido['estado']);
+
     $detalles = [];
     while ($row = $resultDetalles->fetch_assoc()) {
         $row['precio_unitario_formateado'] = formatearPrecio($row['precio_unitario']);
         $row['subtotal_formateado'] = formatearPrecio($row['subtotal']);
+        $esDigital = isset($digitales[(int)$row['producto_id']]);
+        $row['es_digital'] = $esDigital;
+        $row['archivos'] = ($esDigital && $permiteDescargas) ? $digitales[(int)$row['producto_id']] : [];
+        $row['descarga_bloqueada'] = $esDigital && !$permiteDescargas;
         $detalles[] = $row;
     }
+    $cantidadDigitales = count(array_filter($detalles, function ($d) { return $d['es_digital']; }));
+    $pedido['tiene_digitales'] = $cantidadDigitales > 0;
+    $pedido['solo_digital'] = $cantidadDigitales > 0 && $cantidadDigitales === count($detalles);
+    $pedido['descargas_disponibles'] = $cantidadDigitales > 0 && $permiteDescargas;
     
     // Formatear datos del pedido
     $pedido['subtotal_formateado'] = formatearPrecio($pedido['subtotal']);

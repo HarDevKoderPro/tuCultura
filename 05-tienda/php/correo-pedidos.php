@@ -19,6 +19,7 @@ require_once __DIR__ . '/../../02-iniciarSesion/php/PHPMailer/src/Exception.php'
 require_once __DIR__ . '/../../02-iniciarSesion/php/PHPMailer/src/PHPMailer.php';
 require_once __DIR__ . '/../../02-iniciarSesion/php/PHPMailer/src/SMTP.php';
 require_once __DIR__ . '/cobros-helpers.php';
+require_once __DIR__ . '/tipos-producto-helpers.php';
 
 if (!function_exists('enviarCorreosPedido')) {
   function enviarCorreosPedido($conn, $pedidoId)
@@ -42,6 +43,22 @@ if (!function_exists('enviarCorreosPedido')) {
       $stmt->execute();
       $detalles = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
       $stmt->close();
+
+      // Productos digitales del pedido (para el aviso de descarga y para omitir el envio)
+      $pedido['tiene_digitales'] = false;
+      $pedido['solo_digital'] = false;
+      if (existeColumnaTipoProducto($conn)) {
+        $stmt = $conn->prepare(
+          "SELECT COUNT(*) AS total, COALESCE(SUM(p.tipo_producto = 'digital'), 0) AS digitales
+           FROM detalle_pedido d JOIN productos p ON p.id = d.producto_id WHERE d.pedido_id = ?"
+        );
+        $stmt->bind_param('i', $pedidoId);
+        $stmt->execute();
+        $tipos = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        $pedido['tiene_digitales'] = (int)($tipos['digitales'] ?? 0) > 0;
+        $pedido['solo_digital'] = $pedido['tiene_digitales'] && (int)$tipos['digitales'] === (int)$tipos['total'];
+      }
 
       $numero = $pedido['numero_pedido'];
       $cuerpo = construirCorreoPedido($pedido, $detalles);
@@ -197,7 +214,24 @@ if (!function_exists('construirCorreoPedido')) {
         . '</tr>';
     }
 
-    $envio = (float)$pedido['costo_envio'] > 0 ? formatearPrecio($pedido['costo_envio']) : 'GRATIS';
+    $soloDigital = !empty($pedido['solo_digital']);
+    $envio = $soloDigital ? 'No aplica' : ((float)$pedido['costo_envio'] > 0 ? formatearPrecio($pedido['costo_envio']) : 'GRATIS');
+
+    // Productos digitales: se descargan desde Mis pedidos cuando el pago esta aprobado
+    $bloqueDigital = '';
+    if (!empty($pedido['tiene_digitales'])) {
+      $urlPedidos = urlPublicaTienda() . '/mis-pedidos.html';
+      if (!in_array($pedido['estado'], ['pendiente', 'cancelado'], true)) {
+        $bloqueDigital = '<div style="background:#e3efff;border-radius:6px;padding:12px 16px;margin:16px 0">'
+          . '<p style="margin:0 0 10px"><b>Tus productos digitales ya están disponibles.</b> Descárgalos desde "Mis Pedidos":</p>'
+          . '<p style="margin:0;text-align:center"><a href="' . $e($urlPedidos) . '" style="display:inline-block;background:#1d4f9c;color:#fff;'
+          . 'text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:bold">Ir a mis descargas</a></p></div>';
+      } else {
+        $bloqueDigital = '<div style="background:#e3efff;border-radius:6px;padding:12px 16px;margin:16px 0">'
+          . '<p style="margin:0"><b>Productos digitales:</b> podrás descargarlos desde "Mis Pedidos" cuando tu pago esté aprobado. '
+          . 'No tienen devolución una vez descargados.</p></div>';
+      }
+    }
 
     return '<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#333">'
       . '<h2 style="color:#023859">Pedido ' . $e($pedido['numero_pedido']) . '</h2>'
@@ -212,11 +246,15 @@ if (!function_exists('construirCorreoPedido')) {
         : '')
       . '<tr><td colspan="2" style="padding:6px;text-align:right"><b>Total</b></td><td style="padding:6px;text-align:right"><b>' . formatearPrecio($pedido['total']) . '</b></td></tr>'
       . '</table>'
-      . '<p><b>Envío a:</b><br>'
-      . $e($pedido['nombre_envio']) . ' ' . $e($pedido['apellido_envio']) . '<br>'
-      . $e($pedido['direccion_envio']) . '<br>'
-      . $e($pedido['ciudad_envio']) . ', ' . $e($pedido['departamento_envio']) . '<br>'
-      . 'Tel: ' . $e($pedido['telefono_envio']) . '</p>'
+      . $bloqueDigital
+      . ($soloDigital
+        ? '<p><b>Comprador:</b><br>' . $e($pedido['nombre_envio']) . ' ' . $e($pedido['apellido_envio']) . '<br>'
+          . 'Tel: ' . $e($pedido['telefono_envio']) . '</p>'
+        : '<p><b>Envío a:</b><br>'
+          . $e($pedido['nombre_envio']) . ' ' . $e($pedido['apellido_envio']) . '<br>'
+          . $e($pedido['direccion_envio']) . '<br>'
+          . $e($pedido['ciudad_envio']) . ', ' . $e($pedido['departamento_envio']) . '<br>'
+          . 'Tel: ' . $e($pedido['telefono_envio']) . '</p>')
       . '<p>Puedes revisar el estado de tu pedido en "Mis Pedidos" de la tienda.</p>'
       . '<p style="color:#888;font-size:12px">Tu Cultura es Progreso</p>'
       . '</div>';

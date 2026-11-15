@@ -77,6 +77,64 @@
             mostrarEstadoPagoMP(numeroPedido, params.get('payment_id') || '');
         }
 
+        // Productos digitales del pedido: botones de descarga (o aviso de que se activan con el pago)
+        async function mostrarDescargasPedido(numero) {
+            try {
+                const historial = await (await fetch('php/pedidos.php?action=historial')).json();
+                const fila = historial.success ? historial.pedidos.find((p) => p.numero_pedido === numero) : null;
+                if (!fila) return;
+                const detalle = await (await fetch(`php/pedidos.php?action=detalle&id=${fila.id}`)).json();
+                if (!detalle.success || !detalle.pedido.tiene_digitales) return;
+
+                let caja = document.getElementById('confirmacion-descargas');
+                if (!caja) {
+                    caja = document.createElement('div');
+                    caja.id = 'confirmacion-descargas';
+                    caja.style.cssText = 'margin: 1.2rem auto; max-width: 520px; text-align: left;';
+                    document.querySelector('#confirmacion .confirmacion-mensaje').insertAdjacentElement('afterend', caja);
+                }
+                caja.replaceChildren();
+
+                const titulo = document.createElement('h3');
+                titulo.style.cssText = 'margin: 0 0 0.6rem; color: #023859;';
+                titulo.textContent = 'Tus productos digitales';
+                caja.appendChild(titulo);
+
+                detalle.pedido.detalles.filter((d) => d.es_digital).forEach((d) => {
+                    const bloque = document.createElement('div');
+                    bloque.style.marginBottom = '0.8rem';
+                    const nombre = document.createElement('strong');
+                    nombre.textContent = d.nombre_producto;
+                    bloque.appendChild(nombre);
+
+                    if (d.descarga_bloqueada) {
+                        const aviso = document.createElement('div');
+                        aviso.className = 'descarga-bloqueada';
+                        aviso.textContent = 'Podrás descargarlo cuando tu pago esté aprobado. Lo verás en "Mis Pedidos".';
+                        bloque.appendChild(aviso);
+                    } else if (d.archivos && d.archivos.length) {
+                        const lista = document.createElement('div');
+                        lista.className = 'descargas-lista';
+                        d.archivos.forEach((a) => {
+                            const enlace = document.createElement('a');
+                            enlace.className = 'btn-descargar';
+                            enlace.href = a.url;
+                            enlace.textContent = ' ' + (a.etiqueta || a.nombre) + ' (' + a.tamano_texto + ')';
+                            const icono = document.createElement('i');
+                            icono.className = 'fas fa-download';
+                            enlace.prepend(icono);
+                            lista.appendChild(enlace);
+                        });
+                        bloque.appendChild(lista);
+                    }
+                    caja.appendChild(bloque);
+                });
+            } catch (error) {
+                console.error('Error al cargar las descargas:', error);
+            }
+        }
+        if (numeroPedido) mostrarDescargasPedido(numeroPedido);
+
         function pintarConfirmacion(icono, color, titulo, mensajes) {
             const contenedor = document.getElementById('confirmacion');
             const i = contenedor.querySelector('.confirmacion-icono i');
@@ -109,6 +167,7 @@
                         `Tu pago de ${data.pedido.total_formateado} fue aprobado y tu pedido está confirmado.`,
                         'Puedes revisar el estado de tu pedido en "Mis Pedidos".'
                     ]);
+                    mostrarDescargasPedido(numero); // si tiene digitales, ya se pueden descargar
                 } else if (estadoPago === 'rejected' || estadoPago === 'cancelled') {
                     pintarConfirmacion('fa-times-circle', '#dc2626', 'Pago no aprobado', [
                         'MercadoPago no aprobó el pago. No se realizó ningún cobro.',

@@ -104,14 +104,35 @@ async function verDetallePedido(pedidoId) {
 function renderizarDetallePedido(pedido) {
     const modalBody = document.getElementById('modal-body');
     
+    // Productos digitales: botones de descarga (solo con el pago aprobado)
+    const escapar = (texto) => {
+        const d = document.createElement('div');
+        d.textContent = texto;
+        return d.innerHTML;
+    };
+    const descargasHtml = (item) => {
+        if (!item.es_digital) return '';
+        if (item.descarga_bloqueada) {
+            return `<div class="descarga-bloqueada"><i class="fas fa-lock"></i> Disponible para descargar cuando tu pago esté aprobado.</div>`;
+        }
+        if (!item.archivos || item.archivos.length === 0) {
+            return `<div class="descarga-bloqueada"><i class="fas fa-info-circle"></i> El archivo se está preparando. Si no aparece pronto, escríbenos.</div>`;
+        }
+        return `<div class="descargas-lista">${item.archivos.map(a => `
+            <a class="btn-descargar" href="${a.url}">
+                <i class="fas fa-download"></i> ${escapar(a.etiqueta || a.nombre)} <small>(${escapar(a.tamano_texto)})</small>
+            </a>`).join('')}</div>`;
+    };
+
     const itemsHtml = pedido.detalles.map(item => `
-        <div class="checkout-item">
-            <img src="imagenes/productos/${item.imagen || '../01-principal/imagenes/fondo-producto.png'}" 
+        <div class="checkout-item checkout-item-con-descargas">
+            <img src="imagenes/productos/${item.imagen || '../01-principal/imagenes/fondo-producto.png'}"
                  alt="${item.nombre_producto}" class="checkout-item-imagen"
                  onerror="this.src='../01-principal/imagenes/fondo-producto.png'">
             <div class="checkout-item-info">
-                <p class="checkout-item-nombre">${item.nombre_producto}</p>
+                <p class="checkout-item-nombre">${item.nombre_producto}${item.es_digital ? ' <span class="producto-tipo digital"><i class="fas fa-cloud"></i> Digital</span>' : ''}</p>
                 <p class="checkout-item-cantidad">${item.cantidad} x ${item.precio_unitario_formateado}</p>
+                ${descargasHtml(item)}
             </div>
             <span class="checkout-item-precio">${item.subtotal_formateado}</span>
         </div>
@@ -129,15 +150,21 @@ function renderizarDetallePedido(pedido) {
             ${itemsHtml}
         </div>
         
+        ${pedido.solo_digital ? `
+        <h3 style="margin: 1rem 0;">Datos del comprador</h3>
+        <p>${pedido.nombre_envio} ${pedido.apellido_envio}</p>
+        <p>Tel: ${pedido.telefono_envio}</p>
+        ` : `
         <h3 style="margin: 1rem 0;">Direcci\u00f3n de Env\u00edo</h3>
         <p>${pedido.nombre_envio} ${pedido.apellido_envio}</p>
         <p>${pedido.direccion_envio}</p>
         <p>${pedido.ciudad_envio}, ${pedido.departamento_envio}</p>
         <p>Tel: ${pedido.telefono_envio}</p>
-        
+        `}
+
         <div style="margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--color-borde);">
             <div class="resumen-linea"><span>Subtotal</span><span>${pedido.subtotal_formateado}</span></div>
-            <div class="resumen-linea"><span>Env\u00edo</span><span>${pedido.costo_envio_formateado}</span></div>
+            <div class="resumen-linea"><span>Env\u00edo</span><span>${pedido.solo_digital ? 'No aplica' : pedido.costo_envio_formateado}</span></div>
             ${Number(pedido.descuento_bono) > 0 ? `<div class="resumen-linea" style="color: var(--color-exito);"><span>\ud83c\udf81 Bono por puntos</span><span>- ${pedido.descuento_bono_formateado}</span></div>` : ''}
             <div class="resumen-linea total"><span>Total</span><span>${pedido.total_formateado}</span></div>
         </div>

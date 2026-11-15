@@ -860,6 +860,34 @@ body.visor-fotos-abierto { overflow: hidden; }
     .aviso-invitacion-login { order: 4; }
 }
 
+/* Descarga de productos digitales (Mis pedidos y confirmacion) */
+.descargas-lista { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.5rem; }
+.btn-descargar {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.9rem;
+    background: #1d4f9c;
+    color: #fff;
+    border-radius: 6px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+    width: fit-content;
+    max-width: 100%;
+}
+.btn-descargar:hover { background: #163d7a; }
+.btn-descargar small { font-weight: 400; opacity: 0.85; }
+.descarga-bloqueada {
+    margin-top: 0.5rem;
+    padding: 0.45rem 0.7rem;
+    background: #fff3cd;
+    color: #856404;
+    border-radius: 6px;
+    font-size: 0.82rem;
+}
+.checkout-item-con-descargas { align-items: flex-start; }
+
 /* Aviso de productos digitales en el checkout (js/checkout.js) */
 .checkout-aviso-digital {
     display: flex;
