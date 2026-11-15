@@ -42,12 +42,18 @@ log "BD respaldada ($(du -h "$archivo_db" | cut -f1))"
 tar czf "$archivo_files" 05-tienda/imagenes/productos 05-tienda/php/tarjetas-contenido.json
 log "Archivos respaldados ($(du -h "$archivo_files" | cut -f1))"
 
+# Archivos descargables de productos digitales (volumen dentro del contenedor)
+archivo_digitales="$BACKUP_DIR/tucultura_digitales_$marca.tar.gz"
+docker compose exec -T app tar czf - -C /var/lib/tucultura archivos-digitales </dev/null > "$archivo_digitales"
+log "Archivos digitales respaldados ($(du -h "$archivo_digitales" | cut -f1))"
+
 find "$BACKUP_DIR" -name 'tucultura_*_*.gz' -mtime +"$RETENCION_LOCAL_DIAS" -delete
 
 if [ -n "$RCLONE_REMOTE" ]; then
   if rclone listremotes | grep -qxF "$RCLONE_REMOTE"; then
     rclone copy "$archivo_db" "$RCLONE_REMOTE"
     rclone copy "$archivo_files" "$RCLONE_REMOTE"
+    rclone copy "$archivo_digitales" "$RCLONE_REMOTE"
     rclone delete --min-age "${RETENCION_REMOTA_DIAS}d" "$RCLONE_REMOTE"
     log "Copia cifrada subida a $RCLONE_REMOTE"
   else

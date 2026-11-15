@@ -170,10 +170,167 @@ function inicializarFotosAdicionales() {
         e.target.value = '';
         if (archivo) subirVideoAdicional(archivo);
     });
+    document.getElementById('archivo-digital-input').addEventListener('change', (e) => {
+        const archivo = e.target.files && e.target.files[0];
+        e.target.value = '';
+        if (archivo) subirArchivoDigital(archivo);
+    });
+    // Al cambiar el tipo se muestra u oculta la seccion del archivo descargable
+    document.getElementById('producto-tipo').addEventListener('change', () => actualizarSeccionDigital(true));
 }
 
 function productoEnEdicionId() {
     return document.getElementById('producto-id').value;
+}
+
+// ==================== ARCHIVO DESCARGABLE (PRODUCTOS DIGITALES) ====================
+const EXTENSIONES_ARCHIVO_DIGITAL = ['.pdf', '.zip', '.rar', '.7z', '.epub', '.mobi', '.doc', '.docx',
+    '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.csv', '.mp3', '.mp4'];
+const MAX_TAMANO_ARCHIVO_DIGITAL = 45 * 1024 * 1024; // ARCHIVO_DIGITAL_MAX_BYTES en el servidor
+let archivoDigital = null;
+
+function escaparTexto(texto) {
+    const d = document.createElement('div');
+    d.textContent = texto;
+    return d.innerHTML;
+}
+
+// Se muestra solo si el producto es digital; carga el archivo actual al editar
+function actualizarSeccionDigital(cargar) {
+    const grupo = document.getElementById('archivo-digital-grupo');
+    const esDigital = document.getElementById('producto-tipo').value === 'digital';
+    grupo.hidden = !esDigital;
+    if (esDigital && cargar) cargarArchivoDigital(productoEnEdicionId());
+}
+
+async function cargarArchivoDigital(id) {
+    archivoDigital = null;
+    renderizarArchivoDigital();
+    if (!id) return;
+    try {
+        const response = await fetch(`${API_BASE}?action=producto_archivo&id=${id}`);
+        const data = await response.json();
+        if (data.success && productoEnEdicionId() == id) {
+            archivoDigital = data.archivo || null;
+            renderizarArchivoDigital();
+        }
+    } catch (error) {
+        console.error('Error al cargar el archivo digital:', error);
+    }
+}
+
+function renderizarArchivoDigital() {
+    const actual = document.getElementById('archivo-digital-actual');
+    const info = document.getElementById('archivo-digital-info');
+    const botonSubir = document.getElementById('btn-subir-archivo-digital');
+    const botonQuitar = document.getElementById('btn-quitar-archivo-digital');
+    const id = productoEnEdicionId();
+
+    if (archivoDigital) {
+        actual.hidden = false;
+        actual.innerHTML = `<i class="fas fa-file-download"></i>
+            <div><strong>${escaparTexto(archivoDigital.nombre)}</strong>
+            <small>${escaparTexto(archivoDigital.tamano_texto)} · subido ${escaparTexto(archivoDigital.fecha || '')}</small></div>`;
+    } else {
+        actual.hidden = true;
+        actual.innerHTML = '';
+    }
+    document.getElementById('btn-subir-archivo-digital-texto').textContent = archivoDigital ? 'Reemplazar archivo' : 'Subir archivo';
+    botonQuitar.hidden = !archivoDigital;
+    botonSubir.disabled = !id;
+    botonQuitar.disabled = !id;
+    info.textContent = id
+        ? 'PDF, ZIP, RAR, 7Z, EPUB, MOBI, Word, Excel, PowerPoint, TXT, CSV, MP3 o MP4. Máx. 45 MB. Se guarda en un lugar privado.'
+        : 'Guarda el producto para poder subir su archivo.';
+}
+
+// Se sube con XMLHttpRequest para mostrar el avance
+function subirArchivoDigital(archivo) {
+    const id = productoEnEdicionId();
+    if (!id) return;
+
+    const extension = '.' + archivo.name.split('.').pop().toLowerCase();
+    if (!EXTENSIONES_ARCHIVO_DIGITAL.includes(extension)) {
+        Swal.fire('Formato no permitido', 'Usa PDF, ZIP, RAR, 7Z, EPUB, MOBI, Word, Excel, PowerPoint, TXT, CSV, MP3 o MP4.', 'warning');
+        return;
+    }
+    if (archivo.size > MAX_TAMANO_ARCHIVO_DIGITAL) {
+        Swal.fire('Archivo muy pesado', `El archivo pesa ${(archivo.size / 1048576).toFixed(1)} MB; el máximo es 45 MB.`, 'warning');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('id', id);
+    formData.append('archivo', archivo);
+
+    const progreso = document.getElementById('archivo-digital-progreso');
+    const relleno = document.getElementById('archivo-digital-progreso-relleno');
+    const texto = document.getElementById('archivo-digital-progreso-texto');
+    const botonSubir = document.getElementById('btn-subir-archivo-digital');
+    progreso.hidden = false;
+    relleno.style.width = '0';
+    texto.textContent = 'Subiendo archivo... 0%';
+    botonSubir.disabled = true;
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_BASE}?action=producto_archivo_subir`);
+    xhr.upload.onprogress = (e) => {
+        if (!e.lengthComputable) return;
+        const pct = Math.round((e.loaded / e.total) * 100);
+        relleno.style.width = pct + '%';
+        texto.textContent = pct < 100 ? `Subiendo archivo... ${pct}%` : 'Guardando archivo...';
+    };
+    xhr.onload = () => {
+        progreso.hidden = true;
+        let data = {};
+        try { data = JSON.parse(xhr.responseText); } catch (e) { /* respuesta no JSON */ }
+        if (data.success) {
+            archivoDigital = data.archivo || null;
+            Swal.fire({ icon: 'success', title: data.mensaje, timer: 1500, showConfirmButton: false });
+        } else {
+            const error = data.error || (xhr.status === 413 ? 'El archivo es demasiado pesado.' : 'No se pudo subir el archivo.');
+            Swal.fire('Error', error, 'error');
+        }
+        renderizarArchivoDigital();
+    };
+    xhr.onerror = () => {
+        progreso.hidden = true;
+        Swal.fire('Error', 'Error de conexión al subir el archivo', 'error');
+        renderizarArchivoDigital();
+    };
+    xhr.send(formData);
+}
+
+async function quitarArchivoDigital() {
+    const id = productoEnEdicionId();
+    if (!id || !archivoDigital) return;
+
+    const confirmacion = await Swal.fire({
+        icon: 'warning',
+        title: '¿Quitar el archivo?',
+        text: 'Los clientes que ya compraron este producto no podrán descargarlo hasta que subas otro archivo.',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, quitar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc3545'
+    });
+    if (!confirmacion.isConfirmed) return;
+
+    const formData = new FormData();
+    formData.append('id', id);
+    try {
+        const response = await fetch(`${API_BASE}?action=producto_archivo_eliminar`, { method: 'POST', body: formData });
+        const data = await response.json();
+        if (data.success) {
+            archivoDigital = null;
+        } else {
+            Swal.fire('Error', data.error || 'No se pudo quitar el archivo', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire('Error', 'Error de conexión', 'error');
+    }
+    renderizarArchivoDigital();
 }
 
 async function cargarFotosAdicionales(id) {
@@ -631,6 +788,9 @@ function abrirModalProducto() {
     actualizarRepartoProducto();
     resetearSelectorImagen();
     cargarFotosAdicionales(null);
+    archivoDigital = null;
+    renderizarArchivoDigital();
+    actualizarSeccionDigital(false);
     document.getElementById('modal-producto').classList.add('activo');
 }
 
@@ -665,7 +825,8 @@ async function editarProducto(id) {
                 mostrarVistaPrevia(`../imagenes/productos/${p.imagen}`, p.imagen);
             }
             cargarFotosAdicionales(p.id);
-            
+            actualizarSeccionDigital(true);
+
             document.getElementById('modal-producto').classList.add('activo');
         }
     } catch (error) {

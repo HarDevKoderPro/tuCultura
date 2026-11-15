@@ -10,6 +10,7 @@ require_once 'bonos-helpers.php';
 require_once 'puntos-pagos-helpers.php';
 require_once 'cobros-helpers.php';
 require_once 'proveedores-helpers.php';
+require_once 'archivos-digitales.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -59,7 +60,17 @@ switch ($action) {
     case 'producto_detalle':
         detalleProductoAdmin($conn);
         break;
-    
+    // Archivo descargable de un producto digital
+    case 'producto_archivo':
+        infoArchivoProductoAdmin($pdo);
+        break;
+    case 'producto_archivo_subir':
+        subirArchivoProductoAdmin($pdo);
+        break;
+    case 'producto_archivo_eliminar':
+        eliminarArchivoProductoAdmin($pdo);
+        break;
+
     // Categorías
     case 'categorias_listar':
         listarCategoriasAdmin($conn);
@@ -1132,6 +1143,55 @@ function guardarArchivoVideo($archivo) {
         jsonResponse(['error' => 'Error al guardar el video en el servidor.'], 500);
     }
     return $nombreUnico;
+}
+
+// ==================== ARCHIVO DESCARGABLE (PRODUCTOS DIGITALES) ====================
+
+/** Valida que el producto exista y devuelve su id (o responde con error). */
+function productoDigitalDelRequest($pdo, $origen) {
+    $id = intval($origen['id'] ?? 0);
+    if (!$id) {
+        jsonResponse(['error' => 'ID requerido'], 400);
+    }
+    $stmt = $pdo->prepare("SELECT id FROM productos WHERE id = ?");
+    $stmt->execute([$id]);
+    if (!$stmt->fetch()) {
+        jsonResponse(['error' => 'Producto no encontrado'], 404);
+    }
+    return $id;
+}
+
+function infoArchivoProductoAdmin($pdo) {
+    $id = productoDigitalDelRequest($pdo, $_GET);
+    jsonResponse([
+        'success' => true,
+        'archivo' => infoArchivoDigital($pdo, $id),
+        'maximo_texto' => textoTamanoArchivo(ARCHIVO_DIGITAL_MAX_BYTES)
+    ]);
+}
+
+function subirArchivoProductoAdmin($pdo) {
+    // Si el archivo supera post_max_size, PHP descarta todo el POST
+    if (empty($_POST) && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
+        jsonResponse(['error' => 'El archivo supera el tamaño máximo permitido (45 MB).'], 400);
+    }
+    $id = productoDigitalDelRequest($pdo, $_POST);
+
+    if (!isset($_FILES['archivo']) || $_FILES['archivo']['error'] === UPLOAD_ERR_NO_FILE) {
+        jsonResponse(['error' => 'No se recibió el archivo'], 400);
+    }
+
+    $resultado = guardarArchivoDigital($pdo, $id, $_FILES['archivo']);
+    if (!$resultado['ok']) {
+        jsonResponse(['error' => $resultado['error']], 400);
+    }
+    jsonResponse(['success' => true, 'mensaje' => 'Archivo guardado', 'archivo' => $resultado['info']]);
+}
+
+function eliminarArchivoProductoAdmin($pdo) {
+    $id = productoDigitalDelRequest($pdo, $_POST);
+    eliminarArchivoDigital($pdo, $id);
+    jsonResponse(['success' => true, 'mensaje' => 'Archivo quitado', 'archivo' => null]);
 }
 
 function eliminarImagenProducto($pdo) {

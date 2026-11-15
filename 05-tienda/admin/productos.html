@@ -183,6 +183,21 @@
             gap: 0.75rem;
         }
         .fotos-adicionales-acciones small { color: #666; }
+        #archivo-digital-grupo[hidden] { display: none; }
+        .archivo-digital-actual {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 0.5rem;
+            padding: 0.6rem 0.8rem;
+            background: #eef4ff;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            word-break: break-all;
+        }
+        .archivo-digital-actual[hidden] { display: none; }
+        .archivo-digital-actual i { color: #1d4f9c; font-size: 1.3rem; }
+        .archivo-digital-actual small { color: #666; display: block; }
 
         /* Buscador de productos */
         .reparto-producto { margin-top: 0.4rem; font-size: 0.88rem; color: #444; }
@@ -557,7 +572,27 @@
                         <small id="video-progreso-texto">Subiendo video...</small>
                     </div>
                 </div>
-                
+
+                <div class="form-grupo" id="archivo-digital-grupo" hidden>
+                    <label>Archivo descargable <small style="font-weight:normal; color:#666;">(el cliente lo descarga desde Mis pedidos cuando su pago está aprobado)</small></label>
+                    <div class="archivo-digital-actual" id="archivo-digital-actual"></div>
+                    <div class="fotos-adicionales-acciones">
+                        <button type="button" class="btn-secundario" id="btn-subir-archivo-digital" onclick="document.getElementById('archivo-digital-input').click()">
+                            <i class="fas fa-file-upload"></i> <span id="btn-subir-archivo-digital-texto">Subir archivo</span>
+                        </button>
+                        <button type="button" class="btn-secundario" id="btn-quitar-archivo-digital" onclick="quitarArchivoDigital()" hidden>
+                            <i class="fas fa-trash"></i> Quitar
+                        </button>
+                        <small id="archivo-digital-info"></small>
+                    </div>
+                    <input type="file" id="archivo-digital-input"
+                           accept=".pdf,.zip,.rar,.7z,.epub,.mobi,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.mp3,.mp4" style="display:none;">
+                    <div class="video-progreso" id="archivo-digital-progreso" hidden>
+                        <div class="video-progreso-barra"><span id="archivo-digital-progreso-relleno"></span></div>
+                        <small id="archivo-digital-progreso-texto">Subiendo archivo...</small>
+                    </div>
+                </div>
+
                 <div class="form-fila">
                     <div class="form-grupo">
                         <label>Destacado</label>

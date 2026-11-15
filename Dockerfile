@@ -17,6 +17,12 @@ RUN mkdir -p /var/lib/php/sessions \
   && chmod 1733 /var/lib/php/sessions \
   && sed -ri 's/^ServerTokens .*/ServerTokens Prod/; s/^ServerSignature .*/ServerSignature Off/' /etc/apache2/conf-available/security.conf
 
+# Archivos descargables de productos digitales: fuera de la carpeta publica y en un
+# volumen (05-tienda/php/archivos-digitales.php). Solo PHP los lee y los entrega.
+RUN mkdir -p /var/lib/tucultura/archivos-digitales \
+  && chown www-data:www-data /var/lib/tucultura/archivos-digitales \
+  && chmod 750 /var/lib/tucultura/archivos-digitales
+
 COPY . /var/www/html/
 
 # Archivos de infraestructura no deben quedar servidos por Apache

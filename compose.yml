@@ -11,6 +11,8 @@ services:
       - ./05-tienda/php/tarjetas-contenido.json:/var/www/html/05-tienda/php/tarjetas-contenido.json
       - ./05-tienda/imagenes/productos:/var/www/html/05-tienda/imagenes/productos
       - tucultura_sessions:/var/lib/php/sessions
+      # Archivos descargables de productos digitales (fuera de la carpeta publica)
+      - tucultura_archivos_digitales:/var/lib/tucultura/archivos-digitales
     depends_on:
       db:
         condition: service_healthy
@@ -47,3 +49,4 @@ networks:
 volumes:
   tucultura_db_data:
   tucultura_sessions:
+  tucultura_archivos_digitales:
