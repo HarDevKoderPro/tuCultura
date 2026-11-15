@@ -351,6 +351,22 @@ body {
     letter-spacing: 0.5px;
 }
 
+.producto-tipo {
+    display: inline-block;
+    margin-left: 0.4rem;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    background: #eef1f5;
+    color: #4a5568;
+    white-space: nowrap;
+}
+.producto-tipo.digital {
+    background: #e3efff;
+    color: #1d4f9c;
+}
+
 .producto-nombre {
     font-size: 0.95rem;
     color: var(--color-texto);
@@ -2193,6 +2209,7 @@ body.visor-fotos-abierto { overflow: hidden; }
     .producto-badge.oferta { left: auto; right: 6px; }
     .producto-info { padding: 0.6rem 0.65rem 0.7rem; }
     .producto-categoria { font-size: 0.62rem; }
+    .producto-tipo { font-size: 0.6rem; padding: 1px 5px; margin-left: 0.25rem; }
     .producto-nombre { font-size: 0.85rem; margin: 0.3rem 0; }
     .producto-precios { gap: 0.1rem 0.4rem; }
     .producto-precio { font-size: 1rem; }

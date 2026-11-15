@@ -336,6 +336,11 @@ function crearTarjetaProducto(producto) {
       </div>
       <div class="producto-info">
         <span class="producto-categoria">${producto.categoria_nombre || "Sin categoría"}</span>
+        ${
+          producto.tipo_producto === "digital"
+            ? '<span class="producto-tipo digital"><i class="fas fa-cloud"></i> Digital</span>'
+            : '<span class="producto-tipo fisico"><i class="fas fa-box"></i> Físico</span>'
+        }
         <h3 class="producto-nombre">
           <a href="#" onclick="event.preventDefault()">${producto.nombre}</a>
         </h3>
