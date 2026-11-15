@@ -51,12 +51,23 @@ function initEventListeners() {
     inputBusqueda.addEventListener("keypress", (e) => {
       if (e.key === "Enter") buscarProductos();
     });
-    // Al vaciar el cuadro despues de una busqueda, volver al listado normal
+    // Busqueda en tiempo real: al escribir (2 letras o mas) se muestran los productos
+    // coincidentes sin pulsar la lupa; la lupa y Enter siguen funcionando.
+    // Al vaciar el cuadro despues de una busqueda, volver al listado normal.
+    let temporizadorBusqueda = null;
     inputBusqueda.addEventListener("input", () => {
-      if (busquedaActiva && inputBusqueda.value.trim() === "") {
-        busquedaActiva = false;
-        aplicarFiltros();
+      clearTimeout(temporizadorBusqueda);
+      const texto = inputBusqueda.value.trim();
+      if (texto === "") {
+        if (busquedaActiva) {
+          busquedaActiva = false;
+          busquedaSolicitud++; // descarta respuestas pendientes
+          aplicarFiltros();
+        }
+        return;
       }
+      if (texto.length < 2) return;
+      temporizadorBusqueda = setTimeout(() => buscarProductos({ enVivo: true }), 250);
     });
   }
 
@@ -539,19 +550,29 @@ async function actualizarContadorCarrito(cantidad = null) {
 
 // ==== BÚSQUEDA ====
 
-async function buscarProductos() {
+// Numero de la ultima busqueda lanzada: una respuesta tardia de una busqueda anterior
+// (al escribir rapido) no debe pisar los resultados mas recientes
+let busquedaSolicitud = 0;
+
+async function buscarProductos(opciones) {
+  // Desde la lupa o Enter llega un evento (no opciones): se avisa si es muy corta
+  const enVivo = !!(opciones && opciones.enVivo);
   const input = document.getElementById("busqueda-input");
   const query = input?.value.trim();
 
   if (!query || query.length < 2) {
-    mostrarToast("Ingresa al menos 2 caracteres para buscar", "error");
+    if (!enVivo) mostrarToast("Ingresa al menos 2 caracteres para buscar", "error");
     return;
   }
 
   const grid = document.getElementById("productos-grid");
   if (!grid) return;
 
-  grid.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  const solicitud = ++busquedaSolicitud;
+  // En vivo no se tapa la lista con el circulo de carga en cada letra
+  if (!enVivo || !busquedaActiva) {
+    grid.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  }
   busquedaActiva = true;
 
   const seccionDestacados = document.getElementById("productos-destacados");
@@ -564,6 +585,7 @@ async function buscarProductos() {
       `${API_BASE}productos.php?action=buscar&q=${encodeURIComponent(query)}`,
     );
     const data = await response.json();
+    if (solicitud !== busquedaSolicitud) return; // ya hay una busqueda mas reciente
 
     if (data.success) {
       if (data.umbral_bajo_stock !== undefined) umbralBajoStock = data.umbral_bajo_stock;
@@ -576,6 +598,7 @@ async function buscarProductos() {
         '<p class="mensaje info">No se encontraron productos.</p>';
     }
   } catch (error) {
+    if (solicitud !== busquedaSolicitud) return;
     console.error("Error en búsqueda:", error);
     grid.innerHTML = '<p class="mensaje error">Error en la búsqueda.</p>';
   }
