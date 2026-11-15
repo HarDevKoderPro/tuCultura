@@ -48,7 +48,7 @@ $esCuentaAdmin = isset($_SESSION['rol']) && $_SESSION['rol'] !== 'cliente';
     <!-- Encabezado -->
     <section class="encabezado">
       <div class="contenedorLinkSalir">
-        <div class="cuenta-zona" id="cuenta-zona">
+        <div class="cuenta-zona" id="cuenta-zona" data-admin="<?php echo $esCuentaAdmin ? '1' : '0'; ?>">
           <button type="button" class="cuenta-zona-boton" id="cuenta-zona-boton"
                   aria-haspopup="menu" aria-expanded="false" aria-controls="cuenta-zona-menu">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="4"/><path d="M2 21v-1a6 6 0 0 1 6-6h2"/><path d="m15 18 2.5 2.5L22 15"/></svg>
@@ -373,6 +373,7 @@ $esCuentaAdmin = isset($_SESSION['rol']) && $_SESSION['rol'] !== 'cliente';
   </div>
 
   <script src='../js/contenido.js' defer></script>
+  <script src='../../01-principal/js/menu-usuario.js' defer></script>
   <script src='../js/menu-cuenta.js' defer></script>
 </body>
 

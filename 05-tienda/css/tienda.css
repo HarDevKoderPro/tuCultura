@@ -2336,6 +2336,7 @@ body.visor-fotos-abierto { overflow: hidden; }
 .menu-cuenta-opcion i { width: 1.1rem; text-align: center; color: var(--color-primario); }
 .menu-cuenta-opcion:hover,
 .menu-cuenta-opcion:focus-visible { background: var(--color-fondo); }
+.menu-cuenta-opcion.actual { background: var(--color-fondo); font-weight: 700; }
 .menu-cuenta-salir,
 .menu-cuenta-salir i { color: var(--color-error); }
 

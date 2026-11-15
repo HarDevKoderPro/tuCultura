@@ -88,37 +88,20 @@
       if (data.email) saludo.appendChild(crear('small', '', data.email));
       menu.appendChild(saludo);
     }
-    var sesionAdmin = !!(data.logueado && data.esAdmin);
-    if (logueado || sesionAdmin) {
-      // Vuelta a la pagina de contenido del asociado (misma sesion); se recuerda la
-      // pagina actual de la tienda para que la zona pueda devolver al mismo sitio
-      var zona = opcionMenu('../04-contenido/php/contenido.php', 'fa-th-large', 'Mi zona de asociado');
-      zona.addEventListener('click', function () {
-        try {
-          var actual = window.location.pathname.split('/').pop() || 'index.html';
-          sessionStorage.setItem('tcp_ultima_tienda', actual + window.location.search);
-        } catch (e) { /* sin almacenamiento */ }
-      });
-      menu.appendChild(zona);
-    }
-    if (sesionAdmin) {
-      menu.appendChild(opcionMenu('admin/index.html', 'fa-tools', 'Panel administrativo'));
-    }
-    menu.appendChild(opcionMenu('mis-pedidos.html', 'fa-box', 'Mis pedidos'));
-    menu.appendChild(opcionMenu('carrito.html', 'fa-shopping-cart', 'Mi carrito'));
-    if (logueado) {
-      var salir = opcionMenu('#', 'fa-sign-out-alt', 'Cerrar sesión');
-      salir.id = 'btn-logout';
-      salir.classList.add('menu-cuenta-salir');
-      salir.addEventListener('click', function (e) {
-        e.preventDefault();
-        cerrarMenu();
-        confirmarCerrarSesion();
-      });
-      menu.appendChild(salir);
-    } else if (!sesionAdmin) {
-      menu.appendChild(opcionMenu('../02-iniciarSesion/iniciarSesion.html?origen=tienda', 'fa-sign-in-alt', 'Iniciar sesión'));
-    }
+    // Las opciones (tienda, carrito, pedidos, zona de asociado, panel admin, salir) salen
+    // del componente compartido 01-principal/js/menu-usuario.js, igual que en la zona
+    var estaLogueado = !!data.logueado; // admin incluido: tambien ve zona y panel
+    var opciones = window.TCPMenuUsuario
+      ? window.TCPMenuUsuario.nodos(
+          { area: 'tienda', logueado: estaLogueado, esAdmin: !!data.esAdmin,
+            onSalir: function () { cerrarMenu(); confirmarCerrarSesion(); } },
+          { iconos: true, claseOpcion: 'menu-cuenta-opcion', claseSalir: 'menu-cuenta-salir' })
+      : [
+          opcionMenu('mis-pedidos.html', 'fa-box', 'Mis pedidos'),
+          opcionMenu('carrito.html', 'fa-shopping-cart', 'Mi carrito'),
+          opcionMenu('../02-iniciarSesion/iniciarSesion.html?origen=tienda', 'fa-sign-in-alt', 'Iniciar sesión')
+        ];
+    opciones.forEach(function (el) { menu.appendChild(el); });
     envoltura.appendChild(menu);
 
     function abrirMenu() {

@@ -1,9 +1,8 @@
 /**
  * Menu "Mi cuenta" de la Zona de Usuarios.
- * - "Ir a la tienda": si el usuario venia de una pagina de la tienda (la tienda guarda
- *   su ultima pagina en sessionStorage 'tcp_ultima_tienda' al pasar a la zona de
- *   asociados), vuelve exactamente alli (carrito, pago, producto...).
- * - Abre/cierra con clic, fuera de el o Escape.
+ * Las opciones (tienda o "Volver al pago/carrito", carrito, pedidos, zona, panel admin,
+ * cerrar sesion) salen del componente compartido 01-principal/js/menu-usuario.js, las
+ * mismas que ve el usuario en la tienda. Abre/cierra con clic, fuera de el o Escape.
  */
 (function () {
   'use strict';
@@ -13,19 +12,11 @@
   var envoltura = document.getElementById('cuenta-zona');
   if (!boton || !menu || !envoltura) return;
 
-  // Vuelta a donde se estaba en la tienda
-  var enlaceTienda = document.getElementById('cuenta-zona-tienda');
-  if (enlaceTienda) {
-    var ultima = '';
-    try { ultima = sessionStorage.getItem('tcp_ultima_tienda') || ''; } catch (e) { /* sin almacenamiento */ }
-    // Solo paginas de la tienda (nombre.html con parametros simples)
-    if (/^[a-z0-9\-]+\.html(\?[\w=&%.\-]*)?$/i.test(ultima)) {
-      enlaceTienda.href = '../../05-tienda/' + ultima;
-      var pagina = ultima.split('?')[0];
-      if (pagina === 'checkout.html') enlaceTienda.textContent = 'Volver al pago';
-      else if (pagina === 'carrito.html') enlaceTienda.textContent = 'Volver al carrito';
-      else if (pagina !== 'index.html') enlaceTienda.textContent = 'Volver a la tienda';
-    }
+  if (window.TCPMenuUsuario) {
+    var opciones = window.TCPMenuUsuario.nodos(
+      { area: 'zona', logueado: true, esAdmin: envoltura.dataset.admin === '1' },
+      { iconos: false, claseSalir: 'cuenta-zona-salir' });
+    menu.replaceChildren.apply(menu, opciones);
   }
 
   function abrir() { menu.hidden = false; boton.setAttribute('aria-expanded', 'true'); }

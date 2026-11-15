@@ -48,6 +48,7 @@
 }
 
 .cuenta-zona-menu a:hover { background: #eff6ff; }
+.cuenta-zona-menu a.actual { background: #dbeafe; }
 .cuenta-zona-menu a.cuenta-zona-salir { color: #b91c1c; border-top: 1px solid #e5e7eb; border-radius: 0 0 6px 6px; margin-top: 4px; }
 
 @media (max-width: 768px) {
