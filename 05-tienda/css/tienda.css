@@ -886,6 +886,21 @@ body.visor-fotos-abierto { overflow: hidden; }
     border-radius: 6px;
     font-size: 0.82rem;
 }
+/* Ayuda para abrir archivos EPUB (Mis pedidos y confirmacion) */
+.ayuda-lector {
+    margin: 0.8rem 0;
+    padding: 0.7rem 1rem;
+    background: #eef4ff;
+    border-radius: 8px;
+    color: #23406b;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    text-align: left;
+}
+.ayuda-lector p { margin: 0.25rem 0 0; }
+.ayuda-lector-enlaces { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; }
+.ayuda-lector-enlaces a { color: #1d4f9c; font-weight: 600; text-decoration: underline; }
+
 /* El aviso y los botones de descarga ocupan una fila propia, a todo el ancho de la tarjeta
    (antes quedaban dentro de la columna del nombre y se veian como una tira estrecha) */
 .checkout-item-con-descargas { align-items: flex-start; flex-wrap: wrap; }

@@ -129,6 +129,34 @@
                     }
                     caja.appendChild(bloque);
                 });
+
+                // Ayuda para abrir archivos EPUB/MOBI (el PDF se abre sin instalar nada)
+                const hayLibroElectronico = detalle.pedido.detalles.some((d) =>
+                    (d.archivos || []).some((a) => /\.(epub|mobi)$/i.test(a.nombre)));
+                if (hayLibroElectronico) {
+                    const ayuda = document.createElement('div');
+                    ayuda.className = 'ayuda-lector';
+                    const t = document.createElement('strong');
+                    t.textContent = '¿No puedes abrir el EPUB?';
+                    const p1 = document.createElement('p');
+                    p1.textContent = 'Instala un lector gratis (el PDF se abre sin instalar nada):';
+                    const p2 = document.createElement('p');
+                    p2.className = 'ayuda-lector-enlaces';
+                    [
+                        ['Android: Librera Reader', 'https://play.google.com/store/apps/details?id=com.foobnix.pdf.reader'],
+                        ['iPhone / iPad: Apple Libros', 'https://apps.apple.com/app/apple-books/id364709193'],
+                        ['Computador: Calibre', 'https://calibre-ebook.com/download']
+                    ].forEach(([texto, url]) => {
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.target = '_blank';
+                        a.rel = 'noopener';
+                        a.textContent = texto;
+                        p2.appendChild(a);
+                    });
+                    ayuda.append(t, p1, p2);
+                    caja.appendChild(ayuda);
+                }
             } catch (error) {
                 console.error('Error al cargar las descargas:', error);
             }

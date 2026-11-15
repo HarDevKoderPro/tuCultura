@@ -58,6 +58,25 @@ if (!function_exists('enviarCorreosPedido')) {
         $stmt->close();
         $pedido['tiene_digitales'] = (int)($tipos['digitales'] ?? 0) > 0;
         $pedido['solo_digital'] = $pedido['tiene_digitales'] && (int)$tipos['digitales'] === (int)$tipos['total'];
+
+        // Libros electronicos (EPUB/MOBI): el correo agrega ayuda para instalar un lector.
+        // La tabla de archivos se crea al subir el primero: si no existe, no hay ayuda que dar.
+        $pedido['hay_epub'] = false;
+        if ($pedido['tiene_digitales']) {
+          try {
+            $stmt = $conn->prepare(
+              "SELECT COUNT(*) AS total FROM producto_archivo a
+               JOIN detalle_pedido d ON d.producto_id = a.producto_id
+               WHERE d.pedido_id = ? AND (a.nombre_original LIKE '%.epub' OR a.nombre_original LIKE '%.mobi')"
+            );
+            $stmt->bind_param('i', $pedidoId);
+            $stmt->execute();
+            $pedido['hay_epub'] = (int)($stmt->get_result()->fetch_assoc()['total'] ?? 0) > 0;
+            $stmt->close();
+          } catch (Throwable $e) {
+            $pedido['hay_epub'] = false;
+          }
+        }
       }
 
       $numero = $pedido['numero_pedido'];
@@ -225,7 +244,14 @@ if (!function_exists('construirCorreoPedido')) {
         $bloqueDigital = '<div style="background:#e3efff;border-radius:6px;padding:12px 16px;margin:16px 0">'
           . '<p style="margin:0 0 10px"><b>Tus productos digitales ya están disponibles.</b> Descárgalos desde "Mis Pedidos":</p>'
           . '<p style="margin:0;text-align:center"><a href="' . $e($urlPedidos) . '" style="display:inline-block;background:#1d4f9c;color:#fff;'
-          . 'text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:bold">Ir a mis descargas</a></p></div>';
+          . 'text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:bold">Ir a mis descargas</a></p>'
+          . (!empty($pedido['hay_epub'])
+            ? '<p style="margin:14px 0 0;font-size:13px"><b>¿No puedes abrir el EPUB?</b> Instala un lector gratis (el PDF se abre sin instalar nada): '
+              . '<a href="https://play.google.com/store/apps/details?id=com.foobnix.pdf.reader" style="color:#1d4f9c">Android: Librera Reader</a> · '
+              . '<a href="https://apps.apple.com/app/apple-books/id364709193" style="color:#1d4f9c">iPhone / iPad: Apple Libros</a> · '
+              . '<a href="https://calibre-ebook.com/download" style="color:#1d4f9c">Computador: Calibre</a></p>'
+            : '')
+          . '</div>';
       } else {
         $bloqueDigital = '<div style="background:#e3efff;border-radius:6px;padding:12px 16px;margin:16px 0">'
           . '<p style="margin:0"><b>Productos digitales:</b> podrás descargarlos desde "Mis Pedidos" cuando tu pago esté aprobado. '

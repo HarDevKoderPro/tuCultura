@@ -124,6 +124,20 @@ function renderizarDetallePedido(pedido) {
             </a>`).join('')}</div>`;
     };
 
+    // Ayuda para abrir archivos EPUB/MOBI (el PDF se abre en cualquier telefono o navegador)
+    const hayLibroElectronico = pedido.detalles.some(item =>
+        (item.archivos || []).some(a => /\.(epub|mobi)$/i.test(a.nombre)));
+    const ayudaLectorHtml = hayLibroElectronico ? `
+        <div class="ayuda-lector">
+            <strong><i class="fas fa-book-reader"></i> ¿No puedes abrir el EPUB?</strong>
+            <p>Instala un lector gratis (el PDF se abre sin instalar nada):</p>
+            <p class="ayuda-lector-enlaces">
+                <a href="https://play.google.com/store/apps/details?id=com.foobnix.pdf.reader" target="_blank" rel="noopener">Android: Librera Reader</a>
+                <a href="https://apps.apple.com/app/apple-books/id364709193" target="_blank" rel="noopener">iPhone / iPad: Apple Libros</a>
+                <a href="https://calibre-ebook.com/download" target="_blank" rel="noopener">Computador: Calibre</a>
+            </p>
+        </div>` : '';
+
     const itemsHtml = pedido.detalles.map(item => `
         <div class="checkout-item checkout-item-con-descargas">
             <img src="imagenes/productos/${item.imagen || '../01-principal/imagenes/fondo-producto.png'}"
@@ -149,6 +163,7 @@ function renderizarDetallePedido(pedido) {
         <div style="max-height: 250px; overflow-y: auto;">
             ${itemsHtml}
         </div>
+        ${ayudaLectorHtml}
         
         ${pedido.solo_digital ? `
         <h3 style="margin: 1rem 0;">Datos del comprador</h3>
