@@ -109,6 +109,9 @@ function initEventListeners() {
 
 // ==== CATEGORÍAS ====
 
+// Valor especial del filtro de categorias: "Productos digitales" (productos.php?tipo=digital)
+const CATEGORIA_DIGITALES = -1;
+
 async function cargarCategorias() {
   try {
     const response = await fetch(`${API_BASE}categorias.php?action=listar`);
@@ -132,6 +135,8 @@ function renderizarNavCategorias(categorias) {
   categorias.forEach((cat) => {
     html += `<a href="#" data-categoria="${cat.id}">${cat.nombre} (${cat.total_productos})</a>`;
   });
+  // Seccion especial (no es una categoria real): todos los productos digitales
+  html += `<a href="#" data-categoria="${CATEGORIA_DIGITALES}">Productos digitales</a>`;
   nav.innerHTML = html;
 
   nav.querySelectorAll("a").forEach((link) => {
@@ -155,6 +160,7 @@ function renderizarFiltroCategorias(categorias) {
   categorias.forEach((cat) => {
     html += `<label><input type="radio" name="categoria" value="${cat.id}"> ${cat.nombre}</label>`;
   });
+  html += `<label><input type="radio" name="categoria" value="${CATEGORIA_DIGITALES}"> Productos digitales</label>`;
   filtro.innerHTML = html;
 
   filtro.querySelectorAll('input[name="categoria"]').forEach((radio) => {
@@ -231,6 +237,7 @@ async function cargarProductos() {
     });
 
     if (categoriaActual > 0) params.append("categoria", categoriaActual);
+    if (categoriaActual === CATEGORIA_DIGITALES) params.append("tipo", "digital");
 
     const minInp = document.getElementById("precio-min");
     const maxInp = document.getElementById("precio-max");

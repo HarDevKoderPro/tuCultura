@@ -45,6 +45,13 @@ try {
         $params[] = $categoria;
       }
 
+      // Filtro opcional: solo productos digitales (tipo=digital); si la columna aun
+      // no existe (nadie ha usado el tipo) no hay productos digitales
+      if (($_GET['tipo'] ?? '') === 'digital') {
+        $hayColumnaTipo = $pdo->query("SHOW COLUMNS FROM productos LIKE 'tipo_producto'")->fetch();
+        $where[] = $hayColumnaTipo ? "p.tipo_producto = 'digital'" : "1 = 0";
+      }
+
       // Filtro opcional: solo productos destacados (destacados=1)
       if (!empty($_GET['destacados'])) {
         $where[] = "p.destacado = 1";
