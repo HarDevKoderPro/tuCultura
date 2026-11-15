@@ -108,8 +108,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // va al carrito con ese producto, salvo que venga de otro destino (p. ej. el checkout)
     const pendiente = productoPendiente();
     if (pendiente && origen !== "homepage" &&
-        (!returnUrl || returnUrl === `producto.html?id=${pendiente}`)) {
-      returnUrl = `carrito.html?agregar=${pendiente}`;
+        (!returnUrl || returnUrl === `producto.html?id=${pendiente.id}`)) {
+      returnUrl = `carrito.html?agregar=${pendiente.id}${pendiente.extra}`;
     }
 
     const restaurar = cargando(btnLogin, "Ingresando…");
@@ -138,12 +138,20 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Id del producto de un enlace compartido guardado en este navegador (24 h), o ""
+  // (si vino de "Comprar Ahora" trae tambien la cantidad y sigue al checkout)
   function productoPendiente() {
     try {
       const p = JSON.parse(localStorage.getItem("tcp_pendiente") || "null");
-      if (p && /^\d+$/.test(String(p.id)) && Date.now() - p.fecha < 864e5) return String(p.id);
+      if (p && /^\d+$/.test(String(p.id)) && Date.now() - p.fecha < 864e5) {
+        let extra = "";
+        if (p.comprar) {
+          const cantidad = /^\d+$/.test(String(p.cantidad)) ? Number(p.cantidad) : 1;
+          extra = `&cantidad=${cantidad}&comprar=1`;
+        }
+        return { id: String(p.id), extra };
+      }
     } catch (e) { /* sin almacenamiento */ }
-    return "";
+    return null;
   }
 
   // ---------- recuperar contrasena ----------

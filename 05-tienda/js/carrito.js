@@ -6,7 +6,13 @@
 const API_BASE = "php/";
 
 document.addEventListener("DOMContentLoaded", async () => {
+  const irAPagar = new URLSearchParams(window.location.search).get("comprar") === "1";
   const errorAgregar = await agregarProductoDeEnlace();
+  // "Comprar Ahora" desde un visitante: producto agregado, directo al checkout
+  if (irAPagar && !errorAgregar) {
+    window.location.replace("checkout.html");
+    return;
+  }
   await cargarCarrito();
   if (errorAgregar) {
     const aviso = document.createElement("p");
@@ -29,7 +35,8 @@ async function agregarProductoDeEnlace() {
   try {
     const formData = new FormData();
     formData.append("producto_id", id);
-    formData.append("cantidad", 1);
+    const cantidad = new URLSearchParams(window.location.search).get("cantidad") || "";
+    formData.append("cantidad", /^\d{1,3}$/.test(cantidad) && Number(cantidad) > 0 ? cantidad : 1);
     const response = await fetch(`${API_BASE}carrito.php?action=agregar`, {
       method: "POST",
       body: formData,

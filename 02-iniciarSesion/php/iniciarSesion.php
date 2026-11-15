@@ -84,7 +84,7 @@ if ($login_valido) {
     // Solo permitir URLs relativas dentro de la tienda por seguridad
     $allowedReturns = ['checkout.html', 'carrito.html', 'mis-pedidos.html'];
     if (in_array($returnUrl, $allowedReturns) || preg_match('/^producto\.html\?id=\d+$/', $returnUrl)
-        || preg_match('/^carrito\.html\?agregar=\d+$/', $returnUrl)) {
+        || preg_match('/^carrito\.html\?agregar=\d+(&cantidad=\d{1,3}&comprar=1)?$/', $returnUrl)) {
       // carrito.html?agregar=N: quien llego por un enlace compartido va a su carrito con ese producto
       // producto.html?id=N: quien se registro desde un enlace de invitacion vuelve al producto
       $redirectUrl = '../05-tienda/' . $returnUrl;

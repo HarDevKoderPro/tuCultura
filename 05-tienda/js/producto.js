@@ -253,8 +253,25 @@ async function agregarAlCarritoDetalle() {
 
 async function comprarAhora() {
     if (!productoActual) return;
-    
+
     try {
+        // Sin sesion el carrito es anonimo y no pasa al usuario al iniciar sesion:
+        // se guarda la compra pendiente y, tras el login, el carrito agrega el producto
+        // (cantidad incluida) y sigue directo al checkout (carrito.html?agregar=N&comprar=1)
+        const sesion = await (await fetch(`${API_BASE}sesion.php`)).json();
+        if (!sesion.logueado) {
+            try {
+                localStorage.setItem('tcp_pendiente', JSON.stringify({
+                    id: String(productoActual.id),
+                    cantidad: cantidadSeleccionada,
+                    comprar: true,
+                    fecha: Date.now()
+                }));
+            } catch (e) { /* sin almacenamiento: el flujo normal pide agregarlo de nuevo */ }
+            window.location.href = '../02-iniciarSesion/iniciarSesion.html?origen=tienda';
+            return;
+        }
+
         const formData = new FormData();
         formData.append('producto_id', productoActual.id);
         formData.append('cantidad', cantidadSeleccionada);
