@@ -16,10 +16,12 @@
  * - Proveedor: su % acordado sobre el valor de SUS productos (proveedores.porcentaje_proveedor).
  * - Referente directo del comprador: % global sobre el valor de los productos
  *   (configuracion_tienda.porcentaje_referente); sin referente, ese % queda en la tienda.
- * - Mensajeria: el costo del envio completo, solo si se indica una mensajeria; si no, el envio
- *   queda en la tienda (comportamiento actual).
+ * - Mensajeria: un pago por pedido fisico (valor fijo configurable, o el costo de envio si no se
+ *   indica uno), solo si se indica una mensajeria; si no, el envio queda en la tienda.
+ * - Comision de la pasarela: (total x % + fijo) x (1 + IVA), estimada, configurable en el admin.
  * - Tienda: el resto del total. Si hay bono, su descuento sale del margen de la tienda
  *   (el proveedor y el referente cobran sobre el valor de los productos antes del bono).
+ *   La comision y la mensajeria tambien salen de ese margen.
  * - Todo en pesos COP enteros (sin decimales). La tienda absorbe el redondeo, por eso la
  *   suma de las lineas es SIEMPRE igual al total del pedido.
  *
@@ -48,10 +50,14 @@ if (!function_exists('calcularSplit')) {
    * @param array $proveedores [proveedor_id => ['nombre' => string, 'porcentaje_proveedor' => float]]
    * @param array|null $referente ['usuario_id' => int, 'nombre' => string] o null si no tiene
    * @param float $porcentajeReferente % del referente (0-100)
-   * @param array $opciones    'mensajeria' => ['id' => int, 'nombre' => string] | null
-   * @return array lista de lineas ['actor_tipo' (proveedor|referente|mensajeria|tienda),
+   * @param array $opciones    'mensajeria' => ['id' => int, 'nombre' => string, 'monto' => int (opcional)]
+   *                           (sin 'monto' se paga el costo de envio del pedido),
+   *                           'comision' => ['porcentaje' => float, 'fijo' => int, 'iva' => float, 'nombre' => string],
+   *                           'permitir_margen_negativo' => bool (solo vista previa del admin)
+   * @return array lista de lineas ['actor_tipo' (proveedor|referente|mensajeria|comision|tienda),
    *               'actor_id', 'nombre', 'monto' (int COP), 'descripcion', 'destino' (null: lo
-   *               completa la pasarela real)]. No incluye lineas en cero.
+   *               completa la pasarela real)]. No incluye lineas en cero. La linea 'comision' es un
+   *               costo del cobro, no un destinatario: una pasarela real no la recibe como split.
    * @throws SplitException
    */
   function calcularSplit(
@@ -139,33 +145,75 @@ if (!function_exists('calcularSplit')) {
       }
     }
 
-    // 4. Mensajeria: el envio completo, solo si hay una mensajeria asignada
+    // Lo que se debe a proveedor y referente nunca puede superar el total pagado
+    $sumaVenta = array_sum(array_column($lineas, 'monto'));
+    if ($sumaVenta > $total) {
+      throw new SplitException(
+        'Margen negativo para la tienda: los repartos (' . $sumaVenta . ') superan el total (' . $total . ')'
+      );
+    }
+
+    // 4. Mensajeria: pago de la mensajeria por pedido fisico. Por defecto el costo de envio
+    //    cobrado al cliente; con $opciones['mensajeria']['monto'] un valor fijo propio
+    //    (sale del margen de la tienda, no del cliente).
     $mensajeria = $opciones['mensajeria'] ?? null;
-    if (is_array($mensajeria) && $costoEnvio > 0) {
-      $lineas[] = [
-        'actor_tipo' => 'mensajeria',
-        'actor_id' => (int)($mensajeria['id'] ?? 0),
-        'nombre' => (string)($mensajeria['nombre'] ?? ''),
-        'monto' => $costoEnvio,
-        'descripcion' => 'Envio',
-        'destino' => null,
-      ];
-      $secundarios++;
+    if (is_array($mensajeria)) {
+      $montoMensajeria = isset($mensajeria['monto']) ? (int)$mensajeria['monto'] : $costoEnvio;
+      if ($montoMensajeria < 0) {
+        throw new SplitException('El pago a la mensajeria no puede ser negativo');
+      }
+      if ($montoMensajeria > 0) {
+        $lineas[] = [
+          'actor_tipo' => 'mensajeria',
+          'actor_id' => (int)($mensajeria['id'] ?? 0),
+          'nombre' => (string)($mensajeria['nombre'] ?? ''),
+          'monto' => $montoMensajeria,
+          'descripcion' => 'Pago de la mensajeria',
+          'destino' => null,
+        ];
+        $secundarios++;
+      }
     }
 
     if ($secundarios > SPLIT_MAX_SECUNDARIOS) {
       throw new SplitException('Maximo ' . SPLIT_MAX_SECUNDARIOS . ' destinatarios secundarios por orden');
     }
 
-    // 5. La tienda recibe el resto (incluye el redondeo y absorbe el bono)
+    // 5. Comision de la pasarela: costo del cobro (no se le paga a nadie), sale del margen de la
+    //    tienda. Se calcula sobre el total pagado: (total x % + fijo) x (1 + IVA %).
+    //    Es una estimacion: la tarifa real la confirma la pasarela.
+    $comision = $opciones['comision'] ?? null;
+    if (is_array($comision)) {
+      $comisionPct = (float)($comision['porcentaje'] ?? 0);
+      $comisionFijo = (int)($comision['fijo'] ?? 0);
+      $comisionIva = (float)($comision['iva'] ?? 0);
+      if ($comisionPct < 0 || $comisionPct > 100 || $comisionFijo < 0 || $comisionIva < 0 || $comisionIva > 100) {
+        throw new SplitException('La comision de la pasarela no es valida');
+      }
+      $montoComision = (int)round(($total * $comisionPct / 100 + $comisionFijo) * (1 + $comisionIva / 100));
+      if ($montoComision > 0) {
+        $lineas[] = [
+          'actor_tipo' => 'comision',
+          'actor_id' => 0,
+          'nombre' => (string)($comision['nombre'] ?? 'Pasarela de pago'),
+          'monto' => $montoComision,
+          'descripcion' => 'Comision de la pasarela (estimada)',
+          'destino' => null,
+        ];
+      }
+    }
+
+    // 6. La tienda recibe el resto (incluye el redondeo y absorbe el bono, la comision y la
+    //    mensajeria). Si queda negativo se rechaza, salvo en la vista previa del admin
+    //    ($opciones['permitir_margen_negativo']), que debe mostrar cuanto se perderia.
     $sumaSecundarios = array_sum(array_column($lineas, 'monto'));
     $margenTienda = $total - $sumaSecundarios;
-    if ($margenTienda < 0) {
+    if ($margenTienda < 0 && empty($opciones['permitir_margen_negativo'])) {
       throw new SplitException(
         'Margen negativo para la tienda: los repartos (' . $sumaSecundarios . ') superan el total (' . $total . ')'
       );
     }
-    if ($margenTienda > 0) {
+    if ($margenTienda !== 0) {
       $lineas[] = [
         'actor_tipo' => 'tienda',
         'actor_id' => 0,
@@ -176,7 +224,7 @@ if (!function_exists('calcularSplit')) {
       ];
     }
 
-    // 6. Comprobacion final: la suma debe ser exactamente el total
+    // 7. Comprobacion final: la suma debe ser exactamente el total
     if (array_sum(array_column($lineas, 'monto')) !== $total) {
       throw new SplitException('El reparto no suma el total del pedido');
     }

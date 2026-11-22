@@ -285,14 +285,14 @@
             return d.innerHTML;
         }
 
-        const ETIQUETA_ACTOR = { proveedor: 'Proveedor', referente: 'Referente directo', mensajeria: 'Mensajería', tienda: 'Tienda' };
+        const ETIQUETA_ACTOR = { proveedor: 'Proveedor', referente: 'Referente directo', mensajeria: 'Mensajería', comision: 'Comisión de la pasarela', tienda: 'Ganancia de la tienda' };
 
         function pintarReparto(contenedor, datos, pedidoId, resultadoGuardado) {
             const filas = datos.lineas.map(l => `
                 <tr>
                     <td>${ETIQUETA_ACTOR[l.actor_tipo] || escapar(l.actor_tipo)}${l.nombre && l.actor_tipo !== 'tienda' ? `<br><small>${escapar(l.nombre)}</small>` : ''}</td>
                     <td>${escapar(l.descripcion)}</td>
-                    <td style="text-align:right;"><strong>${l.monto_formateado}</strong><br><small>${l.porcentaje_del_total}%</small></td>
+                    <td style="text-align:right;"><strong style="${l.monto < 0 ? 'color:#b91c1c;' : ''}">${l.monto_formateado}</strong><br><small>${l.porcentaje_del_total}%</small></td>
                 </tr>`).join('');
             const notas = (datos.notas || []).map(n => `<li>${escapar(n)}</li>`).join('');
             contenedor.innerHTML = `

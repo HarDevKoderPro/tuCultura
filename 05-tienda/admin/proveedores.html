@@ -28,6 +28,13 @@
         .tarjeta-referente p { margin: 0; color: #555; font-size: 0.9rem; flex-basis: 100%; }
         .referente-form { display: flex; align-items: center; gap: 0.5rem; }
         .referente-form input { width: 90px; padding: 0.45rem 0.6rem; border: 1px solid #ccc; border-radius: var(--radio-borde); font-size: 1rem; }
+        .costos-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.75rem 1rem; }
+        .costos-form label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.8rem; color: #555; }
+        .costos-form input { width: 150px; padding: 0.45rem 0.6rem; border: 1px solid #ccc; border-radius: var(--radio-borde); font-size: 1rem; }
+        @media (max-width: 768px) {
+            .costos-form { width: 100%; flex-direction: column; align-items: stretch; }
+            .costos-form input { width: 100%; font-size: 16px; padding: 0.6rem 0.75rem; }
+        }
         .reparto-chip { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.82rem; white-space: nowrap; }
         .reparto-chip.proveedor { background: #e3f2fd; color: #0d47a1; }
         .reparto-chip.tienda { background: #e8f5e9; color: #1b5e20; }
@@ -151,6 +158,26 @@
             <p>Porcentaje fijo de cada venta para el referente del asociado que compra, sin importar el proveedor. Si el comprador no tiene referente, ese porcentaje queda para la tienda. Los cambios aplican solo a ventas nuevas.</p>
         </section>
 
+        <section class="tarjeta-referente tarjeta-costos">
+            <h2><i class="fas fa-receipt"></i> Costos de cada venta</h2>
+            <form class="costos-form" onsubmit="guardarCostos(event)">
+                <label>Comisión de la pasarela (%)
+                    <input type="number" id="costo-comision-pct" class="sin-flechas" inputmode="decimal" min="0" max="100" step="0.01" placeholder="0">
+                </label>
+                <label>+ Valor fijo por cobro ($)
+                    <input type="number" id="costo-comision-fijo" class="sin-flechas" inputmode="numeric" min="0" max="1000000" step="1" placeholder="0">
+                </label>
+                <label>IVA sobre la comisión (%)
+                    <input type="number" id="costo-comision-iva" class="sin-flechas" inputmode="decimal" min="0" max="100" step="0.01" placeholder="0">
+                </label>
+                <label>Pago a la mensajería por pedido físico ($)
+                    <input type="number" id="costo-mensajeria" class="sin-flechas" inputmode="numeric" min="0" max="1000000" step="1" placeholder="0">
+                </label>
+                <button type="submit" class="btn-primario">Guardar</button>
+            </form>
+            <p>Después de pagar al proveedor y al referente, del resto de cada venta se descuentan la comisión de la pasarela y el pago a la mensajería; lo que sobre es la ganancia de la tienda. La comisión es una estimación: confirma la tarifa real con tu pasarela. Déjalos en 0 para no descontar nada. Se ven en el detalle de cada pedido y aplican a repartos nuevos.</p>
+        </section>
+
         <div class="admin-tabla-container">
             <table class="admin-tabla" id="tabla-proveedores">
                 <thead>
@@ -239,6 +266,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             cargarProveedores();
+            cargarCostos();
             document.getElementById('proveedor-porcentaje').addEventListener('input', actualizarRepartoVivo);
             // La rueda del mouse no cambia el porcentaje por accidente
             document.querySelectorAll('.sin-flechas').forEach(campo =>
@@ -474,6 +502,46 @@
                 } else {
                     document.getElementById('referente-valor').value = porcentajeReferente;
                     Swal.fire('No se pudo cambiar', data.error, 'warning');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire('Error', 'Error de conexión', 'error');
+            }
+        }
+
+        // Costos de cada venta (comision de la pasarela y pago a la mensajeria)
+        function pintarCostos(datos) {
+            document.getElementById('costo-comision-pct').value = Number(datos.comision_porcentaje) || '';
+            document.getElementById('costo-comision-fijo').value = Number(datos.comision_fijo) || '';
+            document.getElementById('costo-comision-iva').value = Number(datos.comision_iva) || '';
+            document.getElementById('costo-mensajeria').value = Number(datos.pago_mensajeria) || '';
+        }
+
+        async function cargarCostos() {
+            try {
+                const response = await fetch(`${API_BASE}?action=obtenerConfigSplit`);
+                const data = await response.json();
+                if (data.success) pintarCostos(data);
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function guardarCostos(event) {
+            event.preventDefault();
+            const formData = new FormData();
+            formData.append('comision_porcentaje', document.getElementById('costo-comision-pct').value);
+            formData.append('comision_fijo', document.getElementById('costo-comision-fijo').value);
+            formData.append('comision_iva', document.getElementById('costo-comision-iva').value);
+            formData.append('pago_mensajeria', document.getElementById('costo-mensajeria').value);
+            try {
+                const response = await fetch(`${API_BASE}?action=actualizarConfigSplit`, { method: 'POST', body: formData });
+                const data = await response.json();
+                if (data.success) {
+                    pintarCostos(data);
+                    Swal.fire({ icon: 'success', title: 'Guardado', text: data.mensaje, timer: 2200, showConfirmButton: false });
+                } else {
+                    Swal.fire('No se pudo guardar', data.error, 'warning');
                 }
             } catch (error) {
                 console.error('Error:', error);

@@ -199,6 +199,88 @@ probar('Total en cero se rechaza', function () use ($proveedores) {
   });
 });
 
+// ---- Costos de la venta: comision de la pasarela y pago fijo a la mensajeria ----
+
+$comisionEjemplo = ['porcentaje' => 3, 'fijo' => 900, 'iva' => 19, 'nombre' => 'MercadoPago'];
+
+probar('Ejemplo completo: proveedor 60%, referente 10%, mensajeria fija y comision salen del resto', function () use ($proveedores, $referente, $comisionEjemplo) {
+  $l = calcularSplit(
+    ['total' => 100000, 'subtotal' => 100000, 'costo_envio' => 0],
+    [['producto_id' => 1, 'subtotal' => 100000, 'proveedor_id' => 1]],
+    $proveedores, $referente, 10,
+    ['mensajeria' => ['id' => 1, 'nombre' => 'Mensajeria X', 'monto' => 12000], 'comision' => $comisionEjemplo]
+  );
+  // comision = (100000 x 3% + 900) x 1,19 = 4.641; tienda = 100000 - 60000 - 10000 - 12000 - 4641
+  esperar(montos($l), [
+    'proveedor:1' => 60000, 'referente:7' => 10000, 'mensajeria:1' => 12000, 'comision:0' => 4641, 'tienda:0' => 13359,
+  ]);
+  esperar(array_sum(array_column($l, 'monto')), 100000);
+});
+
+probar('Mensajeria con monto fijo no usa el costo de envio del cliente', function () use ($proveedores, $referente) {
+  $l = calcularSplit(
+    ['total' => 115000, 'subtotal' => 100000, 'costo_envio' => 15000],
+    [['producto_id' => 1, 'subtotal' => 100000, 'proveedor_id' => 1]],
+    $proveedores, $referente, 10,
+    ['mensajeria' => ['id' => 1, 'nombre' => 'Mensajeria X', 'monto' => 12000]]
+  );
+  // El envio cobrado (15000) queda en el resto de la tienda: 115000 - 60000 - 10000 - 12000
+  esperar(montos($l), ['proveedor:1' => 60000, 'referente:7' => 10000, 'mensajeria:1' => 12000, 'tienda:0' => 33000]);
+});
+
+probar('Sin comision configurada no se descuenta nada (comportamiento anterior)', function () use ($proveedores, $referente) {
+  $l = calcularSplit(
+    ['total' => 100000, 'subtotal' => 100000, 'costo_envio' => 0],
+    [['producto_id' => 1, 'subtotal' => 100000, 'proveedor_id' => 1]],
+    $proveedores, $referente, 10,
+    ['comision' => ['porcentaje' => 0, 'fijo' => 0, 'iva' => 19]]
+  );
+  esperar(montos($l), ['proveedor:1' => 60000, 'referente:7' => 10000, 'tienda:0' => 30000]);
+});
+
+probar('Costos que superan el resto de la tienda: se rechaza por defecto', function () use ($proveedores, $referente, $comisionEjemplo) {
+  debeFallar(function () use ($proveedores, $referente, $comisionEjemplo) {
+    calcularSplit(
+      ['total' => 100000, 'subtotal' => 100000, 'costo_envio' => 0],
+      [['producto_id' => 1, 'subtotal' => 100000, 'proveedor_id' => 1]],
+      $proveedores, $referente, 10,
+      ['mensajeria' => ['id' => 1, 'nombre' => 'M', 'monto' => 30000], 'comision' => $comisionEjemplo]
+    );
+  }, 'Margen negativo');
+});
+
+probar('Vista previa del admin: muestra la perdida de la tienda (margen negativo permitido)', function () use ($proveedores, $referente, $comisionEjemplo) {
+  $l = calcularSplit(
+    ['total' => 100000, 'subtotal' => 100000, 'costo_envio' => 0],
+    [['producto_id' => 1, 'subtotal' => 100000, 'proveedor_id' => 1]],
+    $proveedores, $referente, 10,
+    ['mensajeria' => ['id' => 1, 'nombre' => 'M', 'monto' => 30000], 'comision' => $comisionEjemplo, 'permitir_margen_negativo' => true]
+  );
+  esperar(montos($l)['tienda:0'], -4641);
+  esperar(array_sum(array_column($l, 'monto')), 100000);
+});
+
+probar('Proveedor + referente mayores al total se rechaza aun en vista previa', function () use ($proveedores, $referente) {
+  debeFallar(function () use ($proveedores, $referente) {
+    calcularSplit(
+      ['total' => 100000, 'subtotal' => 100000, 'costo_envio' => 0],
+      [['producto_id' => 1, 'subtotal' => 100000, 'proveedor_id' => 3]],
+      $proveedores, $referente, 10, ['permitir_margen_negativo' => true]
+    );
+  }, 'Margen negativo');
+});
+
+probar('La comision no cuenta como destinatario secundario (limite de 10)', function () use ($comisionEjemplo) {
+  $diez = [];
+  $items = [];
+  for ($i = 1; $i <= 10; $i++) {
+    $diez[$i] = ['nombre' => "P$i", 'porcentaje_proveedor' => 5];
+    $items[] = ['producto_id' => $i, 'subtotal' => 10000, 'proveedor_id' => $i];
+  }
+  $l = calcularSplit(['total' => 100000, 'subtotal' => 100000, 'costo_envio' => 0], $items, $diez, null, 0, ['comision' => $comisionEjemplo]);
+  esperar(array_sum(array_column($l, 'monto')), 100000);
+});
+
 // ---------------- MockProvider ----------------
 
 $pedido = ['numero_pedido' => 'TCP-PRUEBA-1', 'total' => 115000];

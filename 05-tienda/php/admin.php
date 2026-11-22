@@ -140,6 +140,12 @@ switch ($action) {
     case 'pedido_split_guardar':
         guardarRepartoPedidoAdmin($conn);
         break;
+    case 'obtenerConfigSplit':
+        obtenerConfigSplitAdmin($conn);
+        break;
+    case 'actualizarConfigSplit':
+        actualizarConfigSplitAdmin($conn);
+        break;
     
     // Correos enviados por la tienda
     case 'bonos_listar':
@@ -1688,6 +1694,7 @@ function repartoPedidoAdmin($conn) {
             'total_formateado' => formatearPrecio($total),
             'lineas' => presentarLineasReparto($lineas, $total),
             'porcentaje_referente' => $calculo ? $calculo['porcentaje_referente'] : null,
+            'margen_tienda' => $calculo ? $calculo['margen_tienda'] : null,
             'notas' => $calculo ? $calculo['notas'] : [],
             'aviso' => $errorCalculo !== '' ? 'Con los datos de hoy ya no se puede recalcular: ' . $errorCalculo : ''
         ]);
@@ -1726,6 +1733,72 @@ function guardarRepartoPedidoAdmin($conn) {
         error_log('pedido_split_guardar: ' . $e->getMessage());
         jsonResponse(['error' => 'No se pudo guardar el reparto del pedido'], 500);
     }
+}
+
+/** Config de "Costos de cada venta" lista para el frontend. */
+function respuestaConfigSplit(array $c): array {
+    return [
+        'comision_porcentaje' => $c['comision_porcentaje'],
+        'comision_fijo' => $c['comision_fijo'],
+        'comision_fijo_formateado' => formatearPrecio($c['comision_fijo']),
+        'comision_iva' => $c['comision_iva'],
+        'pago_mensajeria' => $c['pago_mensajeria'],
+        'pago_mensajeria_formateado' => formatearPrecio($c['pago_mensajeria'])
+    ];
+}
+
+/**
+ * Endpoint: costos de cada venta que salen del margen de la tienda en el reparto del pago
+ * (comision de la pasarela y pago a la mensajeria). 0 = sin definir (no se descuenta nada).
+ */
+function obtenerConfigSplitAdmin($conn) {
+    jsonResponse(['success' => true] + respuestaConfigSplit(leerConfigSplit($conn)));
+}
+
+/**
+ * Endpoint (POST): guarda comision_porcentaje (0-100), comision_fijo (COP 0-1.000.000),
+ * comision_iva (0-100, IVA sobre la comision) y pago_mensajeria (COP 0-1.000.000 por pedido
+ * fisico). Un campo vacio cuenta como 0. Aplica a repartos nuevos (los guardados no cambian).
+ */
+function actualizarConfigSplitAdmin($conn) {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(['error' => 'Metodo no permitido'], 405);
+    }
+
+    $textoOCero = function ($clave) {
+        $valor = trim((string)($_POST[$clave] ?? ''));
+        return $valor === '' ? '0' : $valor;
+    };
+
+    $porcentaje = normalizarPorcentaje($textoOCero('comision_porcentaje'));
+    if ($porcentaje === null) {
+        jsonResponse(['error' => 'La comisión (%) debe ser un número entre 0 y 100'], 400);
+    }
+    $iva = normalizarPorcentaje($textoOCero('comision_iva'));
+    if ($iva === null) {
+        jsonResponse(['error' => 'El IVA de la comisión (%) debe ser un número entre 0 y 100'], 400);
+    }
+    $fijo = $textoOCero('comision_fijo');
+    if (!preg_match('/^\d{1,7}$/', $fijo) || intval($fijo) > 1000000) {
+        jsonResponse(['error' => 'El valor fijo de la comisión debe ser un entero de pesos entre 0 y 1.000.000'], 400);
+    }
+    $mensajeria = $textoOCero('pago_mensajeria');
+    if (!preg_match('/^\d{1,7}$/', $mensajeria) || intval($mensajeria) > 1000000) {
+        jsonResponse(['error' => 'El pago a la mensajería debe ser un entero de pesos entre 0 y 1.000.000'], 400);
+    }
+
+    $guardado = actualizarConfiguracion($conn, 'split_comision_porcentaje', strval($porcentaje))
+        && actualizarConfiguracion($conn, 'split_comision_fijo', strval(intval($fijo)))
+        && actualizarConfiguracion($conn, 'split_comision_iva', strval($iva))
+        && actualizarConfiguracion($conn, 'split_pago_mensajeria', strval(intval($mensajeria)));
+    if (!$guardado) {
+        jsonResponse(['error' => 'Error al guardar los costos de cada venta'], 500);
+    }
+
+    jsonResponse([
+        'success' => true,
+        'mensaje' => 'Costos de cada venta actualizados (aplican a repartos nuevos)'
+    ] + respuestaConfigSplit(leerConfigSplit($conn)));
 }
 
 // ==================== CORREOS ====================
