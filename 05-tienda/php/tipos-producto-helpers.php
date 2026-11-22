@@ -153,23 +153,46 @@ function rangosEnvio(mysqli $conn): array
 }
 
 /**
+ * Costo del envio que paga el cliente cuando no es gratis (configuracion_tienda.envio_costo,
+ * editable en el dashboard). Sin definir (o 0) = TIENDA_COSTO_ENVIO_BASE.
+ * No confundir con split_pago_mensajeria: eso es lo que la tienda le paga a la mensajeria.
+ */
+function costoEnvioBase(?mysqli $conn): float
+{
+  if ($conn) {
+    try {
+      $res = $conn->query("SELECT valor FROM configuracion_tienda WHERE clave = 'envio_costo' LIMIT 1");
+      $fila = $res ? $res->fetch_assoc() : null;
+      if ($fila && is_numeric($fila['valor']) && (float)$fila['valor'] > 0) {
+        return (float)$fila['valor'];
+      }
+    } catch (Throwable $e) {
+      // La tabla puede no existir todavia: se usa el valor por defecto
+    }
+  }
+  return (float)TIENDA_COSTO_ENVIO_BASE;
+}
+
+/**
  * Costo de envio segun los rangos (funcion pura). $rangos vacio = regla de siempre.
  * Solo cuenta el valor de los productos fisicos (0 si no hay fisicos).
+ * $costoBase = lo que paga el cliente cuando no es gratis (null = TIENDA_COSTO_ENVIO_BASE).
  */
-function costoEnvioConRangos(float $subtotalFisico, array $rangos): float
+function costoEnvioConRangos(float $subtotalFisico, array $rangos, ?float $costoBase = null): float
 {
   if ($subtotalFisico <= 0) return 0.0;
+  $costo = $costoBase ?? (float)TIENDA_COSTO_ENVIO_BASE;
 
   if (!$rangos) {
-    return $subtotalFisico >= TIENDA_ENVIO_GRATIS_MINIMO ? 0.0 : (float)TIENDA_COSTO_ENVIO_BASE;
+    return $subtotalFisico >= TIENDA_ENVIO_GRATIS_MINIMO ? 0.0 : $costo;
   }
   foreach ($rangos as $rango) {
     $dentro = $subtotalFisico >= $rango[0] && ($rango[1] === null || $subtotalFisico <= $rango[1]);
     if ($dentro) {
-      return $rango[2] ? 0.0 : (float)TIENDA_COSTO_ENVIO_BASE;
+      return $rango[2] ? 0.0 : $costo;
     }
   }
-  return (float)TIENDA_COSTO_ENVIO_BASE; // fuera de todos los rangos: no es gratis
+  return $costo; // fuera de todos los rangos: no es gratis
 }
 
 /**
@@ -208,7 +231,7 @@ function minimoEnvioGratisConRangos(array $rangos): float
  */
 function costoEnvioFisicos(float $subtotalFisico, ?mysqli $conn = null): float
 {
-  return costoEnvioConRangos($subtotalFisico, $conn ? rangosEnvio($conn) : []);
+  return costoEnvioConRangos($subtotalFisico, $conn ? rangosEnvio($conn) : [], costoEnvioBase($conn));
 }
 
 /** Lo que falta para el envio gratis (ver faltaEnvioGratisConRangos). */

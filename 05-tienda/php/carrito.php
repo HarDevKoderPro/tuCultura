@@ -115,7 +115,7 @@ function verCarrito($conn) {
 
     // Calcular totales: el envio (y el envio gratis) solo cuentan los productos fisicos
     $rangosEnvio = rangosEnvio($conn);
-    $costo_envio = costoEnvioConRangos((float)$subtotalFisico, $rangosEnvio);
+    $costo_envio = costoEnvioConRangos((float)$subtotalFisico, $rangosEnvio, costoEnvioBase($conn));
     $faltaEnvioGratis = $cantidadFisicos > 0 ? faltaEnvioGratisConRangos((float)$subtotalFisico, $rangosEnvio) : 0;
     $minimoEnvioGratis = minimoEnvioGratisConRangos($rangosEnvio);
     $impuestos = $subtotal * TIENDA_IVA;

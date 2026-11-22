@@ -415,8 +415,8 @@ function obtenerRangosEnvioAdmin($conn) {
     jsonResponse([
         'success' => true,
         'rangos' => formatearRangosEnvio(rangosEnvio($conn)),
-        'costo_envio' => (float)TIENDA_COSTO_ENVIO_BASE,
-        'costo_envio_formateado' => formatearPrecio(TIENDA_COSTO_ENVIO_BASE),
+        'costo_envio' => costoEnvioBase($conn),
+        'costo_envio_formateado' => formatearPrecio(costoEnvioBase($conn)),
         'envio_gratis_minimo_por_defecto' => (float)TIENDA_ENVIO_GRATIS_MINIMO,
         'envio_gratis_minimo_por_defecto_formateado' => formatearPrecio(TIENDA_ENVIO_GRATIS_MINIMO),
         'maximo_rangos' => ENVIO_RANGOS_MAXIMO
@@ -442,13 +442,30 @@ function actualizarRangosEnvioAdmin($conn) {
         jsonResponse(['error' => 'Demasiados rangos para guardar; reduzca la cantidad'], 400);
     }
 
-    if (actualizarConfiguracion($conn, 'envio_rangos', $json)) {
+    // Costo del envio que paga el cliente (opcional: sin el campo no se cambia)
+    $costoEnvio = null;
+    if (isset($_POST['costo_envio'])) {
+        $texto = trim(str_replace(['.', ',', '$', ' '], '', (string)$_POST['costo_envio']));
+        if (!preg_match('/^\d{1,7}$/', $texto) || intval($texto) < 1 || intval($texto) > 1000000) {
+            jsonResponse(['error' => 'El costo del envío debe ser un valor en pesos entre $1 y $1.000.000'], 400);
+        }
+        $costoEnvio = intval($texto);
+    }
+
+    $guardado = actualizarConfiguracion($conn, 'envio_rangos', $json);
+    if ($guardado && $costoEnvio !== null) {
+        $guardado = actualizarConfiguracion($conn, 'envio_costo', strval($costoEnvio));
+    }
+
+    if ($guardado) {
         jsonResponse([
             'success' => true,
             'mensaje' => count($validacion['rangos']) > 0
                 ? 'Rangos de envío actualizados'
                 : 'Rangos eliminados: rige la regla de siempre (gratis desde ' . formatearPrecio(TIENDA_ENVIO_GRATIS_MINIMO) . ')',
-            'rangos' => formatearRangosEnvio($validacion['rangos'])
+            'rangos' => formatearRangosEnvio($validacion['rangos']),
+            'costo_envio' => costoEnvioBase($conn),
+            'costo_envio_formateado' => formatearPrecio(costoEnvioBase($conn))
         ]);
     } else {
         jsonResponse(['error' => 'Error al guardar los rangos de envío'], 500);

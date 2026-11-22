@@ -120,6 +120,21 @@ probar('Un valor fuera de todos los rangos NO es gratis', function () {
   esperar(costoEnvioConRangos(50000, $rangos), 0.0);
 });
 
+probar('Costo del envio configurable: lo paga el cliente cuando no es gratis', function () use ($ejemplo) {
+  // Sin rangos: bajo $20.000 paga el costo configurado
+  esperar(costoEnvioConRangos(10000, [], 10000.0), 10000.0);
+  esperar(costoEnvioConRangos(20000, [], 10000.0), 0.0);
+  // Con rangos: el costo configurado solo aplica donde el envio no es gratis
+  esperar(costoEnvioConRangos(10000, $ejemplo, 10000.0), 10000.0);
+  esperar(costoEnvioConRangos(50000, $ejemplo, 10000.0), 0.0);
+  esperar(costoEnvioConRangos(150000, $ejemplo, 10000.0), 10000.0);
+});
+
+probar('Sin costo configurado se usa el de siempre ($15.000)', function () use ($ejemplo) {
+  esperar(costoEnvioConRangos(10000, [], null), 15000.0);
+  esperar(costoEnvioConRangos(10000, $ejemplo), 15000.0);
+});
+
 // ---------------- cuanto falta para el envio gratis ----------------
 
 probar('Falta para el envio gratis (regla de siempre)', function () {

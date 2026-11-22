@@ -1030,10 +1030,17 @@
                 title: '🚚 Envío gratis por rangos',
                 width: 640,
                 html: `
+                    <label for="swal-costo-envio" style="display:block; text-align:left; font-weight:600; margin-bottom:0.3rem; color:#333;">
+                        Costo del envío para el cliente ($)
+                    </label>
+                    <input type="text" inputmode="numeric" id="swal-costo-envio" class="swal2-input"
+                           style="width:100%; margin:0 0 0.4rem; box-sizing:border-box;">
+                    <p style="font-size:0.8rem; color:#888; margin-bottom:1rem; text-align:left;">
+                        Es lo que paga el cliente cuando el envío no es gratis. No es lo que la tienda le paga a la mensajería.
+                    </p>
                     <p style="color:#555; margin-bottom:0.8rem; text-align:left;">
                         Según el valor de los <strong>productos físicos</strong> del pedido, indica en qué rangos
-                        el envío es gratis. Fuera de esos rangos el cliente paga el envío
-                        (<strong>${datos.costo_envio_formateado}</strong>).
+                        el envío es gratis. Fuera de esos rangos el cliente paga el costo del envío.
                     </p>
                     <table class="rangos-puntos-tabla">
                         <thead>
@@ -1058,6 +1065,10 @@
                 focusConfirm: false,
                 showLoaderOnConfirm: true,
                 didOpen: () => {
+                    const campoCosto = document.getElementById('swal-costo-envio');
+                    campoCosto.value = formatearMiles(datos.costo_envio);
+                    campoCosto.addEventListener('input', () => { campoCosto.value = formatearMiles(campoCosto.value); });
+
                     const cuerpo = document.getElementById('swal-rangos-cuerpo');
                     const botonAgregar = document.getElementById('swal-agregar-rango');
                     const actualizarBoton = () => { botonAgregar.disabled = cuerpo.children.length >= maximo; };
@@ -1083,6 +1094,12 @@
                     });
                 },
                 preConfirm: async () => {
+                    const costoEnvio = document.getElementById('swal-costo-envio').value.replace(/\D/g, '');
+                    if (costoEnvio === '' || Number(costoEnvio) < 1) {
+                        document.getElementById('swal-costo-envio').focus();
+                        Swal.showValidationMessage('Escribe el costo del envío para el cliente (mayor que 0)');
+                        return false;
+                    }
                     const filas = [...document.querySelectorAll('#swal-rangos-cuerpo tr')];
                     const rangos = [];
                     document.querySelectorAll('#swal-rangos-cuerpo .rango-falta').forEach(c => c.classList.remove('rango-falta'));
@@ -1104,6 +1121,7 @@
                     try {
                         const formData = new FormData();
                         formData.append('rangos', JSON.stringify(rangos));
+                        formData.append('costo_envio', costoEnvio);
                         const response = await fetch(`${API_BASE}?action=actualizarRangosEnvio`, { method: 'POST', body: formData });
                         const data = await response.json();
                         if (!data.success) {
@@ -1123,10 +1141,10 @@
             const guardados = resultado.value.rangos || [];
             Swal.fire({
                 icon: 'success',
-                title: '¡Rangos guardados!',
-                html: guardados.length > 0
+                title: '¡Envío guardado!',
+                html: `Costo del envío para el cliente: <strong>${resultado.value.costo_envio_formateado}</strong><br><br>` + (guardados.length > 0
                     ? guardados.map(r => `${r.desde_formateado} – ${r.hasta_formateado}: <strong>${r.gratis ? 'envío gratis' : 'envío con costo'}</strong>`).join('<br>')
-                    : `Sin rangos: el envío es gratis desde <strong>${datos.envio_gratis_minimo_por_defecto_formateado}</strong>.`,
+                    : `Sin rangos: el envío es gratis desde <strong>${datos.envio_gratis_minimo_por_defecto_formateado}</strong>.`),
                 confirmButtonColor: '#023859'
             });
             cargarResumenEnvio();
