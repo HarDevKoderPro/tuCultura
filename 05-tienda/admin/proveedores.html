@@ -26,7 +26,9 @@
         .tarjeta-referente { background: #fff; border-radius: var(--radio-borde); box-shadow: var(--sombra); padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.5rem; }
         .tarjeta-referente h2 { font-size: 1.05rem; margin: 0; color: var(--color-primario); }
         .tarjeta-referente p { margin: 0; color: #555; font-size: 0.9rem; flex-basis: 100%; }
-        .referente-form { display: flex; align-items: center; gap: 0.5rem; }
+        .referente-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.5rem 1rem; }
+        .referente-campo { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.8rem; color: #555; }
+        .referente-campo span { display: flex; align-items: center; gap: 0.4rem; font-size: 1rem; color: #333; }
         .referente-form input { width: 90px; padding: 0.45rem 0.6rem; border: 1px solid #ccc; border-radius: var(--radio-borde); font-size: 1rem; }
         .costos-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.75rem 1rem; }
         .costos-form label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.8rem; color: #555; }
@@ -74,6 +76,8 @@
 
             .tarjeta-referente { padding: 1rem; margin-bottom: 1rem; gap: 0.6rem; }
             .referente-form { width: 100%; }
+            .referente-campo { flex: 1 1 100%; }
+            .referente-campo span { width: 100%; }
             .referente-form input { flex: 1; width: auto; font-size: 16px; padding: 0.6rem 0.75rem; }
 
             /* Tabla -> lista de tarjetas */
@@ -151,11 +155,15 @@
         <section class="tarjeta-referente">
             <h2><i class="fas fa-user-friends"></i> Referente del comprador</h2>
             <form class="referente-form" onsubmit="guardarReferente(event)">
-                <input type="number" id="referente-valor" class="sin-flechas" inputmode="decimal" min="0" max="100" step="0.01" required aria-label="Porcentaje del referente">
-                <span>%</span>
+                <label class="referente-campo">Productos físicos
+                    <span><input type="number" id="referente-valor" class="sin-flechas" inputmode="decimal" min="0" max="100" step="0.01" required aria-label="Porcentaje del referente en productos físicos"> %</span>
+                </label>
+                <label class="referente-campo">Productos digitales
+                    <span><input type="number" id="referente-valor-digital" class="sin-flechas" inputmode="decimal" min="0" max="100" step="0.01" required aria-label="Porcentaje del referente en productos digitales"> %</span>
+                </label>
                 <button type="submit" class="btn-primario">Guardar</button>
             </form>
-            <p>Porcentaje fijo de cada venta para el referente del asociado que compra, sin importar el proveedor. Si el comprador no tiene referente, ese porcentaje queda para la tienda. Los cambios aplican solo a ventas nuevas.</p>
+            <p>Porcentaje de cada venta para el referente del asociado que compra, sin importar el proveedor; se configura por separado para productos físicos y digitales (cada producto usa el de su tipo). Si el comprador no tiene referente, ese porcentaje queda para la tienda. Los cambios aplican solo a ventas nuevas.</p>
         </section>
 
         <section class="tarjeta-referente tarjeta-costos">
@@ -261,7 +269,8 @@
     <script>
         const API_BASE = '../php/admin.php';
         let proveedores = [];
-        let porcentajeReferente = 10;
+        let porcentajeReferente = 10;        // referente en productos fisicos
+        let porcentajeReferenteDigital = 10; // referente en productos digitales
         let porcentajeOriginal = null; // % del proveedor al abrir la edicion
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -283,6 +292,22 @@
             return Number(valor).toLocaleString('es-CO', { maximumFractionDigits: 2 });
         }
 
+        // El referente puede tener un % distinto en productos fisicos y digitales
+        function refIguales() {
+            return porcentajeReferente === porcentajeReferenteDigital;
+        }
+
+        // Limite del % de un proveedor: el mayor de los dos (puede vender fisicos y digitales)
+        function maxReferente() {
+            return Math.max(porcentajeReferente, porcentajeReferenteDigital);
+        }
+
+        function textoReferente() {
+            return refIguales()
+                ? `${num(porcentajeReferente)}%`
+                : `${num(porcentajeReferente)}% en físicos y ${num(porcentajeReferenteDigital)}% en digitales`;
+        }
+
         async function cargarProveedores() {
             try {
                 const response = await fetch(`${API_BASE}?action=proveedores_listar`);
@@ -290,7 +315,9 @@
                 if (data.success) {
                     proveedores = data.proveedores;
                     porcentajeReferente = Number(data.porcentaje_referente);
+                    porcentajeReferenteDigital = Number(data.porcentaje_referente_digital ?? data.porcentaje_referente);
                     document.getElementById('referente-valor').value = porcentajeReferente;
+                    document.getElementById('referente-valor-digital').value = porcentajeReferenteDigital;
                     renderizarProveedores();
                 } else {
                     Swal.fire('Error', data.error, 'error').then(() => window.location.href = '../index.html');
@@ -314,8 +341,12 @@
                         ${p.email ? `<span class="contacto-sub"><a href="mailto:${esc(p.email)}">${esc(p.email)}</a></span>` : ''}</td>
                     <td class="col-reparto">
                         <span class="reparto-chip proveedor">Proveedor ${num(p.porcentaje_proveedor)}%</span>
-                        <span class="reparto-chip tienda">Tienda ${num(p.porcentaje_tienda)}%</span>
-                        <span class="reparto-chip referente">Referente ${num(porcentajeReferente)}%</span>
+                        <span class="reparto-chip tienda">Tienda ${refIguales()
+                            ? num(p.porcentaje_tienda) + '%'
+                            : num(p.porcentaje_tienda_fisico) + '% fís. · ' + num(p.porcentaje_tienda_digital) + '% dig.'}</span>
+                        <span class="reparto-chip referente">Referente ${refIguales()
+                            ? num(porcentajeReferente) + '%'
+                            : num(porcentajeReferente) + '% fís. · ' + num(porcentajeReferenteDigital) + '% dig.'}</span>
                     </td>
                     <td class="col-productos">${p.total_productos > 0
                         ? `<button type="button" class="btn-productos" onclick="verProductos(${p.id})">${p.total_productos}<span class="etq-movil"> producto${p.total_productos === 1 ? '' : 's'}</span></button>`
@@ -347,19 +378,25 @@
             const aviso = document.getElementById('aviso-ventas-nuevas');
             aviso.style.display = (porcentajeOriginal !== null && texto !== '' && Number(texto) !== porcentajeOriginal) ? 'block' : 'none';
             if (texto === '') {
-                caja.textContent = `Máximo ${num(100 - porcentajeReferente)}% (el referente recibe ${num(porcentajeReferente)}%).`;
+                caja.textContent = `Máximo ${num(100 - maxReferente())}% (el referente recibe ${textoReferente()}).`;
                 caja.classList.remove('error');
                 return;
             }
             const prov = Number(texto);
-            const tienda = Math.round((100 - prov - porcentajeReferente) * 100) / 100;
-            if (prov < 0 || tienda < 0) {
-                caja.textContent = `No puede pasar de ${num(100 - porcentajeReferente)}%: la tienda quedaría en negativo.`;
+            const tiendaMinima = Math.round((100 - prov - maxReferente()) * 100) / 100;
+            if (prov < 0 || tiendaMinima < 0) {
+                caja.textContent = `No puede pasar de ${num(100 - maxReferente())}%: la tienda quedaría en negativo.`;
                 caja.classList.add('error');
                 return;
             }
             caja.classList.remove('error');
-            caja.textContent = `Por cada $100 vendidos: proveedor $${num(prov)} · referente $${num(porcentajeReferente)} · tienda $${num(tienda)} (sin referente, la tienda recibe $${num(tienda + porcentajeReferente)}).`;
+            const tienda = Math.round((100 - prov - porcentajeReferente) * 100) / 100;
+            if (refIguales()) {
+                caja.textContent = `Por cada $100 vendidos: proveedor $${num(prov)} · referente $${num(porcentajeReferente)} · tienda $${num(tienda)} (sin referente, la tienda recibe $${num(tienda + porcentajeReferente)}).`;
+            } else {
+                const tiendaDigital = Math.round((100 - prov - porcentajeReferenteDigital) * 100) / 100;
+                caja.textContent = `Por cada $100 vendidos. Físicos: proveedor $${num(prov)} · referente $${num(porcentajeReferente)} · tienda $${num(tienda)}. Digitales: proveedor $${num(prov)} · referente $${num(porcentajeReferenteDigital)} · tienda $${num(tiendaDigital)}.`;
+            }
         }
 
         function abrirModalProveedor() {
@@ -367,7 +404,7 @@
             document.getElementById('form-proveedor').reset();
             document.getElementById('proveedor-id').value = '';
             document.getElementById('proveedor-activo').checked = true;
-            document.getElementById('proveedor-porcentaje').max = 100 - porcentajeReferente;
+            document.getElementById('proveedor-porcentaje').max = 100 - maxReferente();
             porcentajeOriginal = null;
             actualizarRepartoVivo();
             document.getElementById('modal-proveedor').classList.add('activo');
@@ -384,7 +421,7 @@
             document.getElementById('proveedor-telefono').value = p.telefono || '';
             document.getElementById('proveedor-email').value = p.email || '';
             document.getElementById('proveedor-porcentaje').value = p.porcentaje_proveedor;
-            document.getElementById('proveedor-porcentaje').max = 100 - porcentajeReferente;
+            document.getElementById('proveedor-porcentaje').max = 100 - maxReferente();
             document.getElementById('proveedor-activo').checked = p.activo == 1;
             porcentajeOriginal = Number(p.porcentaje_proveedor);
             actualizarRepartoVivo();
@@ -490,9 +527,9 @@
 
         async function guardarReferente(event) {
             event.preventDefault();
-            const valor = document.getElementById('referente-valor').value;
             const formData = new FormData();
-            formData.append('valor', valor);
+            formData.append('valor_fisico', document.getElementById('referente-valor').value);
+            formData.append('valor_digital', document.getElementById('referente-valor-digital').value);
             try {
                 const response = await fetch(`${API_BASE}?action=actualizarPorcentajeReferente`, { method: 'POST', body: formData });
                 const data = await response.json();
@@ -501,6 +538,7 @@
                     cargarProveedores();
                 } else {
                     document.getElementById('referente-valor').value = porcentajeReferente;
+                    document.getElementById('referente-valor-digital').value = porcentajeReferenteDigital;
                     Swal.fire('No se pudo cambiar', data.error, 'warning');
                 }
             } catch (error) {

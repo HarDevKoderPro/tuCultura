@@ -6,8 +6,9 @@
  * La relacion producto -> proveedor vive en una tabla aparte (producto_proveedor) para
  * que ninguna consulta publica que use productos.* la exponga. Solo admin.php la lee.
  *
- * Reparto de una venta: proveedor = su % acordado; referente del comprador = % global
- * (configuracion_tienda.porcentaje_referente, por defecto 10); tienda = el resto. Sin
+ * Reparto de una venta: proveedor = su % acordado; referente del comprador = % global, uno para
+ * productos fisicos (configuracion_tienda.porcentaje_referente, por defecto 10) y otro para
+ * digitales (porcentaje_referente_digital, ver porcentajesReferente()); tienda = el resto. Sin
  * referente, ese % queda para la tienda. Sin proveedor ("Tienda (propio)") el proveedor es 0%.
  *
  * Usa mysqli ($conn). Lo incluye admin.php.
@@ -60,6 +61,46 @@ function porcentajeReferente(mysqli $conn): float
   }
   if ($valor === null || !is_numeric($valor)) return (float)PORCENTAJE_REFERENTE_DEFECTO;
   return max(0.0, min(100.0, (float)$valor));
+}
+
+/**
+ * % del referente del comprador por tipo de producto (0-100):
+ * - 'fisico'  = configuracion_tienda.porcentaje_referente (la clave de siempre)
+ * - 'digital' = configuracion_tienda.porcentaje_referente_digital; sin definir vale lo mismo
+ *   que el de fisicos (asi nada cambia hasta que el admin configure el digital).
+ * Sin ninguno definido = PORCENTAJE_REFERENTE_DEFECTO.
+ */
+function porcentajesReferente(mysqli $conn): array
+{
+  $valores = ['porcentaje_referente' => null, 'porcentaje_referente_digital' => null];
+  try {
+    $res = $conn->query(
+      "SELECT clave, valor FROM configuracion_tienda
+       WHERE clave IN ('porcentaje_referente', 'porcentaje_referente_digital')"
+    );
+    if ($res) {
+      while ($fila = $res->fetch_assoc()) {
+        if (is_numeric($fila['valor'])) {
+          $valores[$fila['clave']] = max(0.0, min(100.0, (float)$fila['valor']));
+        }
+      }
+    }
+  } catch (Throwable $e) {
+    // La tabla puede no existir todavia: se usan los valores por defecto
+  }
+  $fisico = $valores['porcentaje_referente'] ?? (float)PORCENTAJE_REFERENTE_DEFECTO;
+  $digital = $valores['porcentaje_referente_digital'] ?? $fisico;
+  return ['fisico' => $fisico, 'digital' => $digital];
+}
+
+/**
+ * Mayor de los dos % del referente. Es el limite para el % de un proveedor (100 - este valor):
+ * un proveedor puede vender productos fisicos y digitales, y la tienda no debe quedar en negativo
+ * con ninguno de los dos.
+ */
+function porcentajeReferenteMaximo(array $porcentajes): float
+{
+  return max((float)$porcentajes['fisico'], (float)$porcentajes['digital']);
 }
 
 /**

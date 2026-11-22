@@ -593,7 +593,8 @@ async function cargarCategorias() {
 // ==================== PROVEEDORES ====================
 // Solo admin: el proveedor nunca se muestra en la tienda (productos de terceros como propios).
 let proveedores = [];
-let porcentajeReferente = 10;
+let porcentajeReferente = 10;        // referente en productos fisicos
+let porcentajeReferenteDigital = 10; // referente en productos digitales
 // Filtro de la lista: '' = todos, '0' = Tienda (propio), 'N' = proveedor N.
 // Con ?proveedor=N (enlace desde Proveedores) arranca filtrado por ese proveedor.
 let filtroProveedor = (new URLSearchParams(window.location.search).get('proveedor') || '').replace(/\D/g, '');
@@ -611,6 +612,7 @@ async function cargarProveedores() {
         if (data.success) {
             proveedores = data.proveedores;
             porcentajeReferente = Number(data.porcentaje_referente);
+            porcentajeReferenteDigital = Number(data.porcentaje_referente_digital ?? data.porcentaje_referente);
             llenarSelectProveedor(0);
             llenarFiltroProveedor();
             actualizarRepartoProducto();
@@ -635,7 +637,7 @@ function llenarSelectProveedor(asignado) {
 }
 
 function inicializarRepartoProducto() {
-    ['producto-proveedor', 'producto-precio', 'producto-precio-oferta'].forEach(id => {
+    ['producto-proveedor', 'producto-precio', 'producto-precio-oferta', 'producto-tipo'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.addEventListener('input', actualizarRepartoProducto);
@@ -667,7 +669,10 @@ function actualizarRepartoProducto() {
     }
     const pctProv = proveedor ? Number(proveedor.porcentaje_proveedor) : 0;
     const montoProv = venta * pctProv / 100;
-    const montoRef = venta * porcentajeReferente / 100;
+    // El referente cobra el % de su tipo de producto (fisico o digital)
+    const tipo = document.getElementById('producto-tipo');
+    const pctReferente = tipo && tipo.value === 'digital' ? porcentajeReferenteDigital : porcentajeReferente;
+    const montoRef = venta * pctReferente / 100;
     const montoTienda = venta - montoProv - montoRef;
     caja.textContent = `Por cada venta de ${pesos(venta)}: `
         + (proveedor ? `proveedor ${pesos(montoProv)} · ` : '')

@@ -895,7 +895,8 @@ function eliminarProducto($conn) {
  */
 function listarProveedoresAdmin($conn) {
     asegurarTablasProveedores($conn);
-    $referente = porcentajeReferente($conn);
+    $referentes = porcentajesReferente($conn); // ['fisico' => %, 'digital' => %]
+    $referente = $referentes['fisico'];
 
     $result = $conn->query("
         SELECT pr.*, COUNT(pp.producto_id) AS total_productos
@@ -917,6 +918,8 @@ function listarProveedoresAdmin($conn) {
             'email' => $row['email'],
             'porcentaje_proveedor' => $porcentaje,
             'porcentaje_tienda' => round(100 - $porcentaje - $referente, 2),
+            'porcentaje_tienda_fisico' => round(100 - $porcentaje - $referentes['fisico'], 2),
+            'porcentaje_tienda_digital' => round(100 - $porcentaje - $referentes['digital'], 2),
             'activo' => (int)$row['activo'],
             'total_productos' => (int)$row['total_productos']
         ];
@@ -926,7 +929,9 @@ function listarProveedoresAdmin($conn) {
         'success' => true,
         'proveedores' => $proveedores,
         'porcentaje_referente' => $referente,
-        'maximo_proveedor' => round(100 - $referente, 2)
+        'porcentaje_referente_fisico' => $referentes['fisico'],
+        'porcentaje_referente_digital' => $referentes['digital'],
+        'maximo_proveedor' => round(100 - porcentajeReferenteMaximo($referentes), 2)
     ]);
 }
 
@@ -965,10 +970,11 @@ function guardarProveedorAdmin($conn, $esActualizacion) {
     if ($porcentaje === null) {
         jsonResponse(['error' => 'El % del proveedor debe ser un número entre 0 y 100'], 400);
     }
-    $referente = porcentajeReferente($conn);
+    // Un proveedor puede vender fisicos y digitales: se usa el mayor % de referente de los dos
+    $referente = porcentajeReferenteMaximo(porcentajesReferente($conn));
     $maximo = round(100 - $referente, 2);
     if ($porcentaje > $maximo) {
-        jsonResponse(['error' => 'El % del proveedor no puede pasar de ' . $maximo . '% (el referente del comprador recibe ' . $referente . '%)'], 400);
+        jsonResponse(['error' => 'El % del proveedor no puede pasar de ' . $maximo . '% (el referente del comprador recibe hasta ' . $referente . '%)'], 400);
     }
 
     if ($esActualizacion) {
@@ -1044,15 +1050,28 @@ function eliminarProveedorAdmin($conn) {
 }
 
 /**
- * Endpoint: cambiar el % del referente del comprador (POST valor, 0-100).
- * No se acepta si algun proveedor (activo o no) dejaria a la tienda en negativo.
+ * Endpoint: cambiar el % del referente del comprador (0-100), por tipo de producto:
+ * POST valor_fisico y valor_digital. Compatibilidad: con solo POST valor se aplica a los dos.
+ * No se acepta si algun proveedor (activo o no) dejaria a la tienda en negativo con el mayor de los dos.
  */
 function actualizarPorcentajeReferenteAdmin($conn) {
     asegurarTablasProveedores($conn);
-    $valor = normalizarPorcentaje($_POST['valor'] ?? '');
-    if ($valor === null) {
-        jsonResponse(['error' => 'El % del referente debe ser un número entre 0 y 100'], 400);
+    if (isset($_POST['valor_fisico']) || isset($_POST['valor_digital'])) {
+        $fisico = normalizarPorcentaje($_POST['valor_fisico'] ?? '');
+        if ($fisico === null) {
+            jsonResponse(['error' => 'El % del referente en productos físicos debe ser un número entre 0 y 100'], 400);
+        }
+        $digital = normalizarPorcentaje($_POST['valor_digital'] ?? '');
+        if ($digital === null) {
+            jsonResponse(['error' => 'El % del referente en productos digitales debe ser un número entre 0 y 100'], 400);
+        }
+    } else {
+        $fisico = $digital = normalizarPorcentaje($_POST['valor'] ?? '');
+        if ($fisico === null) {
+            jsonResponse(['error' => 'El % del referente debe ser un número entre 0 y 100'], 400);
+        }
     }
+    $valor = max($fisico, $digital); // el mayor de los dos fija el limite de los proveedores
 
     $maximo = round(100 - $valor, 2);
     $stmt = $conn->prepare("SELECT nombre, porcentaje_proveedor FROM proveedores WHERE porcentaje_proveedor > ? ORDER BY nombre");
@@ -1071,13 +1090,18 @@ function actualizarPorcentajeReferenteAdmin($conn) {
         ], 400);
     }
 
-    if (!actualizarConfiguracion($conn, 'porcentaje_referente', strval($valor))) {
+    if (!actualizarConfiguracion($conn, 'porcentaje_referente', strval($fisico))
+        || !actualizarConfiguracion($conn, 'porcentaje_referente_digital', strval($digital))) {
         jsonResponse(['error' => 'Error al guardar el % del referente'], 500);
     }
     jsonResponse([
         'success' => true,
-        'mensaje' => 'El referente del comprador recibe ahora el ' . $valor . '% (aplica a ventas nuevas)',
-        'porcentaje_referente' => $valor,
+        'mensaje' => $fisico === $digital
+            ? 'El referente del comprador recibe ahora el ' . $fisico . '% (aplica a ventas nuevas)'
+            : 'El referente del comprador recibe ahora el ' . $fisico . '% en productos físicos y el ' . $digital . '% en digitales (aplica a ventas nuevas)',
+        'porcentaje_referente' => $fisico,
+        'porcentaje_referente_fisico' => $fisico,
+        'porcentaje_referente_digital' => $digital,
         'maximo_proveedor' => $maximo
     ]);
 }
@@ -1782,6 +1806,7 @@ function repartoPedidoAdmin($conn) {
             'total_formateado' => formatearPrecio($total),
             'lineas' => presentarLineasReparto($lineas, $total),
             'porcentaje_referente' => $calculo ? $calculo['porcentaje_referente'] : null,
+            'porcentajes_referente' => $calculo ? $calculo['porcentajes_referente'] : null,
             'margen_tienda' => $calculo ? $calculo['margen_tienda'] : null,
             'notas' => $calculo ? $calculo['notas'] : [],
             'aviso' => $errorCalculo !== '' ? 'Con los datos de hoy ya no se puede recalcular: ' . $errorCalculo : ''

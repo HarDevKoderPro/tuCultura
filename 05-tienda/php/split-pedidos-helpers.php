@@ -140,6 +140,7 @@ if (!function_exists('calcularSplitDePedido')) {
         'producto_id' => (int)$fila['producto_id'],
         'subtotal' => (int)round((float)$fila['subtotal']),
         'proveedor_id' => (int)$fila['proveedor_id'],
+        'es_digital' => $fila['tipo_producto'] === 'digital',
       ];
       if ((int)$fila['proveedor_id'] > 0) {
         $idsProveedores[(int)$fila['proveedor_id']] = true;
@@ -161,7 +162,8 @@ if (!function_exists('calcularSplitDePedido')) {
 
     // Referente directo del comprador (nivel 1) y su % global
     $referente = null;
-    $porcentajeReferente = porcentajeReferente($conn);
+    $porcentajesReferente = porcentajesReferente($conn); // ['fisico' => %, 'digital' => %]
+    $porcentajeReferente = $porcentajesReferente['fisico']; // el de siempre (compatibilidad)
     $emailComprador = (string)($pedido['comprador_email'] ?? '');
     if ($emailComprador !== '') {
       $ascendientes = obtenerAscendientesVerticales($conn, $emailComprador, 1);
@@ -199,7 +201,7 @@ if (!function_exists('calcularSplitDePedido')) {
       $items,
       $proveedores,
       $referente,
-      $porcentajeReferente,
+      $porcentajesReferente,
       $opciones
     );
 
@@ -225,6 +227,7 @@ if (!function_exists('calcularSplitDePedido')) {
       'pedido' => $pedido,
       'lineas' => $lineas,
       'porcentaje_referente' => $porcentajeReferente,
+      'porcentajes_referente' => $porcentajesReferente,
       'referente' => $referente,
       'margen_tienda' => $margenTienda,
       'notas' => $notas,

@@ -199,6 +199,76 @@ probar('Total en cero se rechaza', function () use ($proveedores) {
   });
 });
 
+// ---- Referente con % distinto para productos fisicos y digitales ----
+
+probar('Referente por tipo: pedido mixto usa el % de cada tipo (10% fisicos, 5% digitales)', function () use ($proveedores, $referente) {
+  $l = calcularSplit(
+    ['total' => 150000, 'subtotal' => 150000, 'costo_envio' => 0],
+    [
+      ['producto_id' => 1, 'subtotal' => 100000, 'proveedor_id' => 1, 'es_digital' => false],
+      ['producto_id' => 2, 'subtotal' => 50000, 'proveedor_id' => 0, 'es_digital' => true],
+    ],
+    $proveedores, $referente, ['fisico' => 10, 'digital' => 5]
+  );
+  // referente = 100000 x 10% + 50000 x 5% = 12.500; proveedor 60% de 100000
+  esperar(montos($l), ['proveedor:1' => 60000, 'referente:7' => 12500, 'tienda:0' => 77500]);
+  foreach ($l as $linea) {
+    if ($linea['actor_tipo'] === 'referente') {
+      esperar($linea['descripcion'], 'Referente directo (10% fisicos / 5% digitales)');
+    }
+  }
+});
+
+probar('Referente por tipo: pedido solo digital usa el % digital', function () use ($proveedores, $referente) {
+  $l = calcularSplit(
+    ['total' => 50000, 'subtotal' => 50000, 'costo_envio' => 0],
+    [['producto_id' => 2, 'subtotal' => 50000, 'proveedor_id' => 0, 'es_digital' => true]],
+    $proveedores, $referente, ['fisico' => 10, 'digital' => 5]
+  );
+  esperar(montos($l), ['referente:7' => 2500, 'tienda:0' => 47500]);
+  esperar($l[0]['descripcion'], 'Referente directo (5%)');
+});
+
+probar('Referente por tipo: digital ausente vale lo mismo que fisico', function () use ($proveedores, $referente) {
+  $l = calcularSplit(
+    ['total' => 50000, 'subtotal' => 50000, 'costo_envio' => 0],
+    [['producto_id' => 2, 'subtotal' => 50000, 'proveedor_id' => 0, 'es_digital' => true]],
+    $proveedores, $referente, ['fisico' => 10]
+  );
+  esperar(montos($l)['referente:7'], 5000);
+});
+
+probar('Referente por tipo: un numero suelto vale para fisicos y digitales (compatibilidad)', function () use ($proveedores, $referente) {
+  $items = [
+    ['producto_id' => 1, 'subtotal' => 100000, 'proveedor_id' => 1, 'es_digital' => false],
+    ['producto_id' => 2, 'subtotal' => 50000, 'proveedor_id' => 0, 'es_digital' => true],
+  ];
+  $pedido = ['total' => 150000, 'subtotal' => 150000, 'costo_envio' => 0];
+  $conNumero = calcularSplit($pedido, $items, $proveedores, $referente, 10);
+  $conArreglo = calcularSplit($pedido, $items, $proveedores, $referente, ['fisico' => 10, 'digital' => 10]);
+  esperar($conNumero, $conArreglo);
+  esperar(montos($conNumero)['referente:7'], 15000);
+});
+
+probar('Referente por tipo: el proveedor cobra su % tambien sobre productos digitales', function () use ($proveedores, $referente) {
+  $l = calcularSplit(
+    ['total' => 50000, 'subtotal' => 50000, 'costo_envio' => 0],
+    [['producto_id' => 2, 'subtotal' => 50000, 'proveedor_id' => 1, 'es_digital' => true]],
+    $proveedores, $referente, ['fisico' => 10, 'digital' => 5]
+  );
+  esperar(montos($l), ['proveedor:1' => 30000, 'referente:7' => 2500, 'tienda:0' => 17500]);
+});
+
+probar('Referente por tipo: porcentaje digital fuera de 0-100 se rechaza', function () use ($proveedores, $referente) {
+  debeFallar(function () use ($proveedores, $referente) {
+    calcularSplit(
+      ['total' => 50000, 'subtotal' => 50000, 'costo_envio' => 0],
+      [['producto_id' => 2, 'subtotal' => 50000, 'proveedor_id' => 0, 'es_digital' => true]],
+      $proveedores, $referente, ['fisico' => 10, 'digital' => 150]
+    );
+  }, 'entre 0 y 100');
+});
+
 // ---- Costos de la venta: comision de la pasarela y pago fijo a la mensajeria ----
 
 $comisionEjemplo = ['porcentaje' => 3, 'fijo' => 900, 'iva' => 19, 'nombre' => 'MercadoPago'];

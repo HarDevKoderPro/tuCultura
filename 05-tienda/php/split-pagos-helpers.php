@@ -45,11 +45,13 @@ if (!function_exists('calcularSplit')) {
    * @param array $pedido      ['total' => int, 'subtotal' => int, 'costo_envio' => int]
    *                           total = lo que paga el comprador (ya con el descuento del bono);
    *                           subtotal = valor de los productos (sin envio, antes del bono).
-   * @param array $items       lista de ['producto_id' => int, 'subtotal' => int, 'proveedor_id' => int]
+   * @param array $items       lista de ['producto_id' => int, 'subtotal' => int, 'proveedor_id' => int,
+   *                           'es_digital' => bool (opcional, por defecto fisico)]
    *                           (proveedor_id 0 = "Tienda (propio)"). La suma debe ser igual al subtotal.
    * @param array $proveedores [proveedor_id => ['nombre' => string, 'porcentaje_proveedor' => float]]
    * @param array|null $referente ['usuario_id' => int, 'nombre' => string] o null si no tiene
-   * @param float $porcentajeReferente % del referente (0-100)
+   * @param float|array $porcentajeReferente % del referente (0-100): un numero para todos los productos
+   *                           o ['fisico' => float, 'digital' => float] (digital ausente = igual al fisico)
    * @param array $opciones    'mensajeria' => ['id' => int, 'nombre' => string, 'monto' => int (opcional)]
    *                           (sin 'monto' se paga el costo de envio del pedido),
    *                           'comision' => ['porcentaje' => float, 'fijo' => int, 'iva' => float, 'nombre' => string],
@@ -65,7 +67,7 @@ if (!function_exists('calcularSplit')) {
     array $items,
     array $proveedores,
     ?array $referente,
-    float $porcentajeReferente,
+    $porcentajeReferente,
     array $opciones = []
   ): array {
     $total = (int)($pedido['total'] ?? 0);
@@ -78,12 +80,21 @@ if (!function_exists('calcularSplit')) {
     if ($subtotal < 0) {
       throw new SplitException('El subtotal del pedido no es valido');
     }
-    if ($porcentajeReferente < 0 || $porcentajeReferente > 100) {
+    // % del referente por tipo de producto: un numero vale para ambos; digital ausente = fisico
+    if (is_array($porcentajeReferente)) {
+      $pctFisico = (float)($porcentajeReferente['fisico'] ?? 0);
+      $pctDigital = (float)($porcentajeReferente['digital'] ?? $pctFisico);
+    } else {
+      $pctFisico = $pctDigital = (float)$porcentajeReferente;
+    }
+    if ($pctFisico < 0 || $pctFisico > 100 || $pctDigital < 0 || $pctDigital > 100) {
       throw new SplitException('El porcentaje del referente debe estar entre 0 y 100');
     }
 
-    // 1. Valor de los productos por proveedor (los propios no generan linea)
+    // 1. Valor de los productos por proveedor (los propios no generan linea) y por tipo
     $sumaItems = 0;
+    $subtotalFisico = 0;
+    $subtotalDigital = 0;
     $porProveedor = [];
     foreach ($items as $item) {
       $monto = (int)($item['subtotal'] ?? 0);
@@ -91,6 +102,11 @@ if (!function_exists('calcularSplit')) {
         throw new SplitException('Un producto del pedido tiene subtotal negativo');
       }
       $sumaItems += $monto;
+      if (!empty($item['es_digital'])) {
+        $subtotalDigital += $monto;
+      } else {
+        $subtotalFisico += $monto;
+      }
       $proveedorId = (int)($item['proveedor_id'] ?? 0);
       if ($proveedorId > 0) {
         $porProveedor[$proveedorId] = ($porProveedor[$proveedorId] ?? 0) + $monto;
@@ -130,15 +146,25 @@ if (!function_exists('calcularSplit')) {
     }
 
     // 3. Referente directo del comprador
-    if ($referente !== null && $porcentajeReferente > 0) {
-      $monto = (int)round($subtotal * $porcentajeReferente / 100);
+    //    Cada tipo de producto usa su porcentaje: fisicos y digitales se calculan por separado.
+    if ($referente !== null) {
+      $monto = (int)round($subtotalFisico * $pctFisico / 100 + $subtotalDigital * $pctDigital / 100);
       if ($monto > 0) {
+        $formato = function ($p) {
+          return rtrim(rtrim(number_format($p, 2, '.', ''), '0'), '.');
+        };
+        // Texto del porcentaje: solo el de los tipos que hay en el pedido
+        if ($subtotalFisico > 0 && $subtotalDigital > 0 && $pctFisico !== $pctDigital) {
+          $textoPct = $formato($pctFisico) . '% fisicos / ' . $formato($pctDigital) . '% digitales';
+        } else {
+          $textoPct = $formato($subtotalFisico > 0 || $subtotalDigital === 0 ? $pctFisico : $pctDigital) . '%';
+        }
         $lineas[] = [
           'actor_tipo' => 'referente',
           'actor_id' => (int)($referente['usuario_id'] ?? 0),
           'nombre' => (string)($referente['nombre'] ?? ''),
           'monto' => $monto,
-          'descripcion' => 'Referente directo (' . rtrim(rtrim(number_format($porcentajeReferente, 2, '.', ''), '0'), '.') . '%)',
+          'descripcion' => 'Referente directo (' . $textoPct . ')',
           'destino' => null,
         ];
         $secundarios++;
