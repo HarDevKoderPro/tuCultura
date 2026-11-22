@@ -116,7 +116,7 @@ function renderizarCarrito(carrito) {
       ? '<div class="envio-gratis-mensaje"><i class="fas fa-truck"></i> ¡Envío GRATIS!</div>'
       : carrito.falta_envio_gratis > 0
         ? `<div class="envio-gratis-mensaje" style="background: #fff3cd; color: #856404;">
-             <i class="fas fa-truck"></i> Te faltan ${carrito.falta_envio_gratis_formateado} para envío gratis
+             <i class="fas fa-truck"></i> Te faltan ${carrito.falta_envio_gratis_formateado}${carrito.tiene_digitales ? " en productos físicos" : ""} para envío gratis
            </div>`
         : "";
 
