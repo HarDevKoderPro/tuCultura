@@ -41,6 +41,17 @@
         .cobro-whatsapp { background: #25d366; }
         .cobro-abrir { background: #009ee3; }
         @media (max-width: 480px) { .cobro-botones { grid-template-columns: 1fr; } }
+        /* Reparto del pago */
+        .reparto-pedido { margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--color-borde); }
+        .reparto-etiqueta { font-size: 0.7rem; font-weight: 600; padding: 0.1rem 0.5rem; border-radius: 999px; background: #fef3c7; color: #92400e; margin-left: 0.4rem; vertical-align: middle; }
+        .reparto-etiqueta.guardado { background: #dcfce7; color: #166534; }
+        .reparto-tabla { width: 100%; border-collapse: collapse; margin: 0.5rem 0; font-size: 0.9rem; }
+        .reparto-tabla td { padding: 0.45rem 0.3rem; border-bottom: 1px solid #eee; vertical-align: top; }
+        .reparto-tabla small { color: #777; }
+        .reparto-tabla tfoot td { font-weight: 700; border-bottom: none; border-top: 2px solid var(--color-borde); }
+        .reparto-notas { margin: 0.4rem 0 0.4rem 1.2rem; font-size: 0.8rem; color: #555; }
+        .reparto-nota { font-size: 0.8rem; color: #777; margin: 0.4rem 0; }
+        .reparto-aviso { font-size: 0.85rem; color: #b45309; margin: 0.4rem 0; }
     </style>
 </head>
 <body>
@@ -257,11 +268,75 @@
                             <div class="resumen-linea total"><span>Total</span><span>${p.total_formateado}</span></div>
                         </div>
                         ${p.notas ? `<p style="margin-top: 1rem;"><strong>Notas:</strong> ${p.notas}</p>` : ''}
+                        <div id="reparto-pedido" class="reparto-pedido"></div>
                     `;
+                    cargarReparto(p.id);
                 }
             } catch (error) {
                 console.error('Error:', error);
                 modalBody.innerHTML = '<p class="mensaje error">Error al cargar el detalle</p>';
+            }
+        }
+
+        // Reparto del pago entre proveedor, referente y tienda (solo informativo: no mueve dinero)
+        function escapar(texto) {
+            const d = document.createElement('div');
+            d.textContent = texto == null ? '' : String(texto);
+            return d.innerHTML;
+        }
+
+        const ETIQUETA_ACTOR = { proveedor: 'Proveedor', referente: 'Referente directo', mensajeria: 'Mensajería', tienda: 'Tienda' };
+
+        function pintarReparto(contenedor, datos, pedidoId, resultadoGuardado) {
+            const filas = datos.lineas.map(l => `
+                <tr>
+                    <td>${ETIQUETA_ACTOR[l.actor_tipo] || escapar(l.actor_tipo)}${l.nombre && l.actor_tipo !== 'tienda' ? `<br><small>${escapar(l.nombre)}</small>` : ''}</td>
+                    <td>${escapar(l.descripcion)}</td>
+                    <td style="text-align:right;"><strong>${l.monto_formateado}</strong><br><small>${l.porcentaje_del_total}%</small></td>
+                </tr>`).join('');
+            const notas = (datos.notas || []).map(n => `<li>${escapar(n)}</li>`).join('');
+            contenedor.innerHTML = `
+                <h4><i class="fas fa-share-nodes"></i> Reparto del pago
+                    <span class="reparto-etiqueta ${datos.guardado ? 'guardado' : ''}">${datos.guardado ? 'Guardado' : 'Vista previa'}</span></h4>
+                <table class="reparto-tabla">
+                    <tbody>${filas}</tbody>
+                    <tfoot><tr><td colspan="2">Total repartido</td><td style="text-align:right;">${datos.total_formateado}</td></tr></tfoot>
+                </table>
+                ${notas ? `<ul class="reparto-notas">${notas}</ul>` : ''}
+                ${datos.aviso ? `<p class="reparto-aviso">${escapar(datos.aviso)}</p>` : ''}
+                <p class="reparto-nota">Solo informativo: no mueve dinero. ${datos.guardado ? 'Este reparto quedó guardado con los porcentajes de la venta.' : 'Se calcula con los porcentajes de hoy.'}</p>
+                ${datos.guardado ? '' : `<button class="btn-accion" style="width:auto; padding:0.35rem 0.8rem;" onclick="guardarReparto(${pedidoId})"><i class="fas fa-floppy-disk"></i> Guardar este reparto</button>`}
+            `;
+        }
+
+        async function cargarReparto(pedidoId) {
+            const contenedor = document.getElementById('reparto-pedido');
+            if (!contenedor) return;
+            contenedor.innerHTML = '<p class="reparto-nota">Calculando reparto...</p>';
+            try {
+                const response = await fetch(`${API_BASE}?action=pedido_split&id=${pedidoId}`);
+                const datos = await response.json();
+                if (!datos.success) {
+                    contenedor.innerHTML = `<h4><i class="fas fa-share-nodes"></i> Reparto del pago</h4><p class="reparto-aviso">${escapar(datos.error || 'No se pudo calcular el reparto')}</p>`;
+                    return;
+                }
+                pintarReparto(contenedor, datos, pedidoId);
+            } catch (error) {
+                console.error('Error:', error);
+                contenedor.innerHTML = '<p class="reparto-aviso">No se pudo cargar el reparto</p>';
+            }
+        }
+
+        async function guardarReparto(pedidoId) {
+            try {
+                const formulario = new FormData();
+                formulario.append('id', pedidoId);
+                const response = await fetch(`${API_BASE}?action=pedido_split_guardar`, { method: 'POST', body: formulario });
+                const datos = await response.json();
+                if (!datos.success) throw new Error(datos.error || 'No se pudo guardar el reparto');
+                await cargarReparto(pedidoId);
+            } catch (error) {
+                Swal.fire({ icon: 'error', title: 'Error', text: error.message, confirmButtonColor: '#dc3545' });
             }
         }
         

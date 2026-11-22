@@ -12,6 +12,7 @@ require_once 'cobros-helpers.php';
 require_once 'proveedores-helpers.php';
 require_once 'archivos-digitales.php';
 require_once 'tipos-producto-helpers.php';
+require_once 'split-pedidos-helpers.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -132,6 +133,12 @@ switch ($action) {
         break;
     case 'pedido_enlace_cobro':
         enlaceCobroPedidoAdmin($conn);
+        break;
+    case 'pedido_split':
+        repartoPedidoAdmin($conn);
+        break;
+    case 'pedido_split_guardar':
+        guardarRepartoPedidoAdmin($conn);
         break;
     
     // Correos enviados por la tienda
@@ -1627,6 +1634,98 @@ function enlaceCobroPedidoAdmin($conn) {
         'medio_pago_texto' => $datos['medio_pago_texto'],
         'estado' => $pedido['estado']
     ]);
+}
+
+// ==================== REPARTO DEL PAGO (SPLIT) ====================
+
+/** Agrega los textos de presentacion a las lineas de un reparto. */
+function presentarLineasReparto(array $lineas, int $total): array {
+    foreach ($lineas as &$linea) {
+        $linea['monto_formateado'] = formatearPrecio($linea['monto']);
+        $linea['porcentaje_del_total'] = $total > 0 ? round($linea['monto'] * 100 / $total, 1) : 0;
+    }
+    unset($linea);
+    return $lineas;
+}
+
+/**
+ * Endpoint: como se reparte (o se repartiria) un pedido entre proveedor, referente y tienda.
+ * Solo lectura. Si el pedido ya tiene el reparto congelado (pedido_splits) lo devuelve; si no,
+ * lo calcula hoy con los porcentajes vigentes (vista previa, guardado=false). No mueve dinero.
+ */
+function repartoPedidoAdmin($conn) {
+    $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+    if (!$id) {
+        jsonResponse(['error' => 'ID requerido'], 400);
+    }
+
+    try {
+        $guardado = splitGuardadoDePedido($conn, $id);
+        $calculo = null;
+        $errorCalculo = '';
+        try {
+            $calculo = calcularSplitDePedido($conn, $id);
+        } catch (SplitException $e) {
+            $errorCalculo = $e->getMessage();
+        }
+
+        if (!$guardado && $calculo === null) {
+            jsonResponse(['error' => $errorCalculo !== '' ? $errorCalculo : 'No se pudo calcular el reparto'], $errorCalculo === 'Pedido no encontrado' ? 404 : 400);
+        }
+
+        $lineas = $guardado ?: $calculo['lineas'];
+        $total = (int)array_sum(array_column($lineas, 'monto'));
+
+        jsonResponse([
+            'success' => true,
+            'guardado' => (bool)$guardado,
+            'pedido' => $calculo ? [
+                'id' => (int)$calculo['pedido']['id'],
+                'numero' => $calculo['pedido']['numero_pedido'],
+                'estado' => $calculo['pedido']['estado'],
+            ] : ['id' => $id],
+            'total' => $total,
+            'total_formateado' => formatearPrecio($total),
+            'lineas' => presentarLineasReparto($lineas, $total),
+            'porcentaje_referente' => $calculo ? $calculo['porcentaje_referente'] : null,
+            'notas' => $calculo ? $calculo['notas'] : [],
+            'aviso' => $errorCalculo !== '' ? 'Con los datos de hoy ya no se puede recalcular: ' . $errorCalculo : ''
+        ]);
+    } catch (Throwable $e) {
+        error_log('pedido_split: ' . $e->getMessage());
+        jsonResponse(['error' => 'No se pudo obtener el reparto del pedido'], 500);
+    }
+}
+
+/**
+ * Endpoint (POST id): congela el reparto del pedido con los porcentajes de hoy. Si ya estaba
+ * guardado no lo cambia. No mueve dinero ni cambia el pedido.
+ */
+function guardarRepartoPedidoAdmin($conn) {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(['error' => 'Metodo no permitido'], 405);
+    }
+    $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+    if (!$id) {
+        jsonResponse(['error' => 'ID requerido'], 400);
+    }
+
+    try {
+        $resultado = guardarSplitDePedido($conn, $id);
+        $total = (int)array_sum(array_column($resultado['lineas'], 'monto'));
+        jsonResponse([
+            'success' => true,
+            'guardado_ahora' => $resultado['guardado_ahora'],
+            'total' => $total,
+            'total_formateado' => formatearPrecio($total),
+            'lineas' => presentarLineasReparto($resultado['lineas'], $total)
+        ]);
+    } catch (SplitException $e) {
+        jsonResponse(['error' => $e->getMessage()], $e->getMessage() === 'Pedido no encontrado' ? 404 : 400);
+    } catch (Throwable $e) {
+        error_log('pedido_split_guardar: ' . $e->getMessage());
+        jsonResponse(['error' => 'No se pudo guardar el reparto del pedido'], 500);
+    }
 }
 
 // ==================== CORREOS ====================
