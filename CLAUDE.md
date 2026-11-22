@@ -142,9 +142,9 @@ Si se agrega informacion, hacerlo sin quitar campos existentes.
 
 ## 12) Entorno VPS (entorno principal de trabajo)
 
-- URL de prueba: `https://vps.girabienes.com`. El hosting compartido (`https://www.girabienes.com`) se conserva intacto como respaldo hasta decidir la migracion definitiva.
+- URL de prueba: `https://tucultura.smarteksoft.com`. El hosting compartido (`https://www.girabienes.com`) se conserva intacto como respaldo hasta decidir la migracion definitiva.
 - Proyecto en `/opt/apps/tucultura` (usuario SSH `deploy`, host Contabo `vmi3527475`).
-- Docker Compose: `tucultura-app-1` (PHP 8.3 Apache), `tucultura-db-1` (MariaDB 11.4, BD `tucultura_pruebas` importada del hosting). Caddy (contenedor compartido) es el unico expuesto en 80/443 y enruta `vps.girabienes.com` -> `tucultura-app-1:80` por la red Docker externa `proxy`. No publicar puertos nuevos.
+- Docker Compose: `tucultura-app-1` (PHP 8.3 Apache), `tucultura-db-1` (MariaDB 11.4, BD `tucultura_pruebas` importada del hosting). Caddy (contenedor compartido) es el unico expuesto en 80/443 y enruta `tucultura.smarteksoft.com` -> `tucultura-app-1:80` por la red Docker externa `proxy`. No publicar puertos nuevos.
 - Infraestructura versionada en el repo: `Dockerfile`, `compose.yml`, `docker/php/tucultura.ini` (zona horaria Bogota, errores solo a log, OPcache, sesiones, subidas hasta 45 MB / POST 50 MB por los videos), `docker/apache/tucultura.conf` (HTTPS detras de Caddy via `X-Forwarded-Proto`).
 - Persistencia (fuera de la imagen y de git): BD en volumen `tucultura_db_data`; sesiones PHP en volumen `tucultura_sessions`; bind mounts de `05-tienda/php/tarjetas-contenido.json` y `05-tienda/imagenes/productos/` (subidas del admin; propietario uid 33 = www-data).
 - Variables en `.env` del VPS: `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `SMTP_PASSWORD` (opcionales `SMTP_HOST`, `SMTP_USER`) y, para pagos, `MERCADOPAGO_ACCESS_TOKEN` (hoy credencial de prueba de la app "TuCultura Tienda"; opcional `MERCADOPAGO_WEBHOOK_SECRET`). Correos: `TIENDA_EMAIL_PRUEBAS` (mientras exista, el correo del comprador se redirige ahi; hoy activo porque los clientes de prueba usan emails de personas reales; QUITARLO al pasar a produccion) y opcional `TIENDA_EMAIL_NOTIFICACIONES` (aviso de pedidos nuevos; por defecto `SMTP_USER`). Cambiar `.env` requiere `docker compose up -d`.
@@ -187,7 +187,7 @@ Pendientes:
 6. [x] Limpieza de pedidos `mercadopago` abandonados (vencimiento 48 h + cron).
 7. [x] Correo de confirmacion de pedido (comprador + aviso a la tienda).
 8. [ ] Paso a produccion:
-   - [x] Webhook en el panel de MercadoPago (app "TuCultura Tienda", evento "Pagos (legacy)", URL `https://vps.girabienes.com/05-tienda/php/pagos.php?action=webhook_mercadopago` en modo prueba y productivo) + `MERCADOPAGO_WEBHOOK_SECRET` en `.env`; simulacion con firma valida respondio 200 (2026-10-11). Al cambiar de dominio, actualizar ambas URLs en el panel.
+   - [x] Webhook en el panel de MercadoPago (app "TuCultura Tienda", evento "Pagos (legacy)", URL `https://tucultura.smarteksoft.com/05-tienda/php/pagos.php?action=webhook_mercadopago` en modo prueba y productivo) + `MERCADOPAGO_WEBHOOK_SECRET` en `.env`; simulacion con firma valida respondio 200 (2026-10-11). Al cambiar de dominio, actualizar ambas URLs en el panel.
    - [ ] Pruebas completas de correos (contraentrega y MercadoPago) revisando `admin/correos.html`.
    - [ ] Credenciales de produccion: NO activarlas en la cuenta del desarrollador ("Harold David", donde vive la app de prueba). El dinero llega a la cuenta donde se activan; el titular (otra persona o empresa) aun no esta decidido. Cuando se decida: el titular crea su app, activa credenciales con el dominio definitivo, se configura su webhook + clave secreta y se cargan en `.env` con `read -rsp` (nunca por chat).
    - [ ] Dominio definitivo: propuesta de quedarse en el VPS; al elegirlo, agregarlo en Caddy y actualizar las URLs del webhook.

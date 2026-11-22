@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 15
     environment:
       name: vps
-      url: https://vps.girabienes.com
+      url: https://tucultura.smarteksoft.com
     steps:
       - name: 🔑 Configurar SSH
         env:
@@ -41,9 +41,9 @@ jobs:
       - name: ✅ Verificar sitio publico
         run: |
           set -e
-          curl -fsS --max-time 15 --retry 3 --retry-all-errors https://vps.girabienes.com/ -o /dev/null
-          curl -fsS --max-time 15 --retry 3 --retry-all-errors "https://vps.girabienes.com/05-tienda/php/categorias.php?action=listar" | grep -q '"success":true'
-          curl -fsS --max-time 15 --retry 3 --retry-all-errors "https://vps.girabienes.com/05-tienda/php/productos.php" | grep -q '"success":true'
+          curl -fsS --max-time 15 --retry 3 --retry-all-errors https://tucultura.smarteksoft.com/ -o /dev/null
+          curl -fsS --max-time 15 --retry 3 --retry-all-errors "https://tucultura.smarteksoft.com/05-tienda/php/categorias.php?action=listar" | grep -q '"success":true'
+          curl -fsS --max-time 15 --retry 3 --retry-all-errors "https://tucultura.smarteksoft.com/05-tienda/php/productos.php" | grep -q '"success":true'
           echo "Sitio y API de tienda responden correctamente"
 
       - name: 🧹 Limpiar llave

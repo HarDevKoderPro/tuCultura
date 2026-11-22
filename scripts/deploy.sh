@@ -14,7 +14,7 @@ set -euo pipefail
 main() {
   local app_dir="${APP_DIR:-/opt/apps/tucultura}"
   local rama="${DEPLOY_BRANCH:-main}"
-  local url_salud="${HEALTH_URL:-https://vps.girabienes.com/05-tienda/php/categorias.php?action=listar}"
+  local url_salud="${HEALTH_URL:-https://tucultura.smarteksoft.com/05-tienda/php/categorias.php?action=listar}"
 
   log() { echo "[deploy $(date '+%F %T')] $*"; }
 
