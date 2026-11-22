@@ -1374,6 +1374,15 @@ body.visor-fotos-abierto { overflow: hidden; }
     transition: var(--transicion);
 }
 
+/* Los circulos de seleccion no se estiran al ancho completo (quedaban lejos del texto) */
+.form-grupo input[type="radio"] {
+    width: auto;
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 0;
+    accent-color: var(--color-primario);
+}
+
 .form-grupo input:focus,
 .form-grupo select:focus,
 .form-grupo textarea:focus {

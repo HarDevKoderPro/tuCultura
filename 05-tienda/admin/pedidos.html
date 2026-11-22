@@ -84,7 +84,7 @@
             <table class="admin-tabla" id="tabla-pedidos">
                 <thead>
                     <tr>
-                        <th>N\u00b0 Pedido</th>
+                        <th>N° Pedido</th>
                         <th>Cliente</th>
                         <th>Email</th>
                         <th>Productos</th>
@@ -236,7 +236,7 @@
                                 <h4>Datos de Env\u00edo</h4>
                                 <p>${p.nombre_envio} ${p.apellido_envio}</p>
                                 <p>${p.direccion_envio}</p>
-                                <p>${p.ciudad_envio}, ${p.departamento_envio}</p>
+                                ${(String(p.ciudad_envio || '').replace(/[-\s]/g, '') || String(p.departamento_envio || '').replace(/[-\s]/g, '')) ? `<p>${p.ciudad_envio}, ${p.departamento_envio}</p>` : ''}
                                 <p>Tel: ${p.telefono_envio}</p>
                                 <p>Email: ${p.email_envio}</p>
                             </div>
