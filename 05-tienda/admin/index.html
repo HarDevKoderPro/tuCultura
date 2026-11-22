@@ -115,6 +115,17 @@
         .stat-card.puntos-card i {
             color: #f59e0b;
         }
+        .stat-card.envio-card i {
+            color: #0ea5e9;
+        }
+        .rangos-puntos-tabla select {
+            width: 100%; box-sizing: border-box; padding: 0.45rem 0.4rem;
+            border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; background: #fff;
+        }
+        .rangos-puntos-tabla .col-gratis { width: 84px; }
+        @media (max-width: 480px) {
+            .rangos-puntos-tabla .col-gratis { width: 70px; }
+        }
         .umbral-info {
             font-size: 0.7rem;
             color: #999;
@@ -230,6 +241,15 @@
                     <i class="fas fa-gift"></i> Puntos por bono
                 </button>
             </div>
+            <div class="stat-card envio-card" id="card-envio" title="Cuándo el envío es gratis según el valor de los productos físicos">
+                <i class="fas fa-truck"></i>
+                <div class="stat-valor" id="envioCostoActual">-</div>
+                <div class="stat-label">Costo de envío</div>
+                <div class="umbral-info">Envío gratis: <span id="envioRangosResumen">-</span></div>
+                <button class="btn-configurar-umbral" onclick="configurarRangosEnvio();">
+                    <i class="fas fa-layer-group"></i> Envío gratis
+                </button>
+            </div>
         </div>
         
         <!-- Grid de contenido -->
@@ -286,6 +306,7 @@
         
         document.addEventListener('DOMContentLoaded', () => {
             cargarDashboard();
+            cargarResumenEnvio();
         });
         
         async function cargarDashboard() {
@@ -942,6 +963,173 @@
                 confirmButtonColor: '#023859'
             });
             cargarDashboard();
+        }
+
+        // ==================== ENVÍO GRATIS (RANGOS) ====================
+
+        // Texto corto de los rangos para la tarjeta del dashboard
+        function resumenRangosEnvio(datos) {
+            if (!datos.rangos.length) {
+                return `desde ${datos.envio_gratis_minimo_por_defecto_formateado} (sin rangos)`;
+            }
+            const gratis = datos.rangos.filter(r => r.gratis).length;
+            return gratis > 0
+                ? `${gratis} ${gratis === 1 ? 'rango' : 'rangos'}`
+                : 'ningún rango';
+        }
+
+        async function cargarResumenEnvio() {
+            try {
+                const response = await fetch(`${API_BASE}?action=obtenerRangosEnvio`);
+                const data = await response.json();
+                if (!data.success) return;
+                document.getElementById('envioCostoActual').textContent = data.costo_envio_formateado;
+                document.getElementById('envioRangosResumen').textContent = resumenRangosEnvio(data);
+            } catch (error) {
+                console.error('Error al cargar el envío:', error);
+            }
+        }
+
+        function filaRangoEnvio(rango = {}) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="text" inputmode="numeric" class="rango-desde" aria-label="Desde (COP)"></td>
+                <td><input type="text" inputmode="numeric" class="rango-hasta" placeholder="Sin límite" aria-label="Hasta (COP)"></td>
+                <td class="col-gratis">
+                    <select class="rango-gratis" aria-label="¿Envío gratis?">
+                        <option value="1">Sí</option>
+                        <option value="0">No</option>
+                    </select>
+                </td>
+                <td class="col-quitar"><button type="button" class="btn-quitar-rango" title="Quitar rango"><i class="fas fa-times"></i></button></td>
+            `;
+            tr.querySelector('.rango-desde').value = rango.desde !== undefined ? formatearMiles(rango.desde) : '';
+            tr.querySelector('.rango-hasta').value = rango.hasta !== undefined && rango.hasta !== null ? formatearMiles(rango.hasta) : '';
+            tr.querySelector('.rango-gratis').value = rango.gratis === false ? '0' : '1';
+            tr.querySelectorAll('.rango-desde, .rango-hasta').forEach(input => {
+                input.addEventListener('input', () => { input.value = formatearMiles(input.value); });
+            });
+            tr.addEventListener('input', e => e.target.classList.remove('rango-falta'));
+            return tr;
+        }
+
+        async function configurarRangosEnvio() {
+            let datos;
+            try {
+                const response = await fetch(`${API_BASE}?action=obtenerRangosEnvio`);
+                datos = await response.json();
+                if (!datos.success) throw new Error(datos.error || 'Respuesta no válida');
+            } catch (error) {
+                console.error('Error al cargar rangos de envío:', error);
+                Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudieron cargar los rangos de envío', confirmButtonColor: '#dc3545' });
+                return;
+            }
+            const maximo = datos.maximo_rangos || 8;
+
+            const resultado = await Swal.fire({
+                title: '🚚 Envío gratis por rangos',
+                width: 640,
+                html: `
+                    <p style="color:#555; margin-bottom:0.8rem; text-align:left;">
+                        Según el valor de los <strong>productos físicos</strong> del pedido, indica en qué rangos
+                        el envío es gratis. Fuera de esos rangos el cliente paga el envío
+                        (<strong>${datos.costo_envio_formateado}</strong>).
+                    </p>
+                    <table class="rangos-puntos-tabla">
+                        <thead>
+                            <tr><th>Desde (COP)</th><th>Hasta (COP)</th><th class="col-gratis">¿Gratis?</th><th class="col-quitar"></th></tr>
+                        </thead>
+                        <tbody id="swal-rangos-cuerpo"></tbody>
+                    </table>
+                    <div style="text-align:left;">
+                        <button type="button" class="btn-agregar-rango" id="swal-agregar-rango"><i class="fas fa-plus"></i> Agregar rango</button>
+                    </div>
+                    <p style="font-size:0.8rem; color:#888; margin-top:0.7rem; text-align:left;">
+                        Deja "Hasta" vacío en el último rango para que no tenga límite. Los rangos no se pueden cruzar
+                        (máximo ${maximo}). Un valor que no cae en ningún rango <strong>no</strong> tiene envío gratis.
+                        Sin rangos, el envío es gratis desde ${datos.envio_gratis_minimo_por_defecto_formateado}.
+                        Los pedidos solo digitales nunca llevan envío. Aplica a carritos y pedidos nuevos.
+                    </p>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Guardar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#023859',
+                focusConfirm: false,
+                showLoaderOnConfirm: true,
+                didOpen: () => {
+                    const cuerpo = document.getElementById('swal-rangos-cuerpo');
+                    const botonAgregar = document.getElementById('swal-agregar-rango');
+                    const actualizarBoton = () => { botonAgregar.disabled = cuerpo.children.length >= maximo; };
+
+                    datos.rangos.forEach(r => cuerpo.appendChild(filaRangoEnvio(r)));
+                    if (datos.rangos.length === 0) cuerpo.appendChild(filaRangoEnvio());
+                    actualizarBoton();
+
+                    botonAgregar.addEventListener('click', () => {
+                        // El nuevo rango empieza donde termina el anterior
+                        const ultimo = cuerpo.lastElementChild;
+                        const hastaAnterior = ultimo ? ultimo.querySelector('.rango-hasta').value.replace(/\D/g, '') : '';
+                        const fila = filaRangoEnvio(hastaAnterior !== '' ? { desde: Number(hastaAnterior) + 1 } : {});
+                        cuerpo.appendChild(fila);
+                        fila.querySelector(hastaAnterior !== '' ? '.rango-hasta' : '.rango-desde').focus();
+                        actualizarBoton();
+                    });
+                    cuerpo.addEventListener('click', e => {
+                        const boton = e.target.closest('.btn-quitar-rango');
+                        if (!boton) return;
+                        boton.closest('tr').remove();
+                        actualizarBoton();
+                    });
+                },
+                preConfirm: async () => {
+                    const filas = [...document.querySelectorAll('#swal-rangos-cuerpo tr')];
+                    const rangos = [];
+                    document.querySelectorAll('#swal-rangos-cuerpo .rango-falta').forEach(c => c.classList.remove('rango-falta'));
+                    for (const [i, fila] of filas.entries()) {
+                        const desde = fila.querySelector('.rango-desde').value.replace(/\D/g, '');
+                        const hasta = fila.querySelector('.rango-hasta').value.replace(/\D/g, '');
+                        const gratis = fila.querySelector('.rango-gratis').value;
+                        // Fila sin valores ("Desde" y "Hasta" vacíos): se ignora
+                        if (desde === '' && hasta === '') continue;
+                        if (desde === '') {
+                            fila.querySelector('.rango-desde').classList.add('rango-falta');
+                            fila.querySelector('.rango-desde').focus();
+                            Swal.showValidationMessage(`Rango ${i + 1}: escribe "Desde" (0 si empieza desde el principio)`);
+                            return false;
+                        }
+                        rangos.push({ desde, hasta, gratis });
+                    }
+
+                    try {
+                        const formData = new FormData();
+                        formData.append('rangos', JSON.stringify(rangos));
+                        const response = await fetch(`${API_BASE}?action=actualizarRangosEnvio`, { method: 'POST', body: formData });
+                        const data = await response.json();
+                        if (!data.success) {
+                            Swal.showValidationMessage(data.error || 'No se pudieron guardar los rangos');
+                            return false;
+                        }
+                        return data;
+                    } catch (error) {
+                        console.error('Error al guardar rangos de envío:', error);
+                        Swal.showValidationMessage('No se pudo conectar con el servidor');
+                        return false;
+                    }
+                }
+            });
+
+            if (!resultado.isConfirmed) return;
+            const guardados = resultado.value.rangos || [];
+            Swal.fire({
+                icon: 'success',
+                title: '¡Rangos guardados!',
+                html: guardados.length > 0
+                    ? guardados.map(r => `${r.desde_formateado} – ${r.hasta_formateado}: <strong>${r.gratis ? 'envío gratis' : 'envío con costo'}</strong>`).join('<br>')
+                    : `Sin rangos: el envío es gratis desde <strong>${datos.envio_gratis_minimo_por_defecto_formateado}</strong>.`,
+                confirmButtonColor: '#023859'
+            });
+            cargarResumenEnvio();
         }
 
         // ==================== PUNTOS POR BONO ====================

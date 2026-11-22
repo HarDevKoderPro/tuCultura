@@ -114,9 +114,11 @@ function renderizarCarrito(carrito) {
     ? '<div class="envio-gratis-mensaje"><i class="fas fa-cloud-download-alt"></i> Producto digital: sin envío, se descarga tras el pago</div>'
     : carrito.costo_envio === 0
       ? '<div class="envio-gratis-mensaje"><i class="fas fa-truck"></i> ¡Envío GRATIS!</div>'
-      : `<div class="envio-gratis-mensaje" style="background: #fff3cd; color: #856404;">
+      : carrito.falta_envio_gratis > 0
+        ? `<div class="envio-gratis-mensaje" style="background: #fff3cd; color: #856404;">
              <i class="fas fa-truck"></i> Te faltan ${carrito.falta_envio_gratis_formateado} para envío gratis
-           </div>`;
+           </div>`
+        : "";
 
   container.innerHTML = `
         <div class="carrito-items">

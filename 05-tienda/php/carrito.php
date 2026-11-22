@@ -114,10 +114,13 @@ function verCarrito($conn) {
     }
 
     // Calcular totales: el envio (y el envio gratis) solo cuentan los productos fisicos
-    $costo_envio = costoEnvioFisicos((float)$subtotalFisico);
+    $rangosEnvio = rangosEnvio($conn);
+    $costo_envio = costoEnvioConRangos((float)$subtotalFisico, $rangosEnvio);
+    $faltaEnvioGratis = $cantidadFisicos > 0 ? faltaEnvioGratisConRangos((float)$subtotalFisico, $rangosEnvio) : 0;
+    $minimoEnvioGratis = minimoEnvioGratisConRangos($rangosEnvio);
     $impuestos = $subtotal * TIENDA_IVA;
     $total = $subtotal + $costo_envio + $impuestos;
-    
+
     jsonResponse([
         'success' => true,
         'carrito' => [
@@ -127,10 +130,10 @@ function verCarrito($conn) {
             'subtotal_formateado' => formatearPrecio($subtotal),
             'costo_envio' => $costo_envio,
             'costo_envio_formateado' => formatearPrecio($costo_envio),
-            'envio_gratis_minimo' => TIENDA_ENVIO_GRATIS_MINIMO,
-            'envio_gratis_minimo_formateado' => formatearPrecio(TIENDA_ENVIO_GRATIS_MINIMO),
-            'falta_envio_gratis' => $cantidadFisicos > 0 ? max(0, TIENDA_ENVIO_GRATIS_MINIMO - $subtotalFisico) : 0,
-            'falta_envio_gratis_formateado' => formatearPrecio($cantidadFisicos > 0 ? max(0, TIENDA_ENVIO_GRATIS_MINIMO - $subtotalFisico) : 0),
+            'envio_gratis_minimo' => $minimoEnvioGratis,
+            'envio_gratis_minimo_formateado' => formatearPrecio($minimoEnvioGratis),
+            'falta_envio_gratis' => $faltaEnvioGratis,
+            'falta_envio_gratis_formateado' => formatearPrecio($faltaEnvioGratis),
             'tiene_fisicos' => $cantidadFisicos > 0,
             'tiene_digitales' => $cantidadDigitales > 0,
             'solo_digital' => $cantidadDigitales > 0 && $cantidadFisicos === 0,

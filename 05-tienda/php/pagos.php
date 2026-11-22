@@ -381,7 +381,7 @@ function obtenerCarritoParaPago($conn, $usuarioId)
   $stmt->close();
 
   // El envio solo cuenta los productos fisicos
-  $costoEnvio = costoEnvioFisicos($subtotalFisico);
+  $costoEnvio = costoEnvioFisicos($subtotalFisico, $conn);
   $impuestos = $subtotal * (float)TIENDA_IVA;
   $total = $subtotal + $costoEnvio + $impuestos;
 

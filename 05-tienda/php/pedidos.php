@@ -190,7 +190,7 @@ function crearPedido($conn) {
     }
 
     // Calcular totales: el envio solo cuenta los productos fisicos
-    $costo_envio = costoEnvioFisicos((float)$subtotalFisico);
+    $costo_envio = costoEnvioFisicos((float)$subtotalFisico, $conn);
     $impuestos = $subtotal * TIENDA_IVA;
     $total = $subtotal + $costo_envio + $impuestos;
     

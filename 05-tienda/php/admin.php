@@ -106,6 +106,12 @@ switch ($action) {
     case 'actualizarRangosPuntos':
         actualizarRangosPuntos($conn);
         break;
+    case 'obtenerRangosEnvio':
+        obtenerRangosEnvioAdmin($conn);
+        break;
+    case 'actualizarRangosEnvio':
+        actualizarRangosEnvioAdmin($conn);
+        break;
     case 'obtenerPuntosPorBono':
         obtenerPuntosPorBonoAdmin($conn);
         break;
@@ -381,6 +387,71 @@ function actualizarRangosPuntos($conn) {
         ]);
     } else {
         jsonResponse(['error' => 'Error al guardar los rangos de puntos'], 500);
+    }
+}
+
+/**
+ * Rangos de envio [[desde, hasta, gratis], ...] como filas para el frontend.
+ */
+function formatearRangosEnvio($rangos) {
+    $filas = [];
+    foreach ($rangos as $r) {
+        $filas[] = [
+            'desde' => $r[0],
+            'hasta' => $r[1],
+            'gratis' => (bool)$r[2],
+            'desde_formateado' => formatearPrecio($r[0]),
+            'hasta_formateado' => $r[1] === null ? 'Sin límite' : formatearPrecio($r[1])
+        ];
+    }
+    return $filas;
+}
+
+/**
+ * Endpoint: rangos del valor de los productos fisicos en los que el envio es gratis (o no).
+ * Sin rangos rige la regla de siempre (gratis desde TIENDA_ENVIO_GRATIS_MINIMO, config.php).
+ */
+function obtenerRangosEnvioAdmin($conn) {
+    jsonResponse([
+        'success' => true,
+        'rangos' => formatearRangosEnvio(rangosEnvio($conn)),
+        'costo_envio' => (float)TIENDA_COSTO_ENVIO_BASE,
+        'costo_envio_formateado' => formatearPrecio(TIENDA_COSTO_ENVIO_BASE),
+        'envio_gratis_minimo_por_defecto' => (float)TIENDA_ENVIO_GRATIS_MINIMO,
+        'envio_gratis_minimo_por_defecto_formateado' => formatearPrecio(TIENDA_ENVIO_GRATIS_MINIMO),
+        'maximo_rangos' => ENVIO_RANGOS_MAXIMO
+    ]);
+}
+
+/**
+ * Endpoint: Guardar los rangos de envio (POST rangos = JSON [{desde, hasta, gratis}, ...]; []
+ * los borra y vuelve la regla de siempre). Aplica a los carritos y pedidos nuevos.
+ */
+function actualizarRangosEnvioAdmin($conn) {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(['error' => 'Metodo no permitido'], 405);
+    }
+    $entrada = isset($_POST['rangos']) ? json_decode((string)$_POST['rangos'], true) : null;
+    $validacion = validarRangosEnvio($entrada);
+    if (isset($validacion['error'])) {
+        jsonResponse(['error' => $validacion['error']], 400);
+    }
+
+    $json = json_encode($validacion['rangos']);
+    if (strlen($json) > 255) {
+        jsonResponse(['error' => 'Demasiados rangos para guardar; reduzca la cantidad'], 400);
+    }
+
+    if (actualizarConfiguracion($conn, 'envio_rangos', $json)) {
+        jsonResponse([
+            'success' => true,
+            'mensaje' => count($validacion['rangos']) > 0
+                ? 'Rangos de envío actualizados'
+                : 'Rangos eliminados: rige la regla de siempre (gratis desde ' . formatearPrecio(TIENDA_ENVIO_GRATIS_MINIMO) . ')',
+            'rangos' => formatearRangosEnvio($validacion['rangos'])
+        ]);
+    } else {
+        jsonResponse(['error' => 'Error al guardar los rangos de envío'], 500);
     }
 }
 
